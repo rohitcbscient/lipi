@@ -1,0 +1,8 @@
+setup.py
+mhd/__init__.py
+mhd.egg-info/PKG-INFO
+mhd.egg-info/SOURCES.txt
+mhd.egg-info/dependency_links.txt
+mhd.egg-info/not-zip-safe
+mhd.egg-info/requires.txt
+mhd.egg-info/top_level.txt
