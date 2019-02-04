@@ -27,5 +27,40 @@ def radec_array(header,n,data):
         ra_dec=np.meshgrid(ra,dec)
         return ra_dec
 
+def makeGaussian(size, fwhmx, fwhmy , center=None):
+    """ Make a square gaussian kernel.
+    size is the length of a side of the square
+    fwhm is full-width-half-maximum, which
+    can be thought of as an effective radius.
+    """
+    x = np.arange(0, size, 1, float)
+    y = x[:,np.newaxis]
+    if center is None:
+        x0 = y0 = size // 2
+    else:
+        x0 = center[0]
+        y0 = center[1]
+    return np.exp(-1*((x-x0)**2)/fwhmx**2) * np.exp(-1*((y-y0)**2) / fwhmy**2)
 
+def flux2Tb(flux,bmaj,bmin,nu):
+    '''
+    Input: flux (SFU/beam), beam size (bmaj in arcsec), bmin (arcsec), frequency (GHz)
+    Output: Brightness temperature (K)
+    cmd: flux2Tb(flux,bmaj,bmin,nu)
+    Ref: https://science.nrao.edu/facilities/vla/proposing/TBconv
+    '''
+    Tb=1222*(flux*1.e7)/(nu*nu*bmaj*bmin)
+    return Tb
+
+
+def Tb2flux(Tb,bmaj,bmin,nu):
+    '''
+    Input:  Brightness temperature (K), beam size (bmaj in arcsec), bmin (arcsec), frequency (GHz)
+    Output: Flux (Jy/beam)
+    cmd: flux2Tb(flux,bmaj,bmin,nu)
+    Ref: https://science.nrao.edu/facilities/vla/proposing/TBconv
+    '''
+    f=Tb*(nu*nu*bmaj*bmin)/1222
+    f=f/1.e7 # mJy ---> SFU
+    return f
 

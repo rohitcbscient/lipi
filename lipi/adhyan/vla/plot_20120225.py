@@ -19,6 +19,6 @@ def euv_vla(cmap,vlasubmap,xl,xr,yl,yr):
 if __name__=='__main__':
     main();
 else:
-    print 'particle analysis code'
+    print 'plotting module for 20120225....'
 
 
