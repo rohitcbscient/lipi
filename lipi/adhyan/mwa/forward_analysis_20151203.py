@@ -79,6 +79,10 @@ beam_101MHz=ut.makeGaussian(60, fwhmx_100MHz, fwhmy_100MHz , center=None)
 beam_160MHz=ut.makeGaussian(60, fwhmx_160MHz, fwhmy_160MHz , center=None)
 beam_240MHz=ut.makeGaussian(60, fwhmx_240MHz, fwhmy_240MHz , center=None)
 
+#beam_101MHz=beam_101MHz/np.sum(beam_101MHz)
+#beam_160MHz=beam_160MHz/np.sum(beam_160MHz)
+#beam_240MHz=beam_240MHz/np.sum(beam_240MHz)
+
 I_100MHz_convolved = signal.convolve(I_100MHz,beam_101MHz, mode='same')/np.sum(beam_101MHz)
 I_160MHz_convolved = signal.convolve(I_160MHz,beam_160MHz, mode='same')/np.sum(beam_160MHz)
 I_240MHz_convolved = signal.convolve(I_240MHz,beam_240MHz, mode='same')/np.sum(beam_240MHz)
@@ -163,7 +167,7 @@ if(plot_fluxes==1):
     plt.xlim([100,250])
     plt.show()
 
-plot_composite=0
+plot_composite=1
 if(plot_composite==1):
     levels_=[0.3,0.4,0.5,0.6,0.7,0.8,0.9]
     f, ax = plt.subplots(2, 3, figsize=(20,10),sharex=True)

@@ -2,6 +2,13 @@ from surya.utils import main as ut
 from scipy.io import readsav
 import numpy as np
 
+def get_time_idx(ts_,te_,array):
+    ts=ut.hms2sec_c(ts_)
+    te=ut.hms2sec_c(te_)
+    idxs=ut.find_nearest(array,ts)[0]
+    idxe=ut.find_nearest(array,te)[0]
+    return idxs,idxe
+
 def read_submap(f,ff):
     data_=readsav(f)
     data=data_['submap'+str(ff)]
@@ -22,15 +29,17 @@ def get_submap(aiafile,res,w):
     xraia_,yraia_=xaia+res*aiamap[0].shape[0]/2,yaia+res*aiamap[0].shape[1]/2
     xarrayaia=np.linspace(xlaia_,xraia_,aiamap[0].shape[0])
     yarrayaia=np.linspace(ylaia_,yraia_,aiamap[0].shape[1])
-    return aiamap,xarrayaia,yarrayaia
+    return aiamap,xarrayaia,yarrayaia,aiats,aiatime
 
 def get_submap_all(aialist,wav):
     aiam=[0]*len(wav)
+    aiats=[0]*len(wav)
+    aiate=[0]*len(wav)
     i=0
     for w in wav:
-        aiam[i]=read_submap(aialist[i],w)[0]
+        aiam[i],aiats[i],aiate[i],xarray,yarray=read_submap(aialist[i],w)
         i=i+1
-    return aiam
+    return aiam,aiats,aiate
 
 
 def get_nearest(xl,xr,yl,yr,xarrayaia,yarrayaia):
@@ -39,11 +48,11 @@ def get_nearest(xl,xr,yl,yr,xarrayaia,yarrayaia):
     return xlaia,xraia,ylaia,yraia
 
 def get_submap_crop(aiafile,res,w,xl,xr,yl,yr):
-    aiamap,xarrayaia,yarrayaia=get_submap(aiafile,res,w)
+    aiamap,xarrayaia,yarrayaia,aiats,aiate=get_submap(aiafile,res,w)
     xlaia,xraia,ylaia,yraia=get_nearest(xl,xr,yl,yr,xarrayaia,yarrayaia)
     n=len(aiamap)
     cmap=[0]*n
     for i in range(n):
         cmap[i]=aiamap[i][ylaia:yraia,xlaia:xraia]
-    return cmap
+    return cmap,aiats,aiate
 
