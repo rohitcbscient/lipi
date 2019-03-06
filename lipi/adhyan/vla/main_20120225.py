@@ -1,9 +1,10 @@
 from surya.utils import main as ut
+from surya.plot import visual as vs
 from surya.aia import main as aia
 from surya.vla import main as vla
+from surya.hmi import main as hmi
 from surya.rhessi import main as rh
 from surya.plot import movie as mov
-from surya.plot import visual as vs
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
@@ -47,17 +48,43 @@ rhres=1.0 # in arcsec
 xrh,yrh,rhsize=480,363,129
 rhsubmap_high,rhsubmap_low,rh_tsec=rh.get_submap(rh_file,rhessi_time,xrh,yrh,rhsize,rhres,xl,xr,yl,yr)
 
+###################### HMI
+hmifile='/home/i4ds1807205/vla_data/20120225/hmi/hmi.m_45s.2012.02.25_20_51_45_TAI.magnetogram.fits'
+#hmifile='/home/i4ds1807205/Downloads/try.fits'
+#hmidata=hmi.get_submap(hmifile,xl,xr,yl,yr)
+hmidata=hmi.get_submap_(hmifile,430,540,300,410)
+from sunpy.map import Map
+import astropy.units as u
+rhh,rhd=ut.read_fits(rh_file)
+rh=Map(rhd[10][0],rhh)
+fig = plt.figure()
+#hmidata_r=hmidata.rotate(180*u.degree)
+hmi_=Map(hmifile)
+ax = plt.subplot(projection=hmi_)
+hmi_.plot(axes=ax,aspect='auto')
+plt.xlim([4000,0])
+plt.ylim([4000,0])
+#rh.draw_contours(levels=np.linspace(0,90,10)*u.percent,axes=ax)
+#ax.plot([160,170,180],[160,170,180],'o')
+plt.show()
 
+sys.exit()
 ###################### VLA
 
-t='20:47:09~20:47:10'
+
+tstart_vla='20:46:00'
+tend_vla='20:50:00'
+
+#t='20:47:09~20:47:10'
 spw=['5','6','7']
 pix=2.5
 dec=-9.13056
 x_offset,y_offset=vla.get_offset(dec)
 vlapath='/media/rohit/VLA/20120225_sub/fits/'
+#vlapath='/media/rohit/VLA/20120225_cube/'
 filelist=sorted(glob.glob(vlapath+'hcs*.FITS'))
 lev=[0.5,0.6,0.7,0.8,0.9]
+lev=[0.7,0.8,0.9]
 vlasubmap=[0]*len(filelist)
 xc_mean=[0]*len(filelist)
 yc_mean=[0]*len(filelist)
@@ -90,16 +117,33 @@ if(os.path.isfile(vlapath+'/centroid_20120225.p')==False):
         yc_std[ss]=yc.std(axis=0)
         ss=ss+1
     vlasubmap=np.array(vlasubmap)
-    vlasubmap=vlasubmap.reshape(3,223,32,vlasubmap.shape[2],vlasubmap.shape[3]).swapaxes(0,1).reshape(223,96,vlasubmap.shape[2],vlasubmap.shape[3])
+    tt=int(vlasubmap.shape[0]/3)
+    vlasubmap=vlasubmap.reshape(3,tt,32,vlasubmap.shape[2],vlasubmap.shape[3]).swapaxes(0,1).reshape(tt,96,vlasubmap.shape[2],vlasubmap.shape[3])
     xc_mean=np.array(xc_mean)
-    xc_mean=xc_mean.reshape(3,223,32).swapaxes(0,1).reshape(223,96)
+    xc_mean=xc_mean.reshape(3,tt,32).swapaxes(0,1).reshape(tt,96)
     yc_mean=np.array(yc_mean)
-    yc_mean=yc_mean.reshape(3,223,32).swapaxes(0,1).reshape(223,96)
-    vlatsec=np.array(vlatsec).reshape(3,223)
+    yc_mean=yc_mean.reshape(3,tt,32).swapaxes(0,1).reshape(tt,96)
+    vlatsec=np.array(vlatsec).reshape(3,tt)
     freq=1700+4*np.arange(96) # Frequencies are always from low to high 0-->32
     pickle.dump([vlasubmap,xc_mean,yc_mean,freq,vlatsec,vlat],open(vlapath+'/centroid_20120225.p','wb'))
 
+
+plot_check_cent=0
+if(plot_check_cent):
+    vlasubvs='/media/rohit/VLA/20120225_sub/fits/'
+    fsub=open(vlasubvs+'/centroid_20120225.p','rb')
+    subvs_cent=pickle.load(fsub)
+    fsub.close()
+    vlacube='/media/rohit/VLA/20120225_cube/'
+    fcube=open(vlacube+'/centroid_20120225.p','rb')
+    cube_cent=pickle.load(fcube)
+    fcube.close()
+    plt.plot(subvs_cent[1][68,:],subvs_cent[2][68,:],'o-')
+    plt.plot(cube_cent[1][66,:],cube_cent[2][66,:],'o-')
+    plt.show()
+
 vlasubmap,xc_mean,yc_mean,freq,vlatsec,vlat=pickle.load(open(vlapath+'/centroid_20120225.p','r'))
+tt=int(vlasubmap.shape[0])
 bmaj=np.concatenate((np.ones(96)*19.68,np.ones(96)*18.40,np.ones(96)*17.08),axis=0)
 bmin=np.concatenate((np.ones(96)*12.30,np.ones(96)*11.46,np.ones(96)*10.69),axis=0)
 
@@ -111,29 +155,43 @@ for i in range(vlasubmap.shape[0]):
     Tb[i]=[0]*vlasubmap.shape[1]
     Tb1[i]=[0]*vlasubmap.shape[1]
     for j in range(vlasubmap.shape[1]):
-        Tb[i][j]=ut.flux2Tb(vlasubmap[i,j]*1.e-4,bmaj[j],bmin[j],freq[j]/1000.)*100 # Attenuation = 100
+        Tb[i][j]=ut.flux2Tb(vlasubmap[i,j]*1.e-4,bmaj[j],bmin[j],freq[j]/1000.)*100+1.e6 # Attenuation = 100
         Tb1[i][j]=np.mean(Tb[i][j][region1])
 Tb=np.array(Tb)
 Tb1=np.array(Tb1)
-cent_refx,cent_refy=484,350
-rc_mean=np.sqrt((xc_mean-cent_refx*np.ones((223,96)))**2 + (yc_mean-cent_refy*np.ones((223,96)))**2)
+Tb[85]=np.nan
+Tb1[85]=np.nan
+Tb[197]=np.nan
+Tb1[197]=np.nan
 
-sys.exit()
+cent_refx,cent_refy=484,350
+rc_mean=np.sqrt((xc_mean-cent_refx*np.ones((tt,96)))**2 + (yc_mean-cent_refy*np.ones((tt,96)))**2)
+rc_mean[85]=np.nan
+rc_mean[197]=np.nan
+
 
 ## Plotting
 #pl.euv_vla(cmap,vlasubmap[-1],xl,xr,yl,yr)
+#pl.goes_vla_line_plot()
+#pl.rhessi_vla_line_plot()
+#pl.plot_ds()
+#pl.Tb(Tb1.mean(axis=1),rc_mean.swapaxes(0,1),Tb1.swapaxes(0,1)/1.e6,freq)
+lev_all=np.linspace(0.3,0.9,1)
+pl.composite_map(hmidata,cmap_all,lev_all,430,540,300,410)
+#pl.composite_map(hmidata,cmap_all,lev_all,xl,xr,yl,yr)
+sys.exit()
 
 pngfiles=[0]*len(vlatsec[0])
 for i in range(len(vlatsec[0])):
-    i=68
     ii="%03d" %i 
-    pngfiles[i]=vlapath+'../png/'+'subvis_rh'+ii+'.png'
+    pngfiles[i]=vlapath+'../png/'+'cube_rh'+ii+'.png'
+    pngfiles[i]='/media/rohit/VLA/20120225_sub/png/'+'cube_rh'+ii+'.png'
     aia_j=ut.find_predecessor(aiatsec,vlatsec[0][i])[0]
     rh_j=ut.find_predecessor(rh_tsec,vlatsec[0][i])[0]
     title='AIA: '+aiatstring[aia_j]+' VLA:'+vlat[i]+' RH:'+rhessi_time[rh_j]
     rh_norm_low=rhsubmap_low[rh_j]/np.max(rhsubmap_low[rh_j])
     rh_norm_high=rhsubmap_high[rh_j]/np.max(rhsubmap_high[rh_j])
-    rhlev=[0.65,0.75,0.85,0.95]
+    rhlev=[0.55,0.75,0.85,0.95]
     pl.euv_vla_rhessi_qs_centroids(cmap[aia_j],vlasubmap[i],rh_norm_low,rh_norm_high,rhlev,freq[::-1],xc_mean[i],yc_mean[i],xl,xr,yl,yr,21,13,-60,title)
     #pl.euv_vla_qs_centroids(cmap[j],vlasubmap[i],freq,xc_mean[i],yc_mean[i],xl,xr,yl,yr,21,13,-60,title)
     #plt.savefig(pngfiles[i],dpi=40)
@@ -141,7 +199,7 @@ for i in range(len(vlatsec[0])):
 
 pngfiles.remove(pngfiles[85])
 pngfiles.remove(pngfiles[196])
-#mov.write_imagero(pngfiles,vlapath+'../subvis_rh_20120225.gif',20)
+#mov.write_imagero(pngfiles,'/media/rohit/VLA/20120225_sub/cube_rh_20120225.gif',20)
 
 #vs.xyz_line_plot(vlasubmap[70],freq,xc_mean[70],yc_mean[70],xl,xr,yl,yr,'')
 
