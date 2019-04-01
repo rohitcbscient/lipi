@@ -3,6 +3,8 @@ from surya.utils import main as ut
 from sunpy.map import Map
 import astropy.units as u
 from astropy.coordinates import SkyCoord
+from astropy.wcs import WCS
+from astropy.wcs.utils import skycoord_to_pixel as sp
 
 def get_submap(f,xl,xr,yl,yr):
     h,d=ut.read_fits(f)
@@ -22,11 +24,15 @@ def get_submap(f,xl,xr,yl,yr):
 
 def get_submap_(f,xl,xr,yl,yr):
     h,d=ut.read_fits(f)
+    w=WCS(f)
     mymap=Map(f)
     xcor=[xl,xr]*u.arcsec
     ycor=[yl,yr]*u.arcsec
     bl=SkyCoord(xl*u.arcsec, yl*u.arcsec, frame=mymap.coordinate_frame)
     tr=SkyCoord(xr*u.arcsec, yr*u.arcsec, frame=mymap.coordinate_frame)
     submap=mymap.submap(bl,tr)
-    return submap
+    xlpix,ylpix=sp(bl,w)
+    xrpix,yrpix=sp(tr,w)
+    print xlpix,ylpix,xrpix,yrpix
+    return submap,xlpix,ylpix,xrpix,yrpix
 
