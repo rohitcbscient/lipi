@@ -33,6 +33,7 @@ def get_amp_phase(vis_,n0,n1,nspw):
 #ap02=get_amp_phase(vis,0,2,8)        
 #ap03=get_amp_phase(vis,1,2,8)        
 #ap03=get_amp_phase(vis,1,2,8)        
+#ap03=get_amp_phase(vis,1,2,8)        
 
 
 
