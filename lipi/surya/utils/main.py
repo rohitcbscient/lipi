@@ -3,6 +3,15 @@ from scipy.io import readsav
 from astropy.io import fits
 import cv2
 
+def rad2asec(rad):
+    '''
+    INPUT
+    In radians
+    OUTPUT
+    arcsec
+    '''
+    return rad*(180.0*3600/(np.pi))
+
 def hms2sec_c(time):
     sec=int(time.split(' ')[1].split(':')[0])*3600+int(time.split(' ')[1].split(':')[1])*60+float(time.split(' ')[1].split(':')[2])
     return sec
@@ -64,7 +73,7 @@ def flux2Tb(flux,bmaj,bmin,nu):
 def Tb2flux(Tb,bmaj,bmin,nu):
     '''
     Input:  Brightness temperature (K), beam size (bmaj in arcsec), bmin (arcsec), frequency (GHz)
-    Output: Flux (Jy/beam)
+    Output: Flux (SFU/beam)
     cmd: flux2Tb(flux,bmaj,bmin,nu)
     Ref: https://science.nrao.edu/facilities/vla/proposing/TBconv
     '''
@@ -94,7 +103,7 @@ def fitEllipse(data): # Data = binarized array
     return xc,yc,w,l,angle
 
 def get_bimage(data,lev):
-        ndata=data/np.min(abs(data))
+        ndata=data/np.min(abs(data[data!=0]))
         ndata1=cv2.cvtColor(ndata.astype(np.float32),cv2.COLOR_GRAY2BGR)
         ndata2=cv2.cvtColor(ndata1, cv2.COLOR_BGR2GRAY)
         ret,bimage = cv2.threshold(ndata2,np.max(ndata2)*lev,np.max(ndata2),cv2.THRESH_BINARY)

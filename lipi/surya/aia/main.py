@@ -2,12 +2,16 @@ from surya.utils import main as ut
 from scipy.io import readsav
 import numpy as np
 
+
+
+
 def get_time_idx(ts_,te_,array):
     ts=ut.hms2sec_c(ts_)
     te=ut.hms2sec_c(te_)
     idxs=ut.find_nearest(array,ts)[0]
     idxe=ut.find_nearest(array,te)[0]
     return idxs,idxe
+
 
 def read_submap(f,ff):
     data_=readsav(f)

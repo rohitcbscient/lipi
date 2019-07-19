@@ -3,13 +3,16 @@ from matplotlib import patches
 import numpy as np
 
 
-def make_circle(x,y,res,xshape,s):
+def make_circle(axx,x,y,res,xshape,s):
+    '''
+    axx: axis
+    x: x-coordinate in 0,1 values
+    s: radius in arcsec
+    '''
     r=(s*60.0/res)*(1.0/xshape)
-    print(r)
-    fig=plt.figure(1)
-    ax=fig.add_subplot(1,1,1)
-    circ=plt.Circle((x,y), radius=r, color='black', fill=False,transform=ax.transAxes)
-    ax.add_patch(circ)
+    #axx=fig.add_subplot(1,1,1)
+    circ=plt.Circle((x,y), radius=r, color='red', linewidth=3,fill=False,transform=axx.transAxes)
+    axx.add_patch(circ)
 
 def add_beam(ax,xcenter,ycenter,width, height,angle):
 	theta = np.arange(0.0, 360.0, 1.0)*np.pi/180.0

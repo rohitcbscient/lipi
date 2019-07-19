@@ -5,6 +5,7 @@ from scipy.io import readsav
 import pickle
 from scipy import signal
 from surya.utils import main as ut
+from surya.utils import model as md
 import glob
 
 def get_forward(list_):
@@ -23,14 +24,16 @@ def get_forward(list_):
         ll=ll+1
     return freq,flux,Tb
 
-dir_='/home/i4ds1807205/20151203/'
+dir_='/home/i4ds1807205/20151203/images_all/'
 data_100MHz=pickle.load(open(dir_+'Tb_1133149192-084-085.p','r'))
+
 data_160MHz=pickle.load(open(dir_+'Tb_1133149192-125-126.p','r'))
 data_240MHz=pickle.load(open(dir_+'Tb_1133149192-187-188.p','r'))
 
-mwa_100MHz=np.mean(np.array(data_100MHz[0]),axis=0)
-mwa_160MHz=np.mean(np.array(data_160MHz[0]),axis=0)
-mwa_240MHz=np.mean(np.array(data_240MHz[0])[:-2,:,:],axis=0)
+
+mwa_100MHz=np.mean(np.array(data_100MHz[0][0:577]),axis=0)
+mwa_160MHz=np.mean(np.array(data_160MHz[0][0:577]),axis=0)
+mwa_240MHz=np.mean(np.array(data_240MHz[0][0:577]),axis=0)
 
 bmin_100MHz=data_100MHz[3]*60 # In arcmin
 bmax_100MHz=data_100MHz[4]*60 # In arcmin
@@ -39,16 +42,108 @@ bmax_160MHz=data_160MHz[4]*60 # In arcmin
 bmin_240MHz=data_240MHz[3]*60 # In arcmin
 bmax_240MHz=data_240MHz[4]*60 # In arcmin
 
-flist=[108,120,132,145,161,179,196,217,240]
-mwa_flux=[2.52,3.45,4.50,5.49,6.59,8.32,11.52,16.0,18.64]
-emwa_flux=[0.34,0.38,1.30,0.57,0.68,0.86,1.19,1.64,1.93]
+flist=[108,120,132,145,160,179,196,217,240]
+flabel=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+base=['000-008','000-009','000-010','008-009','008-010','009-010']
+mwa_flux=[0]*len(base)
+i=0
+for b in base:
+    print b
+    mwa_flux[i]=[0]*len(flabel)
+    j=0
+    for f in flabel:
+        d=pickle.load(open('/home/i4ds1807205/20151203/pickle/flux_V1_1133149192-%b'+str(f)+'_T'+str(b)+'.p','rb'))
+        d_=d[17][3][0][np.isfinite(d[17][3][0])]
+        mwa_flux[i][j]=np.mean(d_)
+        #print mwa_flux[i][j]
+        j=j+1
+    i=i+1
 
-list_=sorted(glob.glob(dir_+'*psimas.sav'))
+emwa_flux=np.std(np.array(mwa_flux),axis=0)
+mwa_flux=np.mean(np.array(mwa_flux),axis=0)
+
+
+Tb_all=[0]*len(flabel)
+bmin=[0]*len(flabel)
+bmax=[0]*len(flabel)
+Tb_fwd=[0]*len(flabel)
+tau=[0]*len(flabel)
+h=[0]*len(flabel)
+hkm=[0]*len(flabel)
+Tb_convolved=[0]*len(flabel)
+flux_fwd=[0]*len(flabel)
+flux_mwa=[0]*len(flabel)
+k=0
+for f in flabel:
+    data=pickle.load(open(dir_+'Tb_1133149192-'+f+'.p','r'))
+    Tb_all[k]=data[0][0:577]
+    bmin[k]=data[3]*60
+    bmax[k]=data[4]*60
+    forward=readsav('/home/i4ds1807205/20151203/20151203_'+str(flist[k])+'MHz_psimas.sav')
+    Tb_fwd[k]=forward['stokesstruct'][0][0]
+    ### CONVOLUTION
+    forward_dx=forward['quantmap'][0][3]*16*60 # In arcsec
+    forward_dy=forward['quantmap'][0][4]*16*60 # In arcsec; originally in Rsun
+    fwdx=forward['quantmap'][0][3]*16*60 # Rsun to arcsec
+    fwdy=forward['quantmap'][0][4]*16*60 
+    fwhmx=int(bmin[k]*60/forward_dx)
+    fwhmy=int(bmax[k]*60/forward_dy)
+    beam=ut.makeGaussian(60, fwhmx, fwhmy, center=None)
+    Tb_convolved[k] = signal.convolve(Tb_fwd[k],beam, mode='same')/np.sum(beam)
+    size=fwdx#*Tb_fwd[k].shape[0]
+    flux_fwd[k]=ut.Tb2flux(Tb_convolved[k], size, size, flist[k]/1000.)
+    flux_mwa[k]=Tb_all[k][0]*mwa_flux[k]/np.sum(Tb_all[k][0])#ut.Tb2flux(Tb_all[k][0], 50, 50, flist[k]/1000.)
+    ###
+    tau[k]=np.log((Tb_fwd[k].max()/np.max(Tb_all[k],axis=(1,2)))-1)
+    print np.max(Tb_fwd[k]),np.max(Tb_all[k]),np.std(Tb_all[k]),np.mean(tau[k]),np.std(tau[k])
+    h[k]=md.nk_freq2r(flist[k],1)[0]
+    hkm[k]=(h[k]-1)*3.e5
+    k=k+1
+
+Tb_fwd=np.array(Tb_fwd)
+Tb_all=np.array(Tb_all)
+
+plot_ratio=0
+if(plot_ratio):
+    plt.plot(flist,np.mean(Tb_fwd,axis=(1,2))/np.mean(Tb_all,axis=(1,2,3)),'o-')
+    plt.errorbar(flist,np.mean(Tb_fwd,axis=(1,2))/np.mean(Tb_all,axis=(1,2,3)),yerr=np.std(Tb_all,axis=(1,2,3))/np.max(Tb_all)+np.std(Tb_fwd,axis=(1,2))/np.max(Tb_fwd))
+    plt.title('Ratio of Mean Forward T$_{B}$ and Observed T$_{B}$')
+    plt.xlabel('Frequency (MHz)')
+    plt.ylabel('Ratio')
+    plt.show()
+
+diffpos=[0]*len(flabel)    
+xpos_fwd=[0]*len(flabel)    
+ypos_fwd=[0]*len(flabel)    
+xpos_mwa=[0]*len(flabel)    
+ypos_mwa=[0]*len(flabel)    
+for i in range(9):
+    p0=np.array(np.where(Tb_fwd[i]==np.max(Tb_fwd[i])))*22.5
+    p1=np.array(np.where(Tb_all[i][0]==np.max(Tb_all[i][0])))*50
+    xpos_fwd[i]=p0[0][0]-128*22.5    
+    ypos_fwd[i]=p0[1][0]-128*22.5
+    xpos_mwa[i]=p1[0][0]-50*50.
+    ypos_mwa[i]=p1[1][0]-50*50.
+    diffpos[i]=np.sqrt((xpos_mwa[i]-xpos_fwd[i])**2 + (ypos_mwa[i]-ypos_fwd[i])**2)/60.
+    
+
+plot_deviation=0
+if(plot_deviation):
+    plt.plot(flist,diffpos,'o-')
+    plt.errorbar(flist,diffpos,yerr=bmax)
+    plt.title('')
+    plt.ylabel('Radial distance (arcmin)')
+    plt.xlabel('Frequency (MHz)')
+    plt.show()
+#mwa_flux=[2.52,3.45,4.50,5.49,6.59,8.32,11.52,16.0,18.64]
+#emwa_flux=[0.34,0.38,1.30,0.57,0.68,0.86,1.19,1.64,1.93]
+
+list_=sorted(glob.glob('/home/i4ds1807205/20151203/*psimas.sav'))
 fall,fluxall,Tball=get_forward(list_)
 
-forward_100MHz=readsav(dir_+'20151203_100MHz_psimas.sav')
-forward_160MHz=readsav(dir_+'20151203_160MHz_psimas.sav')
-forward_240MHz=readsav(dir_+'20151203_240MHz_psimas.sav')
+forward_100MHz=readsav('/home/i4ds1807205/20151203/20151203_100MHz_psimas.sav')
+forward_160MHz=readsav('/home/i4ds1807205/20151203/20151203_160MHz_psimas.sav')
+forward_240MHz=readsav('/home/i4ds1807205/20151203/20151203_240MHz_psimas.sav')
 
 pres=forward_100MHz['modsolstruct'][0][0]
 dens=forward_100MHz['modsolstruct'][0][1]
@@ -146,6 +241,44 @@ print 160,mwa_flux[4],np.sqrt(len(np.where(mwa_160MHz!=0)[0]))*50/60
 print 240,mwa_flux[-1],np.sqrt(len(np.where(mwa_240MHz!=0)[0]))*50/60
 
 
+r=np.linspace(1,215,10000) # Units: Rsun
+ne_nk=(4.2*10**(4+(4.32/r))) # Unit: cm^{-3}
+ne_nk4=4*ne_nk
+ne_st=(1.36e12*(1/r**2.14)+1.68e14*(1/r**6.13))*1.0e-6 # Unit: cm^{-3}
+ne_st10=10*ne_st
+Rsun=6.957e5 # km
+
+f=240 # in MHz
+f=f*1.e6
+e=1.9e-19
+eps0=8.85e-12
+me=9.1e-31
+#ompe=np.sqrt((e*e*ne_nk*1.e6)/(eps0*me))
+#fpe=ompe/(2*np.pi)
+fpe=9000*np.sqrt(ne_nk)
+frac=fpe**4 /(f*f-fpe*fpe)**2
+
+dr=r[1]-r[0]
+epsbyh=np.linspace(4.5,7.0,50)*1.e-5*(Rsun)
+tau=[0]*len(epsbyh)
+for j in range(len(epsbyh)):
+    tau[j]=[0]*len(r)
+    for i in range(len(r)):
+        tau[j][i]=np.sum(frac[i:]*(dr)*epsbyh[j])*(0.5*np.sqrt(np.pi))
+        #tau[j][i]=np.sum((dr*(len(r)-i)))*(0.5*np.sqrt(np.pi))
+
+plot_tau=0
+if(plot_tau==1):        
+    for j in range(len(epsbyh)):
+        plt.plot(r,tau[j])
+    plt.axhline(y=1,color='k')
+    plt.xlabel('Heliocentric distance (R$_{sun}$)')
+    plt.ylabel('$\\tau$')
+    plt.title('For 40 MHz')
+    #plt.xlim([1.7,2.7])
+    plt.show()
+
+
 plot_mlab=0
 if(plot_mlab==1):
     z,x,y=np.mgrid[0:2:3j,-2500:2500:100j,-2500:2500:100j]
@@ -156,18 +289,49 @@ if(plot_mlab==1):
 ############### PLOT
 plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
 
-plot_fluxes=0
+plot_fluxes=1
 if(plot_fluxes==1):
     plt.plot(fall,np.array(fluxall),'o-',color='red',label='FORWARD')
     plt.errorbar(flist,mwa_flux,emwa_flux,color='blue')
     plt.plot(flist,mwa_flux,'o',color='blue',label='MWA')
     plt.xlabel('Frequency (MHz)')
     plt.ylabel('Flux (SFU)')
-    plt.legend()
+    plt.legend(loc=2)
     plt.xlim([100,250])
     plt.show()
 
-plot_composite=1
+import abel
+CartImage = Tb_all[-1][0]
+#CartImage = CartImage.astype('float64')
+#PolarImage, r_grid, theta_grid = abel.tools.polar.reproject_image_into_polar(CartImage)
+lev=np.linspace(0.1,0.9,10)
+flux_bimage=[0]*9
+fw_bimage=[0]*9
+for i in range(9):
+    flux_bimage[i]=[0]*10
+    fw_bimage[i]=[0]*10
+    for j in range(10):
+        flux_bimage[i][j]=flux_mwa[i]*ut.get_bimage(flux_mwa[i],lev[j])
+        fw_bimage[i][j]=flux_fwd[i]*ut.get_bimage(flux_fwd[i],lev[j])
+
+flux_bimage=np.array(flux_bimage)
+fw_bimage=np.array(fw_bimage)
+flux_bimage_sum=np.sum(flux_bimage,axis=(2,3))
+fw_bimage_sum=np.sum(fw_bimage,axis=(2,3))
+
+plot_flux_resolve=1
+if(plot_flux_resolve):
+    for i in range(9):
+        plt.plot(np.linspace(0.1,0.9,10),flux_bimage_sum[i],'o-',label='MWA')
+        plt.plot(np.linspace(0.1,0.9,10),fw_bimage_sum[i],'o-',label='FORWARD')
+        plt.errorbar(np.linspace(0.1,0.9,10),flux_bimage_sum[i],yerr=np.ones(10)*emwa_flux[i])
+        plt.legend()
+        plt.xlabel('Contours levels (%)')
+        plt.ylabel('Flux (SFU)')
+        plt.title(str(flist[i])+' MHz')
+        plt.show()
+
+plot_composite=0
 if(plot_composite==1):
     levels_=[0.3,0.4,0.5,0.6,0.7,0.8,0.9]
     f, ax = plt.subplots(2, 3, figsize=(20,10),sharex=True)
@@ -175,9 +339,9 @@ if(plot_composite==1):
     f.colorbar(im00,ax=ax[0,0],label='T$_{B}$(MK)')
     ax[0,0].contour(mwa_100MHz/np.max(mwa_100MHz),levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
     ax[0,0].set_title('100 MHz')
-    im10=ax[1,0].imshow(I_100MHz_convolved/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440,1440,-1440,1440],origin=True)
+    im10=ax[1,0].imshow(I_100MHz_convolved/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440*2,1440*2,-1440*2,1440*2],origin=True)
     f.colorbar(im10,ax=ax[1,0],label='T$_{B}$(MK)')
-    ax[1,0].contour(I_100MHz_convolved/np.max(I_100MHz_convolved),levels=levels_,extent=[-1440,1440,-1440,1440],colors='red')
+    ax[1,0].contour(I_100MHz_convolved/np.max(I_100MHz_convolved),levels=levels_,extent=[-1440*2,1440*2,-1440*2,1440*2],colors='red')
     ax[1,0].set_xlim([-2500,2500])
     ax[1,0].set_ylim([-2500,2500])
     ax[0,0].grid(True)
@@ -190,9 +354,9 @@ if(plot_composite==1):
     f.colorbar(im01,ax=ax[0,1],label='T$_{B}$(MK)')
     ax[0,1].contour(mwa_160MHz/np.max(mwa_160MHz),levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
     ax[0,1].set_title('160 MHz')
-    im10=ax[1,1].imshow(I_160MHz_convolved/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440,1440,-1440,1440],origin=True)
+    im10=ax[1,1].imshow(I_160MHz_convolved/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440*2,1440*2,-1440*2,1440*2],origin=True)
     f.colorbar(im10,ax=ax[1,1],label='T$_{B}$(MK)')
-    ax[1,1].contour(I_160MHz_convolved/np.max(I_160MHz_convolved),levels=levels_,extent=[-1440,1440,-1440,1440],colors='red')
+    ax[1,1].contour(I_160MHz_convolved/np.max(I_160MHz_convolved),levels=levels_,extent=[-1440*2,1440*2,-1440*2,1440*2],colors='red')
     ax[1,1].set_xlim([-2500,2500])
     ax[1,1].set_ylim([-2500,2500])
     ax[0,1].grid(True)
@@ -203,13 +367,60 @@ if(plot_composite==1):
     f.colorbar(im02,ax=ax[0,2],label='T$_{B}$(MK)')
     ax[0,2].contour(mwa_240MHz/np.max(mwa_240MHz),levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
     ax[0,2].set_title('240 MHz')
-    im12=ax[1,2].imshow(I_240MHz_convolved/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440,1440,-1440,1440],origin=True)
+    im12=ax[1,2].imshow(I_240MHz_convolved/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440*2,1440*2,-1440*2,1440*2],origin=True)
     f.colorbar(im12,ax=ax[1,2],label='T$_{B}$(MK)')
-    ax[1,2].contour(I_240MHz_convolved/np.max(I_240MHz_convolved),levels=levels_,extent=[-1440,1440,-1440,1440],colors='red')
+    ax[1,2].contour(I_240MHz_convolved/np.max(I_240MHz_convolved),levels=levels_,extent=[-1440*2,1440*2,-1440*2,1440*2],colors='red')
     ax[1,2].set_xlim([-2500,2500])
     ax[1,2].set_ylim([-2500,2500])
     ax[0,2].grid(True)
     ax[1,2].grid(True)
     ax[1,2].set_xlabel('arcsec')
     f.tight_layout()
-    f.show()
+    plt.show()
+
+plot_composite_raw=0
+if(plot_composite_raw==1):
+    levels_=[0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+    f, ax = plt.subplots(2, 3, figsize=(20,10),sharex=True)
+    im00=ax[0,0].imshow(mwa_100MHz/1.e6,aspect='equal',cmap='YlGnBu',extent=[-2500,2500,-2500,2500],origin=True)
+    f.colorbar(im00,ax=ax[0,0],label='T$_{B}$(MK)')
+    ax[0,0].contour(mwa_100MHz/np.max(mwa_100MHz),levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
+    ax[0,0].set_title('100 MHz')
+    im10=ax[1,0].imshow(I_100MHz/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440*2,1440*2,-1440*2,1440*2],origin=True)
+    f.colorbar(im10,ax=ax[1,0],label='T$_{B}$(MK)')
+    ax[1,0].contour(I_100MHz/np.max(I_100MHz),levels=levels_,extent=[-1440*2,1440*2,-1440*2,1440*2],colors='red')
+    ax[1,0].set_xlim([-2500,2500])
+    ax[1,0].set_ylim([-2500,2500])
+    ax[0,0].grid(True)
+    ax[1,0].grid(True)
+    ax[1,0].set_xlabel('arcsec')
+    ax[1,0].set_ylabel('arcsec')
+    ax[0,0].set_ylabel('arcsec')
+    ##
+    im01=ax[0,1].imshow(mwa_160MHz/1.e6,aspect='equal',cmap='YlGnBu',extent=[-2500,2500,-2500,2500],origin=True)
+    f.colorbar(im01,ax=ax[0,1],label='T$_{B}$(MK)')
+    ax[0,1].contour(mwa_160MHz/np.max(mwa_160MHz),levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
+    ax[0,1].set_title('160 MHz')
+    im10=ax[1,1].imshow(I_160MHz/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440*2,1440*2,-1440*2,1440*2],origin=True)
+    f.colorbar(im10,ax=ax[1,1],label='T$_{B}$(MK)')
+    ax[1,1].contour(I_160MHz/np.max(I_160MHz),levels=levels_,extent=[-1440*2,1440*2,-1440*2,1440*2],colors='red')
+    ax[1,1].set_xlim([-2500,2500])
+    ax[1,1].set_ylim([-2500,2500])
+    ax[0,1].grid(True)
+    ax[1,1].grid(True)
+    ax[1,1].set_xlabel('arcsec')
+    ##
+    im02=ax[0,2].imshow(mwa_240MHz/1.e6,aspect='equal',cmap='YlGnBu',extent=[-2500,2500,-2500,2500],origin=True)
+    f.colorbar(im02,ax=ax[0,2],label='T$_{B}$(MK)')
+    ax[0,2].contour(mwa_240MHz/np.max(mwa_240MHz),levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
+    ax[0,2].set_title('240 MHz')
+    im12=ax[1,2].imshow(I_240MHz/1.e6,aspect='equal',cmap='YlGnBu',extent=[-1440*2,1440*2,-1440*2,1440*2],origin=True)
+    f.colorbar(im12,ax=ax[1,2],label='T$_{B}$(MK)')
+    ax[1,2].contour(I_240MHz/np.max(I_240MHz),levels=levels_,extent=[-1440*2,1440*2,-1440*2,1440*2],colors='red')
+    ax[1,2].set_xlim([-2500,2500])
+    ax[1,2].set_ylim([-2500,2500])
+    ax[0,2].grid(True)
+    ax[1,2].grid(True)
+    ax[1,2].set_xlabel('arcsec')
+    f.tight_layout()
+    plt.show()

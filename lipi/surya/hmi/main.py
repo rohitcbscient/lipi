@@ -36,3 +36,12 @@ def get_submap_(f,xl,xr,yl,yr):
     print xlpix,ylpix,xrpix,yrpix
     return submap,xlpix,ylpix,xrpix,yrpix
 
+def plot_hmi(hmifile,xl,xr,yl,yr):
+    hmi_=Map(hmifile)
+    ax = plt.subplot(projection=hmi_)
+    hmi_.plot(axes=ax,aspect='auto',cmap='gray',vmin=-100,vmax=100)
+    plt.xlim([int(xlh),int(xrh)])
+    plt.ylim([int(ylh),int(yrh)])
+    plt.show()
+
+
