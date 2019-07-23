@@ -1,0 +1,64 @@
+import numpy as np
+from astropy.io import fits
+from surya.utilities import main at ut
+
+def get_Tbmaps(f):
+
+def solar_center_pixel(fitsfile,time,file_):
+        ra,dec=interpolate_ra_dec(file_,time)
+        hdulist = fits.open(fitsfile)
+        w = wcs.WCS(hdulist[0].header)
+        pix = w.wcs_world2pix(np.array([[ra,dec,0,0]]), 1)
+        return pix[0][0],pix[0][1]
+
+
+def find_centre(date):
+	'''
+	
+	'''
+
+def compute_Tb(f,xc,yc,del_,angle,res,freq,n,S_sun_t_):
+	'''
+	INPUT:
+	(f,xc,yc,del_,angle,res,freq,n,S_sun_t_)
+	f:FITS file, xc: central position of x, yc: central position of y
+	del_:number of solar pixels or size of the submap
+	angle: Position angle of the Sun
+	res: pixel size of the image
+	freq: Frequency
+	n: Cutoff sigma
+	S_sun_t_: Flux from the dynamic spectrum
+	OUTPUT:
+	(Tb,flux_,mean,std,bmaj,bmin,bpa,ndata)
+	Tb: Brightness temperature map
+	flux_: Flux density map
+	mean: mean of noise
+	std: STD of the noise
+	bmaj: Major axis (in arcmin)
+	bmin: Minor axis (in arcmin)
+	bpa: Beam angle (in degree)
+	ndata: Jy/beam just rotated
+	'''
+        fit=fits.open(f)
+        bmin,bmaj,bpa=fit[0].header['BMIN'],fit[0].header['BMAJ'],fit[0].header['BPA']
+        data_=fit[0].data[0][0]
+        ra_,dec_=ut.radec_array(fit[0].header,data_.shape[0],data_)
+        ra=ra_[yc-del_:yc+del_,xc-del_:xc+del_]
+        dec=dec_[yc-del_:yc+del_,xc-del_:xc+del_]
+        data=data_[yc-del_:yc+del_,xc-del_:xc+del_]
+        data_rot=ut.rotateimage(data,angle,del_-1,del_-1)
+        noise=data_[0:xc-del_*5,:]
+        mean=np.mean(noise)
+        std=np.std(noise)
+        max_=np.max(data_rot)
+        lev=(mean+n*std)/max_
+        bimage=ut.get_bimage(data_rot,lev)
+        omega=np.pi*res*res*(np.pi/(3600*180.0))**2
+        omega_e=np.pi*bmaj*bmin*(np.pi/180.)**2
+        beam_pix=omega_e/omega
+        img_pix=np.sum(bimage)
+        ndata=data_rot*bimage
+        flux_jy=ndata*(img_pix/beam_pix) # flux(Jy/beam)* number of beam
+        flux_=(flux_jy)*S_sun_t_/np.sum(flux_jy) # Scaling fluxes
+        Tb=((flux_*1.e-22)*(3.e8)**2)/(2*(1.38e-23)*freq*freq*omega) # In K
+        return Tb,flux_,mean,std,bmaj,bmin,bpa,ndata
