@@ -13,10 +13,26 @@ import matplotlib as mpl
 from scipy import interpolate
 from matplotlib.colors import LogNorm
 from matplotlib import patches
+from surya.radio import get_maps as tb
+
+
+def fit_cubic(y):
+    x=np.arange(y.shape[0])
+    ynew=np.zeros((y.shape[0],y.shape[1],y.shape[2]))
+    snew=np.zeros((y.shape[0],y.shape[1],y.shape[2]))
+    for i in range(y.shape[1]):
+        for j in range(y.shape[2]):
+            f = np.polyfit(x, y[:,i,j], 3)
+            p = np.poly1d(f)
+            snew[:,i,j]=p(x)
+            ynew[:,i,j]=y[:,i,j]-p(x)
+    return ynew,snew
 
 plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
-freq=[109.0,121.0,134.0,147.0,162.0,180.0,198.0,218.0,241.0]
-fband=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+#freq=[109.0,121.0,134.0,147.0,162.0,180.0,198.0,218.0,241.0]
+freq=[109.0,134.0,147.0,162.0,180.0,198.0,218.0,241.0]
+#fband=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+fband=['084-085','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
 data=[0]*len(freq)
 udata_dirty=[0]*len(freq)
 udata=[0]*len(freq)
@@ -72,20 +88,99 @@ finters=interpolate.interp1d(f, Tsky_,kind='cubic')
 finterr=interpolate.interp1d(f, Trec_,kind='cubic')
 Tsky=finters(freq)
 Trec=finterr(freq)
+baseline_filelist=['000-008','000-009','000-010','008-009','008-010','009-010']
+flux_path='/media/rohit/VLA/20151203_MWA/pickle/flux_V1_1133149192-%b'
+img_path='/media/rohit/VLA/20151203_MWA/images_all/1133149192-%b'
+outdir='/media/rohit/VLA/20151203_MWA/Tb_new/'
+centre_file='/home/i4ds1807205/20151203/20151203_nasa_horizon.dat'
+ids='1133149192'
 
-def fit_cubic(y):
-    x=np.arange(y.shape[0])
-    ynew=np.zeros((y.shape[0],y.shape[1],y.shape[2]))
-    snew=np.zeros((y.shape[0],y.shape[1],y.shape[2]))
-    for i in range(y.shape[1]):
-        for j in range(y.shape[2]):
-            f = np.polyfit(x, y[:,i,j], 3)
-            p = np.poly1d(f)
-            snew[:,i,j]=p(x)
-            ynew[:,i,j]=y[:,i,j]-p(x)
-    return ynew,snew
+get_flux=1
+if(get_flux):
+    ff=0
+    Ssun_all,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5)
+    Ssun_mean=np.mean(Ssun_all,axis=(0,1))
+    Ssun_std=np.std(Ssun_all,axis=(0,1))
+    
+
+get_Tb=1
+if(get_Tb==1):
+    print 'Starting Tb computation..'
+    del_=50
+    angle=-15.4 # Negative angle imples clockwise rotation and vice versa
+    res=50 # arcsec
+    for ff in range(len(fband)):
+        print str(freq[ff])+' MHz'
+        imglist=sorted(glob.glob(img_path+fband[ff]+'*.image.FITS'))
+        reslist=sorted(glob.glob(img_path+fband[ff]+'*.residual.FITS'))
+        img_time=[0]*len(imglist)
+        Tb=[0]*len(imglist)
+        resi=[0]*len(imglist)
+        resi_sun=[0]*len(imglist)
+        Tb_resi=[0]*len(imglist)
+        flux_resi=[0]*len(imglist)
+        Tb_sun=[0]*len(imglist)
+        flux_sun=[0]*len(imglist)
+        Tb_sun_resi=[0]*len(imglist)
+        Tb_fac=[0]*len(imglist)
+        flux_sun_resi=[0]*len(imglist)
+        flux_fac=[0]*len(imglist)
+        polTb=[0]*len(imglist)
+        flux=[0]*len(imglist)
+        bmaj=[0]*len(imglist)
+        bmin=[0]*len(imglist)
+        bpa=[0]*len(imglist)
+        ndata=[0]*len(imglist)
+        offsun_mean=[0]*len(imglist)
+        offsun_std=[0]*len(imglist)
+        centre=[0]*len(imglist)
+        j=0
+        for fitsfile in imglist:
+            print j
+            xc,yc,img_time[j]=tb.solar_center_pixel(fitsfile,centre_file)
+            centre[j]=[xc,yc]
+            Tb[j],flux[j],offsun_mean[j],offsun_std[j],bmaj[j],bmin[j],bpa[j],ndata[j]=tb.compute_Tb(fitsfile,xc,yc,del_,angle,res,freq[ff]*1.e6,5,Ssun_mean[j])
+            resi_sun[j],resi[j]=tb.get_residuals(fitsfile,xc,yc,del_,angle)
+            polTb[j]=ut.cart2polar(Tb[j])
+            Tb_sun_resi[j],flux_sun_resi[j],Tb_fac[j],flux_fac[j]=tb.scale_residuals(resi_sun[j],flux[j],ndata[j],res)
+            Tb_sun[j]=resi[j]*Tb_fac[j]
+            flux_sun[j]=resi[j]*flux_fac[j]
+            j=j+1
+        Tb=np.array(Tb)
+        Tb_fac=np.array(Tb_fac)
+        flux_fac=np.array(flux_fac)
+        Tb_sun=np.array(Tb_sun)
+        Tb_sun_resi=np.array(Tb_sun_resi)
+        Tb_resi=np.array(Tb_resi)
+        flux=np.array(flux)
+        flux_fac=np.array(flux_fac)
+        flux_sun=np.array(flux_sun)
+        flux_resi=np.array(flux_resi)
+        flux_sun_resi=np.array(flux_sun_resi)
+        resi=np.array(resi)
+        resi_sun=np.array(resi_sun)
+        polTb=np.array(polTb)
+        flux=np.array(flux)
+        ndata=np.array(ndata)
+        print 'Mean Tb: ',np.max(Tb[0])
+        pickle.dump([Tb,offsun_mean,offsun_std,bmaj,bmin,bpa,centre,flux,ndata,polTb],open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
+        pickle.dump([resi,resi_sun,Tb_sun_resi,flux_sun_resi,Tb_fac,flux_fac],open(outdir+'res_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
 
 
+
+Tb=[0]*len(fband)
+flux=[0]*len(fband)
+bmaj=[0]*len(fband)
+bmin=[0]*len(fband)
+bpa=[0]*len(fband)
+ndata=[0]*len(fband)
+offsun_mean=[0]*len(fband)
+offsun_std=[0]*len(fband)
+centre=[0]*len(fband)
+for ff in range(len(fband)):
+    Tb[ff],offsun_mean[ff],offsun_std[ff],bmaj[ff],bmin[ff],bpa[ff],centre[ff],flux[ff]=pickle.load(open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p'),'r')
+
+sys.exit()
 for i in range(len(freq)):
     print fband[i]
     #data[i]=pickle.load(open('/media/rohit/VLA/20151203_MWA/Tb/images_all/Tb_1133149192-'+fband[i]+'.p','r'))
