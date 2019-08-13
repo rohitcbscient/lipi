@@ -14,6 +14,7 @@ from scipy import interpolate
 from matplotlib.colors import LogNorm
 from matplotlib import patches
 from surya.radio import get_maps as tb
+import matplotlib.cm as cm
 
 
 def fit_cubic(y):
@@ -79,6 +80,8 @@ snoise_F=[0]*len(freq)
 snoise_T=[0]*len(freq)
 nnoise=[0]*len(freq)
 fact=[0]*len(freq)
+Ssun_mean=[0]*len(freq)
+Ssun_std=[0]*len(freq)
 print 'Reading files...'
 
 Tsky_=np.array([665,483,371,290,225,184,179,181,122,94])
@@ -95,22 +98,31 @@ outdir='/media/rohit/VLA/20151203_MWA/Tb_new/'
 centre_file='/home/i4ds1807205/20151203/20151203_nasa_horizon.dat'
 ids='1133149192'
 
-get_flux=1
-if(get_flux):
-    ff=0
+
+def get_flux(ff):
+    '''
+    Output:
+    mean flux in frequency and baselines, std flux in frequency and time
+    '''
     Ssun_all,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5)
     Ssun_mean=np.mean(Ssun_all,axis=(0,1))
     Ssun_std=np.std(Ssun_all,axis=(0,1))
+    return Ssun_mean,Ssun_std
     
+############################ Pre- Requisite ############################
 
-get_Tb=1
+get_Tb=0
 if(get_Tb==1):
     print 'Starting Tb computation..'
     del_=50
     angle=-15.4 # Negative angle imples clockwise rotation and vice versa
     res=50 # arcsec
     for ff in range(len(fband)):
+    #for ff in range(1):
         print str(freq[ff])+' MHz'
+        ### GET FLUX ###
+        Ssun_mean[ff],Ssun_std[ff]=get_flux(ff)
+        ### IMAGE ANALYSIS ##
         imglist=sorted(glob.glob(img_path+fband[ff]+'*.image.FITS'))
         reslist=sorted(glob.glob(img_path+fband[ff]+'*.residual.FITS'))
         img_time=[0]*len(imglist)
@@ -135,12 +147,12 @@ if(get_Tb==1):
         offsun_std=[0]*len(imglist)
         centre=[0]*len(imglist)
         j=0
-        for fitsfile in imglist:
-            print j
+        for fitsfile in imglist[:1]:
             xc,yc,img_time[j]=tb.solar_center_pixel(fitsfile,centre_file)
             centre[j]=[xc,yc]
-            Tb[j],flux[j],offsun_mean[j],offsun_std[j],bmaj[j],bmin[j],bpa[j],ndata[j]=tb.compute_Tb(fitsfile,xc,yc,del_,angle,res,freq[ff]*1.e6,5,Ssun_mean[j])
-            resi_sun[j],resi[j]=tb.get_residuals(fitsfile,xc,yc,del_,angle)
+            Tb[j],flux[j],offsun_mean[j],offsun_std[j],bmaj[j],bmin[j],bpa[j],ndata[j]=tb.compute_Tb(fitsfile,xc,yc,del_,angle,res,freq[ff]*1.e6,5,Ssun_mean[ff][j])
+            resi_sun[j],resi_=tb.get_residuals(fitsfile,xc,yc,del_,angle)
+            resi[j]=resi_[0:200,0:200]
             polTb[j]=ut.cart2polar(Tb[j])
             Tb_sun_resi[j],flux_sun_resi[j],Tb_fac[j],flux_fac[j]=tb.scale_residuals(resi_sun[j],flux[j],ndata[j],res)
             Tb_sun[j]=resi[j]*Tb_fac[j]
@@ -162,11 +174,24 @@ if(get_Tb==1):
         polTb=np.array(polTb)
         flux=np.array(flux)
         ndata=np.array(ndata)
-        print 'Mean Tb: ',np.max(Tb[0])
-        pickle.dump([Tb,offsun_mean,offsun_std,bmaj,bmin,bpa,centre,flux,ndata,polTb],open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
-        pickle.dump([resi,resi_sun,Tb_sun_resi,flux_sun_resi,Tb_fac,flux_fac],open(outdir+'res_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
+        print 'Mean Tb: ',np.max(Tb[0]),np.std(Tb[0]),np.max(ndata[0]),bmaj[0],bmin[0],len(np.where(ndata[0]!=0)[0])
+        #pickle.dump([Tb,offsun_mean,offsun_std,bmaj,bmin,bpa,centre,flux,ndata,polTb],open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
+        #pickle.dump([resi,resi_sun,Tb_sun_resi,flux_sun_resi,Tb_fac,flux_fac],open(outdir+'res_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
 
 
+azimuth_profile=0
+if(azimuth_profile):
+    colors = cm.rainbow(np.linspace(0, 1, 8))
+    for i in range(len(fband)):
+        y=np.mean(np.mean(polTb[i][0:570],axis=0)[0],axis=1)/1.e6
+        x=(50/60.)*np.arange(y.shape[0])
+        plt.plot(x,y,'o-',color=colors[i],label=str(freq[i])+' MHz')
+    plt.legend()
+    plt.xlabel('Radial Distance (arcmin)')
+    plt.ylabel('Brightness Temperature (MK)')
+    plt.show()
+
+################################## MAIN ################################################
 
 Tb=[0]*len(fband)
 flux=[0]*len(fband)
@@ -174,13 +199,22 @@ bmaj=[0]*len(fband)
 bmin=[0]*len(fband)
 bpa=[0]*len(fband)
 ndata=[0]*len(fband)
+polTb=[0]*len(fband)
 offsun_mean=[0]*len(fband)
 offsun_std=[0]*len(fband)
 centre=[0]*len(fband)
-for ff in range(len(fband)):
-    Tb[ff],offsun_mean[ff],offsun_std[ff],bmaj[ff],bmin[ff],bpa[ff],centre[ff],flux[ff]=pickle.load(open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p'),'r')
+resi=[0]*len(fband)
+resi_sun=[0]*len(fband)
+Tb_sun_resi=[0]*len(fband)
+Tb_fac=[0]*len(fband)
+flux_sun_resi=[0]*len(fband)
+flux_fac=[0]*len(fband)
 
-sys.exit()
+for ff in range(len(fband)):
+    print 'Reading..'+fband[ff]+' MHz'
+    Tb[ff],offsun_mean[ff],offsun_std[ff],bmaj[ff],bmin[ff],bpa[ff],centre[ff],flux[ff],ndata[ff],polTb[ff]=pickle.load(open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p','r'))
+    resi[ff],resi_sun[ff],Tb_sun_resi[ff],flux_sun_resi[ff],Tb_fac[ff],flux_fac[ff]=pickle.load(open(outdir+'res_'+str(ids)+'-'+str(fband[ff])+'.p','r'))
+
 for i in range(len(freq)):
     print fband[i]
     #data[i]=pickle.load(open('/media/rohit/VLA/20151203_MWA/Tb/images_all/Tb_1133149192-'+fband[i]+'.p','r'))
@@ -306,6 +340,9 @@ flux_ar_rms=np.std(flux_ar,axis=1)
 #Tb_qs_rms_dirty=np.std(Tb_qs_dirty,axis=1)
 #Tb_ar_rms_dirty=np.std(Tb_ar_dirty,axis=1)
 
+Ssun_mean_time=np.array(Ssun_mean[0:580]).mean(axis=1)
+Ssun_rms_time=np.array(Ssun_mean[0:580]).std(axis=1)
+Ssun_rms_baseline=np.array(Ssun_std[0:580]).mean(axis=1)
 
 #### EUV #####
 aiafile='/home/i4ds1807205/20151203/saia_00193_fd_20151203_192129.fts'
@@ -316,6 +353,23 @@ y1=np.arange(d.shape[1])
 X1,Y1=np.meshgrid(x1,y1)
 X11=(X1-d.shape[0]*0.5)*h[0].header['CDELT1']
 Y12=(Y1-d.shape[1]*0.5)*h[0].header['CDELT2']
+
+
+
+
+
+######## PLOT
+print 'Plotting ...'
+
+plot_sigma=0
+if(plot_sigma):
+    plt.plot(flist,Ssun_mean_time,'o-',color='red',label='03-12-2015')
+    plt.errorbar(flist,Ssun_mean_time,yerr=Ssun_rms_baseline,color='red')
+    plt.legend(loc=2)
+    plt.xlabel('Frequency (MHz)')
+    plt.ylabel('Flux (SFU)')
+
+sys.exit()
 
 euv_map=0
 if(euv_map==1):
@@ -446,51 +500,6 @@ if(plot_variation):
     plt.ylabel('Flux (SFU)')
     plt.show()
 
-
-
-
-######## FORWARD
-
-fwd_list=sorted(glob.glob('/home/i4ds1807205/20151203/*psimas.sav'))[1:]
-Tb_fwd=[0]*len(fwd_list)
-Tb_fwd_con=[0]*len(fwd_list)
-freq_fwd=[0]*len(fwd_list)
-beam=[0]*len(fwd_list)
-size=[0]*len(fwd_list)
-flux_fwd=[0]*len(fwd_list)
-flux_fwd_int=[0]*len(fwd_list)
-for i in range(len(fwd_list)):
-    freq_fwd[i]=int(fwd_list[i].split('_')[1].split('M')[0])
-    fwd=readsav(fwd_list[i])
-    Tb_fwd[i]=fwd['stokesstruct'][0][0]
-    fwd_dx=fwd['quantmap'][0][3]*16*60 # in arcsec
-    beam[i]=ut.makeGaussian(60, bmin[i]/fwd_dx, bmax[i]/fwd_dx , center=None)
-    Tb_fwd_con[i] = signal.convolve(Tb_fwd[i],beam[i], mode='same')/np.sum(beam[i])
-    size[i]=fwd_dx*Tb_fwd_con[i].shape[0]
-    flux_fwd[i]=ut.Tb2flux(Tb_fwd[i], fwd_dx, fwd_dx, freq_fwd[i]/1000.)
-    flux_fwd_int[i]=np.sum(flux_fwd[i])
-
-Tb_fwd=np.array(Tb_fwd)
-Tb_fwd_con=np.array(Tb_fwd_con)
-
-######## MWA and FORWARD
-mwa_fwd=0
-if(mwa_fwd):
-    mwa_coord=np.linspace(-2500,2500,100)
-    forward_coord=np.linspace(-2880,2880,256)
-    mwax,mway=np.meshgrid(mwa_coord, mwa_coord)
-    fwdx,fwdy=np.meshgrid(forward_coord,forward_coord)
-    Tb_fwd_interp=[0]*9
-    for i in range(9):
-        print i
-        finterp = interpolate.interp2d(fwdx, fwdy, Tb_fwd_con[i], kind='linear')
-        Tb_fwd_interp[i]=finterp(mwax,mway)
-    Tb_fwd_interp=np.array(Tb_fwd_interp)
-    pickle.dump(Tb_fwd_interp,open('Tb_fwd_interp.p','wb'))
-
-
-######## PLOT
-print 'Plotting ...'
 
 plot_rms=0
 if(plot_rms):
@@ -668,3 +677,41 @@ if(ml):
     iso.contour.number_of_contours = 15
     mlab.show()
 
+######## FORWARD
+
+fwd_list=sorted(glob.glob('/home/i4ds1807205/20151203/*psimas.sav'))[1:]
+Tb_fwd=[0]*len(fwd_list)
+Tb_fwd_con=[0]*len(fwd_list)
+freq_fwd=[0]*len(fwd_list)
+beam=[0]*len(fwd_list)
+size=[0]*len(fwd_list)
+flux_fwd=[0]*len(fwd_list)
+flux_fwd_int=[0]*len(fwd_list)
+for i in range(len(fwd_list)):
+    freq_fwd[i]=int(fwd_list[i].split('_')[1].split('M')[0])
+    fwd=readsav(fwd_list[i])
+    Tb_fwd[i]=fwd['stokesstruct'][0][0]
+    fwd_dx=fwd['quantmap'][0][3]*16*60 # in arcsec
+    beam[i]=ut.makeGaussian(60, bmin[i]/fwd_dx, bmax[i]/fwd_dx , center=None)
+    Tb_fwd_con[i] = signal.convolve(Tb_fwd[i],beam[i], mode='same')/np.sum(beam[i])
+    size[i]=fwd_dx*Tb_fwd_con[i].shape[0]
+    flux_fwd[i]=ut.Tb2flux(Tb_fwd[i], fwd_dx, fwd_dx, freq_fwd[i]/1000.)
+    flux_fwd_int[i]=np.sum(flux_fwd[i])
+
+Tb_fwd=np.array(Tb_fwd)
+Tb_fwd_con=np.array(Tb_fwd_con)
+
+######## MWA and FORWARD
+mwa_fwd=0
+if(mwa_fwd):
+    mwa_coord=np.linspace(-2500,2500,100)
+    forward_coord=np.linspace(-2880,2880,256)
+    mwax,mway=np.meshgrid(mwa_coord, mwa_coord)
+    fwdx,fwdy=np.meshgrid(forward_coord,forward_coord)
+    Tb_fwd_interp=[0]*9
+    for i in range(9):
+        print i
+        finterp = interpolate.interp2d(fwdx, fwdy, Tb_fwd_con[i], kind='linear')
+        Tb_fwd_interp[i]=finterp(mwax,mway)
+    Tb_fwd_interp=np.array(Tb_fwd_interp)
+    pickle.dump(Tb_fwd_interp,open('Tb_fwd_interp.p','wb'))
