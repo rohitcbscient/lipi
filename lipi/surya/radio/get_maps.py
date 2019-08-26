@@ -109,11 +109,19 @@ def mean_flux(file_,f,baseline_filelist,res):
     '''
     bb=0
     flux=[0]*len(baseline_filelist)
+    Tb_beam=[0]*len(baseline_filelist)
     std_flux=[0]*len(baseline_filelist)
     for b in baseline_filelist:
         aa=pickle.load(open(str(file_)+str(f)+'_T'+str(b)+'.p','r'))
-        aa[17][3][0][np.isnan(aa[17][3][0])]=0
-        flux[bb]=aa[17][3][0]
+        #aa[17][3][0][np.isnan(aa[17][3][0])]=0
+        aa[17][3][0][aa[17][3][0]==0]=np.nan
+        data1=aa[17][3][0]
+        data2=np.vstack((data1[6:13],data1[19:26],data1[38:45],data1[51:58]))
+        flux[bb]=data2
+        aa[17][6][0][aa[17][6][0]==0]=np.nan
+        data1_=aa[17][6][0]
+        data2_=np.vstack((data1_[6:13],data1_[19:26],data1_[38:45],data1_[51:58]))
+        Tb_beam[bb]=data2_
         bb=bb+1
     time=[0]*flux[0].shape[1]
     timesec=[0]*flux[0].shape[1]
@@ -122,7 +130,8 @@ def mean_flux(file_,f,baseline_filelist,res):
         time[i]=ut.sec2hms_c(t,res,i)
         timesec[i]=ut.hms2sec_c(' '+time[i])
     flux=np.array(flux)
-    return flux,time,timesec
+    Tb_beam=np.array(Tb_beam)
+    return flux,Tb_beam,time,timesec
 
 
 

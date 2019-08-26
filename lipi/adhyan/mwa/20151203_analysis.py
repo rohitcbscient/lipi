@@ -14,7 +14,10 @@ from scipy import interpolate
 from matplotlib.colors import LogNorm
 from matplotlib import patches
 from surya.radio import get_maps as tb
+from surya.radio import main as rd
 import matplotlib.cm as cm
+from surya.gm import main as gm
+import pywt
 
 
 def fit_cubic(y):
@@ -30,10 +33,12 @@ def fit_cubic(y):
     return ynew,snew
 
 plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
-#freq=[109.0,121.0,134.0,147.0,162.0,180.0,198.0,218.0,241.0]
-freq=[109.0,134.0,147.0,162.0,180.0,198.0,218.0,241.0]
-#fband=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
-fband=['084-085','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+freq=[108.0,120.0,132.0,145.0,161.0,179.0,196.0,217.0,240.0]
+#freq=[108.0,132.0,145.0,161.0,179.0,196.0,217.0,240.0]
+#freq=[108.0,145.0,161.0,179.0,196.0,217.0,240.0]
+fband=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+#fband=['084-085','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+#fband=['084-085','113-114','125-126','139-140','153-154','169-170','187-188']
 data=[0]*len(freq)
 udata_dirty=[0]*len(freq)
 udata=[0]*len(freq)
@@ -82,36 +87,57 @@ nnoise=[0]*len(freq)
 fact=[0]*len(freq)
 Ssun_mean=[0]*len(freq)
 Ssun_std=[0]*len(freq)
+calS_mean=[0]*len(freq)
+calS_std=[0]*len(freq)
+std_ni=[0]*len(freq)
+SEFD_base=[0]*len(freq)
+NEFD_base=[0]*len(freq)
+snoise_base=[0]*len(freq)
+th_noise_base=[0]*len(freq)
+Tb_beam=[0]*len(freq)
+Tsys=[0]*len(freq)
+Aeff=21.5 # m**2
 print 'Reading files...'
 
 Tsky_=np.array([665,483,371,290,225,184,179,181,122,94])
 Trec_=np.array([30,28,26,24,21,20,21,23,27,32])
+Tgrd_=np.array([20,17,15,13,12,12,13,18,10,9])
 f=np.array([103,117,131,148,167,189,213,240,272,299])
 finters=interpolate.interp1d(f, Tsky_,kind='cubic')
 finterr=interpolate.interp1d(f, Trec_,kind='cubic')
+finterg=interpolate.interp1d(f, Tgrd_,kind='cubic')
 Tsky=finters(freq)
 Trec=finterr(freq)
+Tgrd=finterg(freq)
 baseline_filelist=['000-008','000-009','000-010','008-009','008-010','009-010']
 flux_path='/media/rohit/VLA/20151203_MWA/pickle/flux_V1_1133149192-%b'
+cal_path='/media/rohit/VLA/20151203_cal/20151203_cal/pickle/flux_V1_1133139776-%b'
+gm_path='/media/rohit/VLA/20151203_MWA/pickle/gm/'
 img_path='/media/rohit/VLA/20151203_MWA/images_all/1133149192-%b'
 outdir='/media/rohit/VLA/20151203_MWA/Tb_new/'
 centre_file='/home/i4ds1807205/20151203/20151203_nasa_horizon.dat'
 ids='1133149192'
 
 
-def get_flux(ff):
+def get_flux(flux_path,baseline_filelist,ff,i):
     '''
     Output:
     mean flux in frequency and baselines, std flux in frequency and time
     '''
-    Ssun_all,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5)
-    Ssun_mean=np.mean(Ssun_all,axis=(0,1))
-    Ssun_std=np.std(Ssun_all,axis=(0,1))
-    return Ssun_mean,Ssun_std
+    Ssun_all,Tb_beam,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5)
+    if(i):
+        Ssun_all[:,2,:]=Ssun_all[:,1,:]
+        Ssun_all[:,8,:]=Ssun_all[:,7,:]
+        Tb_beam[:,2,:]=Tb_beam[:,1,:]
+        Tb_beam[:,8,:]=Tb_beam[:,7,:]
+    Ssun_mean=np.nanmean(Ssun_all,axis=(1))[2]
+    Tb_beam=np.nanmean(Tb_beam,axis=(1,2))[2]
+    Ssun_std=np.nanstd(Ssun_all,axis=(1))[2]
+    return Ssun_mean,Ssun_std,Tb_beam
     
 ############################ Pre- Requisite ############################
 
-get_Tb=0
+get_Tb=1
 if(get_Tb==1):
     print 'Starting Tb computation..'
     del_=50
@@ -121,7 +147,21 @@ if(get_Tb==1):
     #for ff in range(1):
         print str(freq[ff])+' MHz'
         ### GET FLUX ###
-        Ssun_mean[ff],Ssun_std[ff]=get_flux(ff)
+        Ssun_mean[ff],Ssun_std[ff],Tb_beam[ff]=get_flux(flux_path,baseline_filelist,ff,1)
+        ### GET CAL FLUX ###
+        calS_mean[ff],calS_std[ff],calT=get_flux(cal_path,baseline_filelist,ff,0)
+        ### GM Parameters ##
+        gm_filepath=gm_path+str(int(freq[ff]))+'MHz/T'
+        std_ni[ff]=[0]*len(baseline_filelist)
+        bb=0
+        for b in baseline_filelist:
+            gm_data=pickle.load(open(gm_filepath+str(b)+'_f'+fband[ff]+'_P0_C0-2_paramnorm1','r'))
+            std_ni[ff][bb]=float(gm_data[0][1])
+            bb=bb+1
+        ### GET THERMAL NOISE ###
+        Tsys[ff]=Tsky[ff]+Trec[ff]+Tgrd[ff]+Tb_beam[ff]
+        SEFD_base[ff]=rd.get_SEFD(Tsys[ff],Aeff)
+        th_noise_base[ff]=rd.thermal_noise(SEFD_base[ff],2,4.e4,0.5,2,1)
         ### IMAGE ANALYSIS ##
         imglist=sorted(glob.glob(img_path+fband[ff]+'*.image.FITS'))
         reslist=sorted(glob.glob(img_path+fband[ff]+'*.residual.FITS'))
@@ -177,7 +217,262 @@ if(get_Tb==1):
         print 'Mean Tb: ',np.max(Tb[0]),np.std(Tb[0]),np.max(ndata[0]),bmaj[0],bmin[0],len(np.where(ndata[0]!=0)[0])
         #pickle.dump([Tb,offsun_mean,offsun_std,bmaj,bmin,bpa,centre,flux,ndata,polTb],open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
         #pickle.dump([resi,resi_sun,Tb_sun_resi,flux_sun_resi,Tb_fac,flux_fac],open(outdir+'res_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
+    ##### Non-Imaging Analysis #################
+    N=10
+    sigrand=np.random.normal(0,1,570)
+    sigrand_cal=np.random.normal(0,1,210)
+    nwin=[2,10,50,100]
+    sigrand=[0]*4
+    sigrand_smooth=[0]*4
+    win=[0]*4
+    nn=0
+    for N in nwin:
+        win[nn]=np.arange(N)/N
+        sigrand_smooth[nn]=np.correlate(sigrand,win[nn]/np.sum(win[nn]),'valid')
+        nn=nn+1
+    sigrand_smooth=np.array(sigrand_smooth)
+    win=np.array(win)
+    ######
+    N=2
+    M=570
+    Mcal=210
+    sigrand=np.random.normal(0,1,M)
+    sigrand_cal=np.random.normal(0,1,Mcal)
+    S_ts=[0]*len(fband)
+    diff_S=[0]*len(fband)
+    diff_S_smooth=[0]*len(fband)
+    auto_S=[0]*len(fband)
+    diff_S_std=[0]*len(fband)
+    S_ts_cal=[0]*len(fband)
+    diff_S_cal=[0]*len(fband)
+    diff_S_smooth_cal=[0]*len(fband)
+    auto_S_cal=[0]*len(fband)
+    diff_S_std_cal=[0]*len(fband)
+    auto_rand=[0]*len(fband)
+    diff_rand_smooth=[0]*len(fband)
+    kernel=(np.arange(N)/N)/np.sum(np.arange(N)/N)
+    for i in range(len(fband)):
+        S_ts[i]=Ssun_mean[i][0:M]#570]
+        diff_S_=fit_cubic(S_ts[i].reshape(M,1,1))#(570,1,1))
+        diff_S[i]=diff_S_[0].flatten()
+        #diff_S_smooth[i]=np.correlate(diff_S[i],kernel,'valid')
+        diff_S_std[i]=np.std(diff_S[i])
+        #auto_S[i]=np.correlate(diff_S_smooth[i]/diff_S_std[i],diff_S_smooth[i]/diff_S_std[i],'same')
+        auto_S[i]=np.correlate(diff_S[i]/diff_S_std[i],diff_S[i]/diff_S_std[i],'same')
+        # CAL
+        S_ts_cal[i]=calS_mean[i][0:Mcal]
+        diff_S_cal_=fit_cubic(S_ts_cal[i].reshape(Mcal,1,1))
+        diff_S_cal[i]=diff_S_cal_[0].flatten()
+        #diff_S_smooth_cal[i]=np.correlate(diff_S_cal[i],kernel,'valid')
+        diff_S_std_cal[i]=np.std(diff_S_cal[i])
+        auto_S_cal[i]=np.correlate(diff_S_cal[i]/diff_S_std_cal[i],diff_S_cal[i]/diff_S_std_cal[i],'same')
+        # RANDOM
+        #diff_rand_smooth=np.correlate(sigrand,kernel,'valid')
+        auto_rand=np.correlate(sigrand/np.std(sigrand),sigrand/np.std(sigrand),'same')
+        #diff_rand_smooth_cal=np.correlate(sigrand_cal,kernel,'valid')
+        #auto_rand_cal=np.correlate(diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),'same')
+        auto_rand_cal=np.correlate(sigrand_cal/np.std(sigrand_cal),sigrand_cal/np.std(sigrand_cal),'same')
 
+    lag=0.5*(np.arange(len(diff_S[0]))-int(diff_S[0].shape[0]/2))
+    lagcal=0.5*(np.arange(len(diff_S_cal[0]))-int(diff_S_cal[0].shape[0]/2))
+    plot_auto=1
+    if(plot_auto):
+        plt.plot(lag,auto_S[-2],'o-',label='218 MHz')
+        plt.plot(lagcal,auto_S_cal[-2],'o-',label='CAL')
+        #plt.plot(lag,auto_rand,'o',label='RANDOM')
+        plt.xlabel('Lag Time (sec)')
+        plt.ylabel('Auto-correlation')
+        plt.legend()
+        plt.show()
+    cross_S=[0]*28
+    fpair=[0]*28
+    cross_max=[0]*28
+    cross_min=[0]*28
+    cross_diff=[0]*28
+    m=0
+    for k in range(len(fband)):
+        for l in range(k):
+            fpair[m]=np.array((freq[k],freq[l]))
+            cross_S[m]=np.correlate(diff_S_smooth[k]/diff_S_std[k],diff_S_smooth[l]/diff_S_std[l],'same')
+            cross_max[m]=np.where(cross_S[m]==np.max(cross_S[m]))[0][0]
+            cross_min[m]=np.where(cross_S[m]==np.min(cross_S[m]))[0][0]
+            cross_diff[m]=cross_min[m]-cross_max[m]
+            m=m+1
+    ## wavelets
+    widths=np.arange(1,401)*0.5
+    mother='gaus1'
+    cwtmatr=[0]*len(fband)
+    freqs=[0]*len(fband)
+    power=[0]*len(fband)
+    period=[0]*len(fband)
+    cwtmatr_cal=[0]*len(fband)
+    freqs_cal=[0]*len(fband)
+    power_cal=[0]*len(fband)
+    period_cal=[0]*len(fband)
+    cwtmatr_rand=[0]*len(fband)
+    freqs_rand=[0]*len(fband)
+    power_rand=[0]*len(fband)
+    period_rand=[0]*len(fband)
+    slope=[0]*len(fband)
+    slope_cal=[0]*len(fband)
+    for i in range(len(fband)):
+        wdata=diff_S[i]/np.std(diff_S[i])
+        cwtmatr[i], freqs[i] = pywt.cwt(wdata, widths, mother)
+        #cwtmatr[i]=cwtmatr[i]*diff_S_std[i]
+        power[i] = (np.abs(cwtmatr[i])) ** 2
+        period[i] = 1 / freqs[i]
+        # random
+        cwtmatr_rand[i], freqs_rand[i] = pywt.cwt(sigrand, widths, mother)
+        #cwtmatr_rand[i]=cwtmatr_rand[i]*np.std(sigrand)
+        power_rand[i] = (np.abs(cwtmatr_rand[i])) ** 2
+        period_rand[i] = 1 / freqs_rand[i]
+        # 5:50 for non variance case, 10:100 with variance
+        slope[i]= ut.fit_1d(freqs[i][10:100],power[i].mean(axis=1)[10:100])
+        #wdata_cal=diff_S_smooth_cal[i]/diff_S_std_cal[i]
+        wdata_cal=diff_S_cal[i]/np.std(diff_S_cal[i])
+        cwtmatr_cal[i], freqs_cal[i] = pywt.cwt(wdata_cal, widths, mother)
+        #cwtmatr_cal[i]=cwtmatr_cal[i]*diff_S_std_cal[i]
+        power_cal[i] = (np.abs(cwtmatr_cal[i])) ** 2
+        period_cal[i] = 1 / freqs_cal[i]
+        slope_cal[i]= ut.fit_1d(freqs_cal[i][10:100],power_cal[i].mean(axis=1)[10:100])
+    slope=np.array(slope)
+    slope_cal=np.array(slope_cal)
+    power=np.array(power)
+    power_cal=np.array(power_cal)
+    power_rand=np.array(power_rand)
+    ## cross-correlation of reconstructed waves
+    t=20
+    cross_wave=[0]*28
+    fpair_wave=[0]*28
+    m=0
+    for k in range(len(fband)):
+        for l in range(k):
+            fpair_wave[m]=np.array((freq[k],freq[l]))
+            cross_wave[m]=np.correlate(power[k][t]/np.std(power[k][t]),power[l][t]/np.std(power[l][t]),'same')
+            m=m+1
+
+
+    sys.exit()
+    wavelet_power_mean=[0]*len(fband)
+    wavelet_power_sum=[0]*len(fband)
+    wavelet_power_mean_cal=[0]*len(fband)
+    wavelet_power_sum_cal=[0]*len(fband)
+    wavelet_power_mean_rand=[0]*len(fband)
+    wavelet_max=[0]*len(fband)
+    for i in range(len(fband)):
+        wavelet_power_mean[i]=power[i].mean(axis=1)
+        wavelet_power_sum[i]=power[i].sum(axis=1)
+        wavelet_power_mean_cal[i]=power_cal[i].mean(axis=1)
+        wavelet_power_sum_cal[i]=power_cal[i].sum(axis=1)
+        wavelet_power_mean_rand[i]=power_rand[i].mean(axis=1)
+        ## plot
+        plt.plot(widths,wavelet_power_mean[i],'o-',label=str(freq[i])+' MHz')
+        #plt.plot(widths,wavelet_power_mean_cal[i],'o-')
+        #plt.plot(widths,wavelet_power_mean[i]/wavelet_power_mean_cal[i],'o-')
+        wavelet_max[i]=widths[np.where(wavelet_power_mean[i]==np.max(wavelet_power_mean[i]))]
+    #plt.plot(1/widths,np.array(wavelet_power_mean_cal).mean(axis=0)*170,'o-',label='CAL (scaled by 170)')
+    slope_mean=ut.fit_1d(1/widths[20:50],np.array(wavelet_power_mean).mean(axis=0)[20:50])
+    slope_mean_cal=ut.fit_1d(1/widths[20:50],np.array(wavelet_power_mean_cal).mean(axis=0)[20:50])
+    plt.plot(1/widths,np.array(wavelet_power_mean_cal).mean(axis=0),'o-',color='blue',label='CAL')
+    plt.plot(1/widths,np.array(wavelet_power_mean_rand).mean(axis=0),'o-',color='black',label='RANDOM')
+    plt.plot(1/widths,np.array(wavelet_power_mean).mean(axis=0),'o-',color='red',label='SUN')
+    plt.plot(1/widths,10**(np.log10(1/widths)*slope_mean[0]+slope_mean[1]),color='red',label='Sun (fit): '+str(np.round(slope_mean[0],2))+'$\pm$'+str(np.round(slope_mean[2],2)))
+    plt.plot(1/widths,10**(np.log10(1/widths)*slope_mean_cal[0]+slope_mean_cal[1]),color='blue',label='CAL (fit): '+str(np.round(slope_mean_cal[0],2))+'$\pm$'+str(np.round(slope_mean[2],2)))
+    plt.plot()
+    plt.xlabel('Scale (sec$^-1$)')
+    #plt.ylabel('Power (SFU$^2$)')
+    plt.ylabel('Power')
+    plt.legend()
+    plt.show()
+
+        ## Plot wavelets
+    for i in range(len(fband)):
+        title=str(freq[i])+' MHz'
+        label='Flux'
+        units='SFU'
+        t=np.arange(len(diff_S[0]))*0.5
+        glbl_power = power[i].mean(axis=1)
+        scale_avg=power[i].mean(axis=0)
+        plt.ioff()
+        figprops = dict(figsize=(20, 20), dpi=72)
+        fig = plt.figure(**figprops)
+        # First sub-plot, the original time series anomaly and inverse wavelet
+        # transform.
+        ax = plt.axes([0.1, 0.75, 0.65, 0.2])
+        ax.plot(t, diff_S[i], '-', linewidth=1, color=[0.5, 0.5, 0.5])
+        ax.set_title('a) {}'.format(title))
+        ax.grid(True)
+        ax.set_ylabel(r'{} [{}]'.format(label, units))
+        # Second sub-plot, the normalized wavelet power spectrum and significance
+        # level contour lines and cone of influece hatched area. Note that period
+        # scale is logarithmic.
+        bx = plt.axes([0.1, 0.37, 0.65, 0.28], sharex=ax)
+        levels = [0.015625,0.03125,0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8, 16]
+        bx.contourf(t, np.log2(period[i]), np.log10(power[i]), np.log2(levels),
+                            extend='both', cmap=plt.cm.viridis)
+        extent = [t.min(), t.max(), 0, max(period[i])]
+        #bx.fill(np.concatenate([t, t[-1:] + dt, t[-1:] + dt,t[:1] - dt, t[:1] - dt]),np.concatenate([np.log2(coi), [1e-9], np.log2(period[i][-1:]),np.log2(period[i][-1:]), [1e-9]]),'k', alpha=0.3, hatch='x')
+        bx.set_title('b) Wavelet Power Spectrum ({})'.format(label, 'MORLET'))
+        bx.set_ylabel('log2(Period) (sec)')
+        bx.grid(True)
+        #
+        #Yticks = 2 ** np.arange(np.ceil(np.log2(period[i].min())),
+        #                                   np.ceil(np.log2(period[i].max())))
+        #bx.set_yticks(np.log2(Yticks))
+        #bx.set_yticklabels(Yticks)
+
+        # Third sub-plot, the global wavelet and Fourier power spectra and theoretical
+        # noise spectra. Note that period scale is logarithmic.
+        cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
+        cx.plot(glbl_power, np.log2(period[i]), 'k-', linewidth=1.5)
+        cx.set_title('c) Global Wavelet Spectrum')
+        cx.set_xlabel(r'Power [({})^2]'.format(units))
+        #cx.set_xlim([4.e-4, glbl_power.max() + diff_S_std[i]])
+        cx.set_ylim(np.log2([period[i].min(), period[i].max()]))
+        cx.grid(True)
+        cx.set_xscale('log')
+        #cx.set_yticks(np.log2(Yticks))
+        #cx.set_yticklabels(Yticks)
+        #plt.setp(cx.get_yticklabels(), visible=False)
+
+        # Fourth sub-plot, the scale averaged wavelet spectrum.
+        dx = plt.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
+        dx.plot(t, scale_avg, 'k-', linewidth=1.5)
+        dx.set_title('d) Scale-averaged power')
+        dx.set_xlabel('Time (sec)')
+        dx.set_ylabel(r'Reconstructed Flux [{}]'.format(units))
+        dx.grid(True)
+        ax.set_xlim([t.min(), t.max()])
+        plt.savefig('wavelet_f'+str(int(freq[i]))+'.png')
+        plt.close()
+
+        ## Plotting..
+        plot_ts=0
+        if(plot_ts):
+            for k in range(4,8):
+                plt.plot(0.5*np.arange(len(diff_S_smooth[k])),diff_S_smooth[k],'-',label=str(freq[k])+' MHz')
+            plt.legend()
+            plt.ylabel('Flux (SFU)')
+            plt.xlabel('Time (in sec)')
+            plt.show()
+        plot_auto=0
+        if(plot_auto):
+            for k in range(4,8):
+                plt.plot(lag,auto_S[k],'-',label=str(freq[k])+' MHz')
+            plt.legend()
+            plt.ylabel('Auto-correlated Power')
+            plt.xlabel('Lag (in sec)')
+            plt.show()
+
+        plot_cross=0
+        if(plot_cross):
+            for k in range(28):
+                plt.plot(lag,cross_S[k],'o-',label=str(fpair[k])+' MHz')
+                plt.legend()
+                plt.ylabel('Auto-correlated Power')
+                plt.xlabel('Lag (in sec)')
+                plt.savefig('cross_corr_f'+str(int(fpair[k][0]))+'-'+str(int(fpair[k][1]))+'.png')
+                plt.close()
 
 azimuth_profile=0
 if(azimuth_profile):
@@ -340,9 +635,153 @@ flux_ar_rms=np.std(flux_ar,axis=1)
 #Tb_qs_rms_dirty=np.std(Tb_qs_dirty,axis=1)
 #Tb_ar_rms_dirty=np.std(Tb_ar_dirty,axis=1)
 
-Ssun_mean_time=np.array(Ssun_mean[0:580]).mean(axis=1)
-Ssun_rms_time=np.array(Ssun_mean[0:580]).std(axis=1)
-Ssun_rms_baseline=np.array(Ssun_std[0:580]).mean(axis=1)
+#Ssun_mean_time=np.array(Ssun_mean[0:580]).mean(axis=1)
+#Ssun_rms_time=np.array(Ssun_mean[0:580]).std(axis=1)
+#Ssun_rms_baseline=np.array(Ssun_std[0:580]).mean(axis=1)
+
+########## Maps analysis ################
+
+N=2
+diff_Tb_smooth=[0]*100
+auto_Tb=[0]*100
+diff_Tb_std=[0]*100
+for l in range(100):
+    diff_Tb_smooth[l]=[0]*100
+    auto_Tb[l]=[0]*100
+    diff_Tb_std[l]=[0]*100
+    for m in range(100):
+        diff_Tb_smooth[l][m]=[0]*len(fband)
+        auto_Tb[l][m]=[0]*len(fband)
+        diff_Tb_std[l][m]=[0]*len(fband)
+        for i in range(len(fband)):
+            #diff_Tb_smooth[l][m][i]=np.correlate(diff_Tb_all[i,:,l,m],np.arange(N)/N,'same')
+            diff_Tb_smooth[l][m][i]=diff_Tb_all[i,:,l,m]
+            diff_Tb_std[l][m][i]=np.std(diff_Tb_smooth[l][m][i])
+            auto_Tb[l][m][i]=np.correlate(diff_Tb_smooth[l][m][i]/diff_Tb_std[l][m][i],diff_Tb_smooth[l][m][i]/diff_Tb_std[l][m][i],'same')
+diff_Tb_smooth=np.array(diff_Tb_smooth)
+diff_Tb_std=np.array(diff_Tb_std)
+auto_Tb=np.array(auto_Tb)
+lagTb=0.5*(np.arange(len(diff_Tb_smooth[0,0,0]))-int(diff_Tb_smooth[0,0,0].shape[0]/2))
+
+cross_Tb=[0]*100
+for ll in range(100):
+    cross_Tb[ll]=[0]*100
+    for mm in range(100):
+        cross_Tb[ll][mm]=[0]*28
+        fpair=[0]*28
+        cross_max=[0]*28
+        cross_min=[0]*28
+        cross_diff=[0]*28
+        m=0
+        for k in range(len(fband)):
+            for l in range(k):
+                fpair[m]=np.array((freq[k],freq[l]))
+                cross_Tb[ll][mm][m]=np.correlate(diff_Tb_smooth[ll,mm,k]/diff_Tb_std[ll,mm,k],diff_Tb_smooth[ll,mm,l]/diff_Tb_std[ll,mm,l],'same')
+                #cross_max[m]=np.where(cross_S[m]==np.max(cross_S[m]))[0][0]
+                #cross_min[m]=np.where(cross_S[m]==np.min(cross_S[m]))[0][0]
+                #cross_diff[m]=cross_min[m]-cross_max[m]
+                m=m+1
+cross_Tb=np.array(cross_Tb)
+
+
+## wavelets
+#mother='morl'
+mother='gaus1'
+sarrx=[[43,43,43,42,42,42,44,44,44],[58,58,58,57,57,57,59,59,59],[43,43,43,42,42,42,44,44,44]] # AR, CH, QS
+sarry=[[59,60,61,59,60,61,59,60,61],[50,51,52,50,51,52,50,51,52],[44,45,46,44,45,46,44,45,46]]
+cwtmatr_cal=[0]*3
+cwtmatr=[0]*3
+freqs=[0]*3
+power=[0]*3
+period=[0]*3
+cwtmatr_res=[0]*3
+freqs_res=[0]*3
+power_res=[0]*3
+period_res=[0]*3
+power_flux_res=[0]*3
+power_flux=[0]*3
+slope_Tb=[0]*3
+
+for ll in range(3):
+    print ll
+    cwtmatr[ll]=[0]*len(sarrx[ll])
+    freqs[ll]=[0]*len(sarrx[ll])
+    power[ll]=[0]*len(sarrx[ll])
+    power_flux[ll]=[0]*len(sarrx[ll])
+    period[ll]=[0]*len(sarrx[ll])
+    cwtmatr_res[ll]=[0]*len(sarrx[ll])
+    freqs_res[ll]=[0]*len(sarrx[ll])
+    power_res[ll]=[0]*len(sarrx[ll])
+    power_flux_res[ll]=[0]*len(sarrx[ll])
+    period_res[ll]=[0]*len(sarrx[ll])
+    slope_Tb[ll]=[0]*len(sarrx[ll])
+    for mm in range(len(sarrx[ll])):
+        cwtmatr[ll][mm]=[0]*len(fband)
+        freqs[ll][mm]=[0]*len(fband)
+        power[ll][mm]=[0]*len(fband)
+        period[ll][mm]=[0]*len(fband)
+        power_flux[ll][mm]=[0]*len(fband)
+        cwtmatr_res[ll][mm]=[0]*len(fband)
+        freqs_res[ll][mm]=[0]*len(fband)
+        power_res[ll][mm]=[0]*len(fband)
+        period_res[ll][mm]=[0]*len(fband)
+        power_flux_res[ll][mm]=[0]*len(fband)
+        slope_Tb[ll][mm]=[0]*len(fband)
+        for i in range(len(fband)):
+            ll_=sarrx[ll][mm]
+            mm_=sarry[ll][mm]
+            widths=np.arange(1,401)*0.5
+            wdata=diff_Tb_smooth[ll_][mm_][i]/diff_Tb_std[ll_][mm_][i]
+            #wdata=diff_Tb_all[ll_][mm_][i]/diff_Tb_std[ll_][mm_][i]
+            cwtmatr[ll][mm][i], freqs[ll][mm][i] = pywt.cwt(wdata, widths, mother)
+            cwtmatr[ll][mm][i]=cwtmatr[ll][mm][i]*diff_Tb_std[ll_][mm_][i]
+            power[ll][mm][i] = (np.abs(cwtmatr[ll][mm][i])) ** 2
+            power_flux[ll][mm][i]=ut.Tb2flux(np.sqrt(power[ll][mm][i]), 50, 50, freq[i]/1000.)**2
+            period[ll][mm][i] = 1 / freqs[ll][mm][i]
+            ###
+            tbres=udata_dirty_all[i,:,ll_,mm_]*fact[i]
+            wdata_res=tbres/np.std(tbres)
+            cwtmatr_res[ll][mm][i], freqs_res[ll][mm][i] = pywt.cwt(wdata_res, widths, mother)
+            cwtmatr_res[ll][mm][i]=cwtmatr_res[ll][mm][i]*np.std(tbres)
+            power_res[ll][mm][i] = (np.abs(cwtmatr_res[ll][mm][i])) ** 2
+            power_flux_res[ll][mm][i]=ut.Tb2flux(np.sqrt(power_res[ll][mm][i]), 50, 50, freq[i]/1000.)**2
+            period_res[ll][mm][i] = 1 / freqs_res[ll][mm][i]
+            ###
+            slope_Tb[ll][mm][i]=ut.fit_1d(1/widths[20:50],power[ll][mm][i].mean(axis=1)[20:50])
+
+cwtmatr=np.array(cwtmatr)
+slope_Tb=np.array(slope_Tb)
+power=np.array(power)
+period=np.array(period)
+power_flux=np.array(power_flux)
+cwtmatr_res=np.array(cwtmatr_res)
+power_res=np.array(power_res)
+period_res=np.array(period_res)
+power_flux_res=np.array(power_flux_res)
+freqs=np.array(freqs)
+freqs_res=np.array(freqs_res)
+sar=ut.fit_1d(freqs.mean(axis=(1,2))[0][20:50],power_flux.mean(axis=(1,2,4))[0][20:50])
+sch=ut.fit_1d(freqs.mean(axis=(1,2))[1][20:50],power_flux.mean(axis=(1,2,4))[1][20:50])
+sqs=ut.fit_1d(freqs.mean(axis=(1,2))[2][20:50],power_flux.mean(axis=(1,2,4))[2][20:50])
+lab=['AR','CH','QS']
+
+
+plot_spec_region=0
+if(plot_spec_region):
+    plt.plot(freqs.mean(axis=(1,2))[0],power_flux.mean(axis=(1,2,4))[0],'o-',color='red',label='AR')
+    plt.plot(freqs.mean(axis=(1,2))[1],power_flux.mean(axis=(1,2,4))[1],'o-',color='blue',label='CH')
+    plt.plot(freqs.mean(axis=(1,2))[2],power_flux.mean(axis=(1,2,4))[2],'o-',color='green',label='QS')
+    plt.plot(freqs.mean(axis=(1,2))[0],power_flux_res.mean(axis=(1,2,4))[0],'o--',color='red',label='AR (res)')
+    plt.plot(freqs.mean(axis=(1,2))[1],power_flux_res.mean(axis=(1,2,4))[1],'o--',color='blue',label='CH (res)')
+    plt.plot(freqs.mean(axis=(1,2))[2],power_flux_res.mean(axis=(1,2,4))[2],'o--',color='green',label='QS (res)')
+    #plt.plot(freqs.mean(axis=(1,2))[0],10**(np.log10(freqs.mean(axis=(1,2))[0])*sar[0]+sar[1]),color='red',label='AR fit: '+str(np.round(sar[0],2))+'$\pm$'+str(np.round(sar[2],2)))
+    #plt.plot(freqs.mean(axis=(1,2))[1],10**(np.log10(freqs.mean(axis=(1,2))[1])*sch[0]+sch[1]),color='blue',label='CH fit: '+str(np.round(sch[0],2))+'$\pm$'+str(np.round(sch[2],2)))
+    #plt.plot(freqs.mean(axis=(1,2))[2],10**(np.log10(freqs.mean(axis=(1,2))[2])*sqs[0]+sqs[1]),color='green',label='QS fit: '+str(np.round(sqs[0],2))+'$\pm$'+str(np.round(sqs[2],2)))
+    plt.legend()
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Power (SFU$^2$)')
+    plt.show()
+sys.exit()
 
 #### EUV #####
 aiafile='/home/i4ds1807205/20151203/saia_00193_fd_20151203_192129.fts'
@@ -354,7 +793,7 @@ X1,Y1=np.meshgrid(x1,y1)
 X11=(X1-d.shape[0]*0.5)*h[0].header['CDELT1']
 Y12=(Y1-d.shape[1]*0.5)*h[0].header['CDELT2']
 
-
+sys.exit()
 
 sig_quiet=[0.199,0.171,0.058,0.156,0.172,0.19,0.215,0.268,0.372]
 sig_active=[0.118,0.146,0.163,0.175,0.313,0.424,0.545,0.566,0.79]
@@ -483,7 +922,7 @@ if(plot_time_distn):
         plt.legend()
         plt.xlabel('T$_B$ (K)')
         print freq[i], np.std(res), np.std(sig_all),np.std(sig_all)-np.std(res) 
-        plt.close()
+        plt.show()
 
 
 plot_variation=0

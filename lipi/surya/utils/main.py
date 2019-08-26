@@ -112,7 +112,11 @@ def radec_array(header,n,data):
     ra_dec=np.meshgrid(ra,dec)
     return ra_dec
 
-def makeGaussian(size, fwhmx, fwhmy , center=None):
+
+def gaussian(x, mu, sig):
+    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
+def make2DGaussian(size, fwhmx, fwhmy , center=None):
     """ Make a square gaussian kernel.
     size is the length of a side of the square
     fwhm is full-width-half-maximum, which
@@ -189,7 +193,7 @@ def get_bimage(data,lev):
     bimage=bimage/np.max(bimage)
     return bimage
 
-def fit_1d(freq,Tb):
+def fit_1d_Tb_freq(freq,Tb):
     '''
     Fit straight line to Tb vs freq
     Input:
@@ -201,6 +205,22 @@ def fit_1d(freq,Tb):
     Uncertainity in intercept fit
     '''
     x=np.log10(np.array(freq)*1.e6)
+    y=np.log10(Tb)
+    fit = np.polyfit(x, y, 1,cov=True)
+    return fit[0][0],fit[0][1],np.sqrt(np.diag(fit[1]))[0],np.sqrt(np.diag(fit[1]))[1]
+
+def fit_1d(freq,Tb):
+    '''
+    Fit straight line to y vs x
+    Input:
+    y, x
+    Output:
+    slope fit
+    intercept fit
+    Uncertainity in slope fit
+    Uncertainity in intercept fit
+    '''
+    x=np.log10(np.array(freq))
     y=np.log10(Tb)
     fit = np.polyfit(x, y, 1,cov=True)
     return fit[0][0],fit[0][1],np.sqrt(np.diag(fit[1]))[0],np.sqrt(np.diag(fit[1]))[1]
