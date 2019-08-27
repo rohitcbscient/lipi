@@ -94,7 +94,8 @@ SEFD_base=[0]*len(freq)
 NEFD_base=[0]*len(freq)
 snoise_base=[0]*len(freq)
 th_noise_base=[0]*len(freq)
-Tb_beam=[0]*len(freq)
+Tb_beam_mean=[0]*len(freq)
+Tb_beam_std=[0]*len(freq)
 Tsys=[0]*len(freq)
 Aeff=21.5 # m**2
 print 'Reading files...'
@@ -112,6 +113,7 @@ Tgrd=finterg(freq)
 baseline_filelist=['000-008','000-009','000-010','008-009','008-010','009-010']
 flux_path='/media/rohit/VLA/20151203_MWA/pickle/flux_V1_1133149192-%b'
 cal_path='/media/rohit/VLA/20151203_cal/20151203_cal/pickle/flux_V1_1133139776-%b'
+HerA_path='/media/rohit/MWA/20151203_HerA/flux_V1_1133329472_177MHz_T000-009.p'
 gm_path='/media/rohit/VLA/20151203_MWA/pickle/gm/'
 img_path='/media/rohit/VLA/20151203_MWA/images_all/1133149192-%b'
 outdir='/media/rohit/VLA/20151203_MWA/Tb_new/'
@@ -121,21 +123,37 @@ ids='1133149192'
 
 def get_flux(flux_path,baseline_filelist,ff,i):
     '''
+    i=1 picket fence flat bandpass, i=0 all channels
     Output:
     mean flux in frequency and baselines, std flux in frequency and time
     '''
-    Ssun_all,Tb_beam,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5)
     if(i):
+        Ssun_all,Tb_beam,time_str,timesec=tb.mean_flux_pfence(flux_path,fband[ff],baseline_filelist,0.5)
         Ssun_all[:,2,:]=Ssun_all[:,1,:]
         Ssun_all[:,8,:]=Ssun_all[:,7,:]
         Tb_beam[:,2,:]=Tb_beam[:,1,:]
         Tb_beam[:,8,:]=Tb_beam[:,7,:]
-    Ssun_mean=np.nanmean(Ssun_all,axis=(1))[2]
-    Tb_beam=np.nanmean(Tb_beam,axis=(1,2))[2]
-    Ssun_std=np.nanstd(Ssun_all,axis=(1))[2]
-    return Ssun_mean,Ssun_std,Tb_beam
+        Ssun_mean=np.nanmean(Ssun_all,axis=(0,1))#[2]
+        Tb_beam_mean=np.nanmean(Tb_beam,axis=(0,1))#[2]
+        Tb_beam_std=np.nanstd(Tb_beam,axis=(0,1))#[2]
+        Ssun_std=np.nanstd(Ssun_all,axis=(0,1))#[2]
+    else:
+        Ssun_all,Tb_beam,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5)
+        Ssun_mean=np.nanmean(Ssun_all,axis=(0,1))#[2]
+        Tb_beam_mean=np.nanmean(Tb_beam,axis=(0,1))#[2]
+        Tb_beam_std=np.nanstd(Tb_beam,axis=(0,1))#[2]
+        Ssun_std=np.nanstd(Ssun_all,axis=(0,1))#[2]
+    return Ssun_mean,Ssun_std,Tb_beam_mean,Tb_beam_std
     
 ############################ Pre- Requisite ############################
+do_HerA=1
+if(do_HerA):
+    #HerAS_mean,HerAS_std,calH=get_flux(cal_path,baseline_filelist,ff,0)
+    HerAS_mean=pickle.load(open(HerA_path,'r'))[17][3][0].mean(axis=0)
+    HerAS_mean[np.isnan(HerAS_mean)]= np.nanmean(HerAS_mean)
+    diff_HerAS_=fit_cubic(HerAS_mean.reshape(160,1,1))#(570,1,1))
+    diff_HerAS=diff_HerAS_[0].flatten()
+    auto_HerAS=np.correlate(diff_HerAS/np.std(diff_HerAS),diff_HerAS/np.std(diff_HerAS),'same')
 
 get_Tb=1
 if(get_Tb==1):
@@ -147,9 +165,9 @@ if(get_Tb==1):
     #for ff in range(1):
         print str(freq[ff])+' MHz'
         ### GET FLUX ###
-        Ssun_mean[ff],Ssun_std[ff],Tb_beam[ff]=get_flux(flux_path,baseline_filelist,ff,1)
+        Ssun_mean[ff],Ssun_std[ff],Tb_beam_mean[ff],Tb_beam_std[ff]=get_flux(flux_path,baseline_filelist,ff,1)
         ### GET CAL FLUX ###
-        calS_mean[ff],calS_std[ff],calT=get_flux(cal_path,baseline_filelist,ff,0)
+        calS_mean[ff],calS_std[ff],calT,calTstd=get_flux(cal_path,baseline_filelist,ff,0)
         ### GM Parameters ##
         gm_filepath=gm_path+str(int(freq[ff]))+'MHz/T'
         std_ni[ff]=[0]*len(baseline_filelist)
@@ -159,9 +177,11 @@ if(get_Tb==1):
             std_ni[ff][bb]=float(gm_data[0][1])
             bb=bb+1
         ### GET THERMAL NOISE ###
-        Tsys[ff]=Tsky[ff]+Trec[ff]+Tgrd[ff]+Tb_beam[ff]
+        Nelements=3
+        df=1.12e6 # in Hz
+        Tsys[ff]=Tsky[ff]+Trec[ff]+Tgrd[ff]+Tb_beam_mean[ff]
         SEFD_base[ff]=rd.get_SEFD(Tsys[ff],Aeff)
-        th_noise_base[ff]=rd.thermal_noise(SEFD_base[ff],2,4.e4,0.5,2,1)
+        th_noise_base[ff]=rd.thermal_noise(SEFD_base[ff],Nelements,df,0.5,2,1)
         ### IMAGE ANALYSIS ##
         imglist=sorted(glob.glob(img_path+fband[ff]+'*.image.FITS'))
         reslist=sorted(glob.glob(img_path+fband[ff]+'*.residual.FITS'))
@@ -238,6 +258,9 @@ if(get_Tb==1):
     Mcal=210
     sigrand=np.random.normal(0,1,M)
     sigrand_cal=np.random.normal(0,1,Mcal)
+    prd=36.0 # in sec
+    sin=np.sin(np.arange(M)*np.pi/prd)
+    ###
     S_ts=[0]*len(fband)
     diff_S=[0]*len(fband)
     diff_S_smooth=[0]*len(fband)
@@ -272,13 +295,17 @@ if(get_Tb==1):
         #diff_rand_smooth_cal=np.correlate(sigrand_cal,kernel,'valid')
         #auto_rand_cal=np.correlate(diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),'same')
         auto_rand_cal=np.correlate(sigrand_cal/np.std(sigrand_cal),sigrand_cal/np.std(sigrand_cal),'same')
+        # SINE WAVE
+        auto_sin=np.correlate(sin/np.std(sin),sin/np.std(sin),'same')
 
     lag=0.5*(np.arange(len(diff_S[0]))-int(diff_S[0].shape[0]/2))
     lagcal=0.5*(np.arange(len(diff_S_cal[0]))-int(diff_S_cal[0].shape[0]/2))
+    lagHerA=2.0*(np.arange(len(diff_HerAS))-int(diff_HerAS.shape[0]/2))
     plot_auto=1
     if(plot_auto):
         plt.plot(lag,auto_S[-2],'o-',label='218 MHz')
-        plt.plot(lagcal,auto_S_cal[-2],'o-',label='CAL')
+        #plt.plot(lagcal,auto_S_cal[-2],'o-',label='CAL')
+        plt.plot(lagHerA,auto_HerAS,'o-',label='HerA')
         #plt.plot(lag,auto_rand,'o',label='RANDOM')
         plt.xlabel('Lag Time (sec)')
         plt.ylabel('Auto-correlation')
@@ -299,8 +326,8 @@ if(get_Tb==1):
             cross_diff[m]=cross_min[m]-cross_max[m]
             m=m+1
     ## wavelets
-    widths=np.arange(1,401)*0.5
-    mother='gaus1'
+    widths=np.arange(1,201)*0.5
+    mother='mexh'
     cwtmatr=[0]*len(fband)
     freqs=[0]*len(fband)
     power=[0]*len(fband)
@@ -313,6 +340,10 @@ if(get_Tb==1):
     freqs_rand=[0]*len(fband)
     power_rand=[0]*len(fband)
     period_rand=[0]*len(fband)
+    cwtmatr_sin=[0]*len(fband)
+    freqs_sin=[0]*len(fband)
+    power_sin=[0]*len(fband)
+    period_sin=[0]*len(fband)
     slope=[0]*len(fband)
     slope_cal=[0]*len(fband)
     for i in range(len(fband)):
@@ -326,6 +357,10 @@ if(get_Tb==1):
         #cwtmatr_rand[i]=cwtmatr_rand[i]*np.std(sigrand)
         power_rand[i] = (np.abs(cwtmatr_rand[i])) ** 2
         period_rand[i] = 1 / freqs_rand[i]
+        # sin
+        cwtmatr_sin[i], freqs_sin[i] = pywt.cwt(sin*0.5, widths, mother)
+        power_sin[i] = (np.abs(cwtmatr_sin[i])) ** 2
+        period_sin[i] = 1 / freqs_sin[i]
         # 5:50 for non variance case, 10:100 with variance
         slope[i]= ut.fit_1d(freqs[i][10:100],power[i].mean(axis=1)[10:100])
         #wdata_cal=diff_S_smooth_cal[i]/diff_S_std_cal[i]
@@ -340,6 +375,11 @@ if(get_Tb==1):
     power=np.array(power)
     power_cal=np.array(power_cal)
     power_rand=np.array(power_rand)
+    power_sin=np.array(power_sin)
+    widths_HerA=np.arange(1,50)*2.0
+    cwtmatr_HerA, freqs_HerA = pywt.cwt(diff_HerAS/np.std(diff_HerAS), widths_HerA, mother)
+    power_HerA = (np.abs(cwtmatr_HerA)) ** 2
+    period_HerA = 1 / freqs_HerA
     ## cross-correlation of reconstructed waves
     t=20
     cross_wave=[0]*28
@@ -358,27 +398,36 @@ if(get_Tb==1):
     wavelet_power_mean_cal=[0]*len(fband)
     wavelet_power_sum_cal=[0]*len(fband)
     wavelet_power_mean_rand=[0]*len(fband)
+    wavelet_power_mean_sin=[0]*len(fband)
     wavelet_max=[0]*len(fband)
+    wavelet_max_HerA=[0]*len(fband)
+    wavelet_max_cal=[0]*len(fband)
     for i in range(len(fband)):
         wavelet_power_mean[i]=power[i].mean(axis=1)
         wavelet_power_sum[i]=power[i].sum(axis=1)
         wavelet_power_mean_cal[i]=power_cal[i].mean(axis=1)
+        wavelet_power_mean_HerA=power_HerA.mean(axis=1)
         wavelet_power_sum_cal[i]=power_cal[i].sum(axis=1)
         wavelet_power_mean_rand[i]=power_rand[i].mean(axis=1)
+        wavelet_power_mean_sin[i]=power_sin[i].mean(axis=1)
+        wavelet_max[i]=widths[np.where(wavelet_power_mean[i]==np.max(wavelet_power_mean[i]))]
+        wavelet_max_HerA[i]=widths[np.where(wavelet_power_mean_HerA[i]==np.max(wavelet_power_mean_HerA[i]))]
+        wavelet_max_cal[i]=widths[np.where(wavelet_power_mean_cal[i]==np.max(wavelet_power_mean_cal[i]))]
+        wavelet_max_sin=widths[np.where(wavelet_power_mean_sin[i]==np.max(wavelet_power_mean_sin[i]))]
         ## plot
-        plt.plot(widths,wavelet_power_mean[i],'o-',label=str(freq[i])+' MHz')
+        #plt.plot(widths,wavelet_power_mean[i],'o-',label=str(freq[i])+' MHz')
         #plt.plot(widths,wavelet_power_mean_cal[i],'o-')
         #plt.plot(widths,wavelet_power_mean[i]/wavelet_power_mean_cal[i],'o-')
-        wavelet_max[i]=widths[np.where(wavelet_power_mean[i]==np.max(wavelet_power_mean[i]))]
     #plt.plot(1/widths,np.array(wavelet_power_mean_cal).mean(axis=0)*170,'o-',label='CAL (scaled by 170)')
     slope_mean=ut.fit_1d(1/widths[20:50],np.array(wavelet_power_mean).mean(axis=0)[20:50])
     slope_mean_cal=ut.fit_1d(1/widths[20:50],np.array(wavelet_power_mean_cal).mean(axis=0)[20:50])
     plt.plot(1/widths,np.array(wavelet_power_mean_cal).mean(axis=0),'o-',color='blue',label='CAL')
-    plt.plot(1/widths,np.array(wavelet_power_mean_rand).mean(axis=0),'o-',color='black',label='RANDOM')
+    plt.plot(1/widths_HerA,np.array(wavelet_power_mean_HerA),'o--',color='blue',label='HerA')
+    plt.plot(1/widths,np.array(wavelet_power_mean_rand).mean(axis=0),'o--',color='black',label='RANDOM')
+    plt.plot(1/widths,np.array(wavelet_power_mean_sin).mean(axis=0),'o-',color='black',label='SIN: '+str(prd)+' sec')
     plt.plot(1/widths,np.array(wavelet_power_mean).mean(axis=0),'o-',color='red',label='SUN')
     plt.plot(1/widths,10**(np.log10(1/widths)*slope_mean[0]+slope_mean[1]),color='red',label='Sun (fit): '+str(np.round(slope_mean[0],2))+'$\pm$'+str(np.round(slope_mean[2],2)))
     plt.plot(1/widths,10**(np.log10(1/widths)*slope_mean_cal[0]+slope_mean_cal[1]),color='blue',label='CAL (fit): '+str(np.round(slope_mean_cal[0],2))+'$\pm$'+str(np.round(slope_mean[2],2)))
-    plt.plot()
     plt.xlabel('Scale (sec$^-1$)')
     #plt.ylabel('Power (SFU$^2$)')
     plt.ylabel('Power')

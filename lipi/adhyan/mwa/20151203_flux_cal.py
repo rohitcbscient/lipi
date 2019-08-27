@@ -1,24 +1,33 @@
-from surya.mwa import get_pickle as gp
+
+from surya.mwa import mwa_fluxcal as mfl
+from surya.mpis import do_parallel as dp
+import glob
 
 
-#############################################################################################################################################
-INDATA_DIR = '/media/rohit/MWA/20151203_HerA/'                # Path of directory where MS files are sitting
-OUTDATA_DIR = '/media/rohit/MWA/20151203_HerA/'       # Path of directory to which the output DS files are directed
-DB_DIR  = '/media/rohit/MWA/20151203_HerA/'           # Path of directory where database of MWA events is located
-WORKING_DIR = '/media/rohit/MWA/20151203_HerA/'               # Path of working directory
+mwa_phase=1
+DS_DIR = '/media/rohit/MWA/20151203_HerA/'                   # Path to directory containing DS files
+BEAM_DIR = '/media/rohit/MWA/MWA_BEAMS/'             # Path to directory containing beam files
+WORKING_DIR = '/media/rohit/MWA/20151203_HerA/'              # Path to working directory
+HASLAM_DIR = '/media/rohit/MWA/20151203_HerA/haslam/'
 
-POL_LIST = ['XX','YY']          # List of polarisation for computing autocorrelations
-CPOL_LIST = ['XX','XY','YX','YY']       # List of polarisations for computing crosscorrelations
-tilenames_list = ['Tile011MWA', 'Tile021MWA', 'Tile022MWA','Tile023MWA']       # List of tile names
-MWA_PHASE=1 # Put 1 or 2
-#tilenames_list = ['Tile074MWA', 'Tile075MWA', 'Tile076MWA','Tile077MWA']        # List of tile names (PHASE-II)
+DS_LIST=glob.glob('1*.p')
+#DS='1133329472_177MHz_T000-008.DS.dat.p'
 
-if(MWA_PHASE==2):
-      tile1=[62,60,26,25,0,16]
-      tile2=[63,61,28,27,7,17]
-      baseline_list=['62-63', '60-61', '26-28', '25-27', '0-7', '16-17']
-azi_pointing=255.378
-ele_pointing=3.559
-MS_LIST=['1133329472_177MHz.ms']
-gp.main(INDATA_DIR,OUTDATA_DIR,DB_DIR,WORKING_DIR,MS_LIST,POL_LIST,CPOL_LIST,MWA_PHASE,azi_pointing,ele_pointing,tilenames_list,ms,qa,tb,casalog)
+# MWA Coordinates
 
+array_lon = 116.6708            # MWA core coordinates (in degrees)
+array_lat = -26.7033
+array_elevation = 377.83
+
+# Coordinates of source
+star_ra=252.784
+star_dec=4.992
+
+rec_path='/home/i4ds1807205/scripts/flux_calibration/Trec.p'
+grd_path='/home/i4ds1807205/scripts/flux_calibration/Tpickup.p'
+spidx_path='/home/i4ds1807205/scripts/flux_calibration/haslam_spec_gal_guzman.p'
+ifsun=0
+#### FOR ONE FILE
+#mfl.tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_lon,array_lat,array_elevation,rec_path,grd_path,spidx_path,ifsun,star_ra,star_dec)
+#### FOR MPI
+dp.MPI_MAIN_FLUX(mfl,DS_LIST,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_lon,array_lat,array_elevation,rec_path,grd_path,spidx_path,ifsun,star_ra,star_dec)

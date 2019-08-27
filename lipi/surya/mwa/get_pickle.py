@@ -208,6 +208,7 @@ def main(INDATA_DIR,OUTDATA_DIR,DB_DIR,WORKING_DIR,MS_LIST,POL_LIST,CPOL_LIST,MW
             for j in range(len(baseline_list)):		
                     print "Autocorrelations"
                     auto_t1[i][j] = get_amp(MS_LIST[i],tile1[j],tile1[j],POL_LIST,mso,casalogo)			# Autocorrelation from tile 1 - XX and YY pol.
+                    print auto_t1[i][j].shape
                     auto_t2[i][j] = get_amp(MS_LIST[i],tile2[j],tile2[j],POL_LIST,mso,casalogo)			# Autocorrelation from tile 2	
                     print "Crosscorrelations.... size: ", auto_t2[i][j].shape
                     cross_t12[i][j] = get_amp(MS_LIST[i],tile1[j],tile2[j],CPOL_LIST,mso,casalogo)	# Crosscorrelations - XX,XY,YX and YY pols. in sequence

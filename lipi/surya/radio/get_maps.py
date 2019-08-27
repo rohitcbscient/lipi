@@ -94,8 +94,9 @@ def interpolate_ra_dec(file_,time):
     ra=interpolate_ra(file_,nt)
     return ra,dec
 
-def mean_flux(file_,f,baseline_filelist,res):
+def mean_flux_pfence(file_,f,baseline_filelist,res):
     '''
+    FOR PICKET-FENCE data
     Input:
     file_,f,baseline_filelist,res
     NASA Horizon file path
@@ -134,6 +135,42 @@ def mean_flux(file_,f,baseline_filelist,res):
     return flux,Tb_beam,time,timesec
 
 
+def mean_flux(file_,f,baseline_filelist,res):
+    '''
+    Input:
+    file_,f,baseline_filelist,res
+    NASA Horizon file path
+    MWA frequency band label
+    MWA Baseline List
+    Time Resolution 
+    Output: 
+    flux array in MWA format of DS
+    time string array
+    time second array
+    '''
+    bb=0
+    flux=[0]*len(baseline_filelist)
+    Tb_beam=[0]*len(baseline_filelist)
+    std_flux=[0]*len(baseline_filelist)
+    for b in baseline_filelist:
+        aa=pickle.load(open(str(file_)+str(f)+'_T'+str(b)+'.p','r'))
+        #aa[17][3][0][np.isnan(aa[17][3][0])]=0
+        aa[17][3][0][aa[17][3][0]==0]=np.nan
+        data1=aa[17][3][0]
+        flux[bb]=data1
+        aa[17][6][0][aa[17][6][0]==0]=np.nan
+        data1_=aa[17][6][0]
+        Tb_beam[bb]=data1_
+        bb=bb+1
+    time=[0]*flux[0].shape[1]
+    timesec=[0]*flux[0].shape[1]
+    for i in range(flux[0].shape[1]):
+        t=aa[14].split(' ')[1]
+        time[i]=ut.sec2hms_c(t,res,i)
+        timesec[i]=ut.hms2sec_c(' '+time[i])
+    flux=np.array(flux)
+    Tb_beam=np.array(Tb_beam)
+    return flux,Tb_beam,time,timesec
 
 def compute_Tb(f,xc,yc,del_,angle,res,freq,n,S_sun_t_):
     '''
