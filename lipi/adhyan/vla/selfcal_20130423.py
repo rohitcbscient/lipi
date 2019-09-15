@@ -8,11 +8,12 @@ import os
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
-MS='/nas08-data02/vladata/20130423/L-Band/selfcal/20130423T2030-2050.L.50ms.selfcal.ms' 
+#MS='/nas08-data02/vladata/20130423/L-Band/selfcal/20130423T2030-2050.L.50ms.selfcal.ms' 
+MS='/nas08-data02/vladata/20130423/S-Band/selfcal/20130423T2030-2040.S.50ms.cal.ms' 
 split_=1
 if(split_==1):
-    OUTPUT_MS='20130423T203430-203431.L.50ms.ms'
-    os.system('rm -rf 20130423T203430-203431.L.50ms*')
+    OUTPUT_MS='20130423T203430-203431.S.50ms.ms'
+    os.system('rm -rf 20130423T203430-203431.S.50ms*')
     #timerange_='20:40:00~20:46:00'
     timerange_='20:34:30~20:34:31' # MARINA timestamps
     #timerange_='20:46:09~20:46:10'
@@ -28,17 +29,18 @@ if(split_==1):
 
 
 # INPUT PARAMETERS
-MS_='20130423T203430-203431.L.50ms.ms'
+MS_='20130423T203430-203431.S.50ms.ms'
 DIR='selfsol'
 prefix=DIR+'/fsun.selfcal_soln'
 spw_list=['0','1','2','3','4','5','6','7']
 chanlist=['3~60']*9
 gainchan='28~32'
-antennas_='ea01,ea03,ea06,ea07,ea08,ea09,ea17,ea18,ea19,ea21,ea23,ea25,ea26,ea27'
+antennas_=''#'ea01,ea03,ea06,ea07,ea08,ea09,ea17,ea18,ea19,ea21,ea23,ea25,ea26,ea27'
 interactive=False
 timerange_=''
 modes=['p','p','a','p','a','p']#['p','p','p','p']#['ap','ap','ap','ap','ap','ap','ap']
 snr_=[2,3,3,3,3,3,3]
+caltable_all=[0]*len(spw_list)
 MS=[0]*(len(modes)+1)
 MS[0]=MS_
 niter_scale_factor=np.ones(len(spw_list))#np.linspace(2,1,len(spw_list))
@@ -47,13 +49,14 @@ niter_base=np.array([100,200,400,400,400,400,400,400,400])#[,600,800,1000,1200,1
 #niter_base=np.ones(len(modes))*100
 #uvrange_=['2000~7000lambda','500~7000lambda','','','','','','','','']
 uvrange_=['','','','','','','','','','']
-refant_='ea07'
+refant_=''#'ea07'
 stokes_='I'
-imsize_=[1024,1024]
+imsize_=[256,256]
 cell_=['2.5arcsec','2.5arcsec']
 # RA:02 05 i40.74 DEC:+12 44 01.6 20:34:00
 #phase_centre='J2000 0.548505138896rad 0.222291421955rad'
-phase_centre='J2000 02h05m40.74 +12d44m01.6' # For 203430-203431
+#phase_centre='J2000 02h05m40.74 +12d44m01.6' # For 203430-203431
+phase_centre='J2000 02h04m51.211 12d43m12.47' # From Yingjie script
 #phase_centre='J2000 02h05m41.97 +12d44m08.2' # For 204200
 #phase_centre='J2000 02h05m42.44 +12d44m10.6' # For 20:45:00 solar centre
 masks_=['mask0.mask']
@@ -71,7 +74,7 @@ if(type2):
 
 # SCRIPTS STARTS
 ss=0
-for spw_ in [spw_list[0]]:
+for spw_ in spw_list:
     niter_list=np.array(niter_base/niter_scale_factor[ss],dtype=int)
     print '##### STARTING SELFCAL FOR SPW:'+str(spw_)+' #####'
     print 'Niter list: ', niter_list
@@ -232,29 +235,16 @@ for spw_ in [spw_list[0]]:
                 print 'Splitting the corrected data..'
                 os.system('rm -rf '+MS[step+1])
                 split(vis=MS[0],outputvis=MS[step+1],datacolumn='corrected')
+        caltable_all[ss]=image_[0:step+1]
         #os.system('rm -rf '+MS)
         #os.system('mv '+corrMS+' '+MS)
-        ##############
-        # Apply solutions to the final MS
-        do_clearcal=0
-        if(do_clearcal):
-            clearcal(MS[0])
-        apply_cal=0
-        if(apply_cal):
-            print 'Applying solutions....',image_[0:step+1]
-            #clearcal(vis=MS)
-            applycal(vis=MS[0],field="",spw=spw_,intent="",selectdata=True,timerange="",uvrange="",antenna="", \
-                    scan="",observation="",msselect="",docallib=False,callib="", \
-                    #gaintable=image_, \
-                    gaintable=image_[0:step+1], \
-                    gainfield=[],interp=[], \
-                    spwmap=[],calwt=[False],parang=False,applymode='calonly',flagbackup=True)
-        make_images_edges=0
+        ############## SELFCAL ENDS ####################
+        make_images_edges=1
         image_lower=image_[step]+'.lower' # Lower in frequency
         if(make_images_edges):
             print 'Making image....'
-            clean(vis=MS,imagename=image_lower, \
-                    outlierfile="",field="",spw=spw_+':0~3',selectdata=True,timerange="", \
+            clean(vis=MS[0],imagename=image_lower, \
+                    outlierfile="",field="",spw=spw_+':4~9',selectdata=True,timerange="", \
                     uvrange="",antenna="",scan="",observation="",intent="",mode="mfs",resmooth=False, \
                     gridmode="",wprojplanes=-1,facets=1,cfcache="cfcache.dir",rotpainc=5.0,painc=360.0, \
                     aterm=True,psterm=False,mterm=True,wbawp=False,conjbeams=True,epjtable="", \
@@ -275,7 +265,7 @@ for spw_ in [spw_list[0]]:
         if(make_images_edges):
             print 'Making image....'
             clean(vis=MS,imagename=image_upper, \
-                    outlierfile="",field="",spw=spw_+':60~63',selectdata=True,timerange="", \
+                    outlierfile="",field="",spw=spw_+':55~60',selectdata=True,timerange="", \
                     uvrange="",antenna="",scan="",observation="",intent="",mode="mfs",resmooth=False, \
                     gridmode="",wprojplanes=-1,facets=1,cfcache="cfcache.dir",rotpainc=5.0,painc=360.0, \
                     aterm=True,psterm=False,mterm=True,wbawp=False,conjbeams=True,epjtable="", \
@@ -300,6 +290,22 @@ for spw_ in [spw_list[0]]:
     plt.savefig(prefix+'_DR_spw'+spw_+'.png')
     plt.close()
     ss=ss+1
+    # Apply solutions to the final MS
+    do_clearcal=0
+    if(do_clearcal):
+        clearcal(MS)
+    apply_cal=0
+    if(apply_cal):
+        caltable_apply=list(itertools.chain(*caltable_all))
+        print 'Applying solutions....',image_[0:step+1]
+        #clearcal(vis=MS)
+        applycal(vis=MS,field="",spw=spw_,intent="",selectdata=True,timerange="",uvrange="",antenna="", \
+                scan="",observation="",msselect="",docallib=False,callib="", \
+                #gaintable=image_, \
+                gaintable=caltable_apply, \
+                gainfield=[],interp=[], \
+                spwmap=[],calwt=[False],parang=False,applymode='calonly',flagbackup=True)
+
 
 if(do_organise):
     os.system('rm -rf '+DIR+'/selfcal_plots')
@@ -314,6 +320,8 @@ if(do_organise):
     os.system('mkdir '+DIR+'/selfcal_models')
     os.system('mv '+DIR+'/*.model '+DIR+'/selfcal_models')
     os.system('mv '+DIR+'/*.image '+DIR+'/selfcal_models')
+    os.system('mkdir '+DIR+'/selfcal_ms')
+    os.system('rm -rf '+MS[0].split('.ms')[0]+'.slfcal.*.ms')
 
 
 
