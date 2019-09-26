@@ -138,7 +138,7 @@ def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_l
 		theta_resolution = 1.0		# Resolution in elevation (in degrees)
 		azimuth_bins = int(360/phi_resolution)
 		elevation_bins = int(90/theta_resolution)
-		solar_size = 22.5		#Radius of Sun (in arcmin)
+		solar_size = 30.0#22.5		#Radius of Sun (in arcmin)
 		solidangle_sun = (np.pi)*((solar_size*np.pi/(180*60))**2)	#Solid angle subtended by Sun for solar radius = 22.5'
 		kb=1.38e-23		# Boltzmann constant
 		c=3.e8			# Speed of light in vacuum
@@ -150,11 +150,10 @@ def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_l
 		solidangle = solid_angle(azimuth_bins,elevation_bins)
 		print '######## Working with ',str(DS_DIR),str(DS),' ###########'
 		os.chdir(DS_DIR)
-		#central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,ph_ra,ph_dec,start_time,end_time = pickle.load(open(DS,'r'))
-		central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,start_time,end_time = pickle.load(open(DS,'r'))
+		central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,ph_ra,ph_dec,start_time,end_time = pickle.load(open(DS,'r'))
+		#central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,start_time,end_time = pickle.load(open(DS,'r'))
 		if(mwa_phase==2):
 			ncross=np.mean(ncross,axis=2)
-		ncross=np.mean(ncross,axis=2)
 		ph_ra,ph_dec=azi_pointing,ele_pointing
 		#azi_pointing,ele_pointing,ph_ra,ph_dec = 	308.66, 40.61,	158.79, 8.72
 		mid_time = midtime_calculate(start_time,end_time)
@@ -240,10 +239,10 @@ def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_l
 					tgb_sin=tgb_m*fringe_sin[0:360,0:90][:,::-1]				# SINE FRINGE ON SKY
 					tgb_abs=np.sqrt(np.sum(tgb_sin)**2 + np.sum(tgb_cosine)**2) 		# ABSOLUTE FRINGE ON THE SKY
 					T_sky_baseline=np.sum(tgb_abs)/1000 					# Converting from mK to K
-					print 'Fringe ::',T_sky_baseline#,tgb_abs,ph_az,ph_el,az_sun,alt_sun,freq,np.mean(u[t:(t+nn)]),np.mean(v[t:(t+nn)]),np.mean(w[t:(t+nn)])		
+					print 'Fringe Temp ::',T_sky_baseline#,tgb_abs,ph_az,ph_el,az_sun,alt_sun,freq,np.mean(u[t:(t+nn)]),np.mean(v[t:(t+nn)]),np.mean(w[t:(t+nn)])		
 					#plot.plot_polar(tgb_sin,'')
 					T_baseline[p][ch][t:(t+nn)] = T_sky_baseline
-					corr_factor[p][ch][t:(t+nn)] = beam_factor#*fringe_factor[p][ch][t:(t+nn)]
+					corr_factor[p][ch][t:(t+nn)] = beam_factor*fringe_factor[p][ch][t:(t+nn)]
 					#ncross[p][ch][t:(t+nn)] = 0.5 ### PUT YOUR NCCF ###
 					Un_Tbeam_Sun[p][ch][t:(t+nn)]=(ncross[p][ch][t:(t+nn)]*(Tsky_integrated[p][ch][t:(t+nn)]+Trec[ch]+Tpickup[ch])-T_sky_baseline)/(1-ncross[p][ch][t:(t+nn)])
 			    	        Tbeam_sun = corr_factor[p][ch][t:(t+nn)]*Un_Tbeam_Sun[p][ch][t:(t+nn)]

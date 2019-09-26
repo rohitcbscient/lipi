@@ -33,11 +33,11 @@ def fit_cubic(y):
     return ynew,snew
 
 plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
-freq=[108.0,120.0,132.0,145.0,161.0,179.0,196.0,217.0,240.0]
-#freq=[108.0,132.0,145.0,161.0,179.0,196.0,217.0,240.0]
+#freq=[108.0,120.0,132.0,145.0,161.0,179.0,196.0,217.0,240.0]
+freq=[108.0,132.0,145.0,161.0,179.0,196.0,217.0,240.0]
 #freq=[108.0,145.0,161.0,179.0,196.0,217.0,240.0]
-fband=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
-#fband=['084-085','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+#fband=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+fband=['084-085','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
 #fband=['084-085','113-114','125-126','139-140','153-154','169-170','187-188']
 data=[0]*len(freq)
 udata_dirty=[0]*len(freq)
@@ -94,10 +94,12 @@ SEFD_base=[0]*len(freq)
 NEFD_base=[0]*len(freq)
 snoise_base=[0]*len(freq)
 th_noise_base=[0]*len(freq)
+th_noise_array=[0]*len(freq)
 Tb_beam=[0]*len(freq)
 Tsys=[0]*len(freq)
 sa=[0]*len(freq)
 Aeff=[0]*len(freq)
+polTb=[0]*len(freq)
 print 'Reading files...'
 
 c=3.e8 # S.I. Unit
@@ -177,10 +179,12 @@ if(get_Tb==1):
         Tsys[ff]=Tsky[ff]+Trec[ff]+Tgrd[ff]+Tb_beam[ff]
         SEFD_base[ff]=rd.get_SEFD(Tsys[ff],Aeff[ff])
         th_noise_base[ff]=rd.thermal_noise(SEFD_base[ff],2,4.e4,0.5,2,1)
+        th_noise_array[ff]=rd.thermal_noise(SEFD_base[ff],128,2.e6,0.5,2,1)
         ### IMAGE ANALYSIS ##
-        imglist=sorted(glob.glob(img_path+fband[ff]+'*.image.FITS'))
-        reslist=sorted(glob.glob(img_path+fband[ff]+'*.residual.FITS'))
+        imglist=sorted(glob.glob(img_path+fband[ff]+'*.image.FITS'))[0:570]
+        reslist=sorted(glob.glob(img_path+fband[ff]+'*.residual.FITS'))[0:570]
         img_time=[0]*len(imglist)
+        polTb[ff]=[0]*len(imglist)
         Tb=[0]*len(imglist)
         resi=[0]*len(imglist)
         resi_sun=[0]*len(imglist)
@@ -192,7 +196,6 @@ if(get_Tb==1):
         Tb_fac=[0]*len(imglist)
         flux_sun_resi=[0]*len(imglist)
         flux_fac=[0]*len(imglist)
-        polTb=[0]*len(imglist)
         flux=[0]*len(imglist)
         bmaj=[0]*len(imglist)
         bmin=[0]*len(imglist)
@@ -205,10 +208,10 @@ if(get_Tb==1):
         for fitsfile in imglist[:1]:
             xc,yc,img_time[j]=tb.solar_center_pixel(fitsfile,centre_file)
             centre[j]=[xc,yc]
-            Tb[j],flux[j],offsun_mean[j],offsun_std[j],bmaj[j],bmin[j],bpa[j],ndata[j]=tb.compute_Tb(fitsfile,xc,yc,del_,angle,res,freq[ff]*1.e6,5,Ssun_mean[ff][j])
+            Tb[j],flux[j],offsun_mean[j],offsun_std[j],bmaj[j],bmin[j],bpa[j],ndata[j]=tb.compute_Tb(fitsfile,xc,yc,del_,angle,res,freq[ff]*1.e6,0.001,Ssun_mean[ff][j])
             resi_sun[j],resi_=tb.get_residuals(fitsfile,xc,yc,del_,angle)
             resi[j]=resi_[0:200,0:200]
-            polTb[j]=ut.cart2polar(Tb[j])
+            polTb[ff]=ut.cart2polar(Tb[j])[0]
             Tb_sun_resi[j],flux_sun_resi[j],Tb_fac[j],flux_fac[j]=tb.scale_residuals(resi_sun[j],flux[j],ndata[j],res)
             Tb_sun[j]=resi[j]*Tb_fac[j]
             flux_sun[j]=resi[j]*flux_fac[j]
@@ -226,12 +229,13 @@ if(get_Tb==1):
         flux_sun_resi=np.array(flux_sun_resi)
         resi=np.array(resi)
         resi_sun=np.array(resi_sun)
-        polTb=np.array(polTb)
         flux=np.array(flux)
         ndata=np.array(ndata)
+        # do full imglist 
         print 'Mean Tb: ',np.max(Tb[0]),np.std(Tb[0]),np.max(ndata[0]),bmaj[0],bmin[0],len(np.where(ndata[0]!=0)[0])
         #pickle.dump([Tb,offsun_mean,offsun_std,bmaj,bmin,bpa,centre,flux,ndata,polTb],open(outdir+'Tb_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
         #pickle.dump([resi,resi_sun,Tb_sun_resi,flux_sun_resi,Tb_fac,flux_fac],open(outdir+'res_'+str(ids)+'-'+str(fband[ff])+'.p','w'))
+    polTb=np.array(polTb)
     ##### Non-Imaging Analysis #################
     N=10
     sigrand=np.random.normal(0,1,570)
@@ -290,7 +294,7 @@ if(get_Tb==1):
 
     lag=0.5*(np.arange(len(diff_S[0]))-int(diff_S[0].shape[0]/2))
     lagcal=0.5*(np.arange(len(diff_S_cal[0]))-int(diff_S_cal[0].shape[0]/2))
-    plot_auto=1
+    plot_auto=0
     if(plot_auto):
         plt.plot(lag,auto_S[-2],'o-',label='218 MHz')
         plt.plot(lagcal,auto_S_cal[-2],'o-',label='CAL')
@@ -299,22 +303,24 @@ if(get_Tb==1):
         plt.ylabel('Auto-correlation')
         plt.legend()
         plt.show()
-    cross_S=[0]*28
-    fpair=[0]*28
-    cross_max=[0]*28
-    cross_min=[0]*28
-    cross_diff=[0]*28
-    m=0
-    for k in range(len(fband)):
-        for l in range(k):
-            fpair[m]=np.array((freq[k],freq[l]))
-            cross_S[m]=np.correlate(diff_S_smooth[k]/diff_S_std[k],diff_S_smooth[l]/diff_S_std[l],'same')
-            cross_max[m]=np.where(cross_S[m]==np.max(cross_S[m]))[0][0]
-            cross_min[m]=np.where(cross_S[m]==np.min(cross_S[m]))[0][0]
-            cross_diff[m]=cross_min[m]-cross_max[m]
-            m=m+1
+    do_cross=0
+    if(do_cross):
+        cross_S=[0]*28
+        fpair=[0]*28
+        cross_max=[0]*28
+        cross_min=[0]*28
+        cross_diff=[0]*28
+        m=0
+        for k in range(len(fband)):
+            for l in range(k):
+                fpair[m]=np.array((freq[k],freq[l]))
+                cross_S[m]=np.correlate(diff_S_smooth[k]/diff_S_std[k],diff_S_smooth[l]/diff_S_std[l],'same')
+                cross_max[m]=np.where(cross_S[m]==np.max(cross_S[m]))[0][0]
+                cross_min[m]=np.where(cross_S[m]==np.min(cross_S[m]))[0][0]
+                cross_diff[m]=cross_min[m]-cross_max[m]
+                m=m+1
     ## 
-    plot_thermal=1
+    plot_thermal=0
     if(plot_thermal):
         plt.plot(freq,diff_S_std,'o-',label='SOL')
         plt.plot(freq,diff_S_std_cal,'o-',label='CAL')
@@ -379,7 +385,6 @@ if(get_Tb==1):
             m=m+1
 
 
-    sys.exit()
     wavelet_power_mean=[0]*len(fband)
     wavelet_power_sum=[0]*len(fband)
     wavelet_power_mean_cal=[0]*len(fband)
@@ -410,7 +415,8 @@ if(get_Tb==1):
     #plt.ylabel('Power (SFU$^2$)')
     plt.ylabel('Power')
     plt.legend()
-    plt.show()
+    #plt.show()
+    plt.close()
 
         ## Plot wavelets
     for i in range(len(fband)):
@@ -470,7 +476,7 @@ if(get_Tb==1):
         dx.set_ylabel(r'Reconstructed Flux [{}]'.format(units))
         dx.grid(True)
         ax.set_xlim([t.min(), t.max()])
-        plt.savefig('wavelet_f'+str(int(freq[i]))+'.png')
+        #plt.savefig('wavelet_f'+str(int(freq[i]))+'.png')
         plt.close()
 
         ## Plotting..
@@ -501,11 +507,11 @@ if(get_Tb==1):
                 plt.savefig('cross_corr_f'+str(int(fpair[k][0]))+'-'+str(int(fpair[k][1]))+'.png')
                 plt.close()
 
-azimuth_profile=0
+azimuth_profile=1
 if(azimuth_profile):
     colors = cm.rainbow(np.linspace(0, 1, 8))
     for i in range(len(fband)):
-        y=np.mean(np.mean(polTb[i][0:570],axis=0)[0],axis=1)/1.e6
+        y=np.mean(polTb[i],axis=1)/1.e6
         x=(50/60.)*np.arange(y.shape[0])
         plt.plot(x,y,'o-',color=colors[i],label=str(freq[i])+' MHz')
     plt.legend()
@@ -513,6 +519,7 @@ if(azimuth_profile):
     plt.ylabel('Brightness Temperature (MK)')
     plt.show()
 
+sys.exit()
 ################################## MAIN ################################################
 
 Tb=[0]*len(fband)
@@ -666,6 +673,46 @@ flux_ar_rms=np.std(flux_ar,axis=1)
 #Ssun_rms_time=np.array(Ssun_mean[0:580]).std(axis=1)
 #Ssun_rms_baseline=np.array(Ssun_std[0:580]).mean(axis=1)
 
+######## FORWARD
+
+fwd_list=sorted(glob.glob('/home/i4ds1807205/20151203/*psimas.sav'))[1:]
+del fwd_list[1]
+Tb_fwd=[0]*len(fwd_list)
+Tb_fwd_con=[0]*len(fwd_list)
+freq_fwd=[0]*len(fwd_list)
+beam_fwd=[0]*len(fwd_list)
+size=[0]*len(fwd_list)
+flux_fwd=[0]*len(fwd_list)
+flux_fwd_int=[0]*len(fwd_list)
+for i in range(len(fwd_list)):
+    freq_fwd[i]=int(fwd_list[i].split('_')[1].split('M')[0])
+    fwd=readsav(fwd_list[i])
+    Tb_fwd[i]=fwd['stokesstruct'][0][0]
+    fwd_dx=fwd['quantmap'][0][3]*16*60 # in arcsec
+    beam_fwd[i]=ut.make2DGaussian(60, bmin[i]/fwd_dx, bmax[i]/fwd_dx , center=None)
+    Tb_fwd_con[i] = signal.convolve(Tb_fwd[i],beam_fwd[i], mode='same')/np.sum(beam_fwd[i])
+    size[i]=fwd_dx*Tb_fwd_con[i].shape[0]
+    flux_fwd[i]=ut.Tb2flux(Tb_fwd[i], fwd_dx, fwd_dx, freq_fwd[i]/1000.)
+    flux_fwd_int[i]=np.sum(flux_fwd[i])
+
+Tb_fwd=np.array(Tb_fwd)
+Tb_fwd_con=np.array(Tb_fwd_con)
+
+sys.exit()
+######## MWA and FORWARD
+mwa_fwd=0
+if(mwa_fwd):
+    mwa_coord=np.linspace(-2500,2500,100)
+    forward_coord=np.linspace(-2880,2880,256)
+    mwax,mway=np.meshgrid(mwa_coord, mwa_coord)
+    fwdx,fwdy=np.meshgrid(forward_coord,forward_coord)
+    Tb_fwd_interp=[0]*9
+    for i in range(9):
+        print i
+        finterp = interpolate.interp2d(fwdx, fwdy, Tb_fwd_con[i], kind='linear')
+        Tb_fwd_interp[i]=finterp(mwax,mway)
+    Tb_fwd_interp=np.array(Tb_fwd_interp)
+    pickle.dump(Tb_fwd_interp,open('Tb_fwd_interp.p','wb'))
 ########## Maps analysis ################
 
 N=2
@@ -808,7 +855,6 @@ if(plot_spec_region):
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Power (SFU$^2$)')
     plt.show()
-sys.exit()
 
 #### EUV #####
 aiafile='/home/i4ds1807205/20151203/saia_00193_fd_20151203_192129.fts'
@@ -820,13 +866,22 @@ X1,Y1=np.meshgrid(x1,y1)
 X11=(X1-d.shape[0]*0.5)*h[0].header['CDELT1']
 Y12=(Y1-d.shape[1]*0.5)*h[0].header['CDELT2']
 
-sys.exit()
-
 sig_quiet=[0.199,0.171,0.058,0.156,0.172,0.19,0.215,0.268,0.372]
 sig_active=[0.118,0.146,0.163,0.175,0.313,0.424,0.545,0.566,0.79]
 
 ######## PLOT
 print 'Plotting ...'
+compare_flux=1
+if(compare_flux):
+    plt.plot(freq,flux,'o-',color='red')
+    plt.errorbar(freq,flux,yerr=flux_std,color='red',label='MWA MAPS')
+    plt.plot(freq,flux_fwd_int,'o-',label='FORWARD MAPS')
+    plt.xlabel('Frequency (MHz)')
+    plt.ylabel('Flux (SFU)')
+    plt.legend()
+    plt.show()
+sys.exit()
+
 
 plot_sigma=0
 if(plot_sigma):
@@ -836,7 +891,6 @@ if(plot_sigma):
     plt.xlabel('Frequency (MHz)')
     plt.ylabel('Flux (SFU)')
 
-sys.exit()
 
 euv_map=0
 if(euv_map==1):
@@ -1063,15 +1117,6 @@ if(movie_Tb):
         plt.savefig('plots_3d/Tb_'+str('%03d'%i)+'.png')
         plt.close()
 
-compare_flux=0
-if(compare_flux):
-    plt.plot(freq,flux,'o-',color='red')
-    plt.errorbar(freq,flux,yerr=flux_std,color='red',label='MWA MAPS')
-    plt.plot(freq,flux_fwd_int,'o-',label='FORWARD MAPS')
-    plt.xlabel('Frequency (MHz)')
-    plt.ylabel('Flux (SFU)')
-    plt.legend()
-    plt.show()
 
 
 fwd=0
@@ -1144,41 +1189,3 @@ if(ml):
     iso.contour.number_of_contours = 15
     mlab.show()
 
-######## FORWARD
-
-fwd_list=sorted(glob.glob('/home/i4ds1807205/20151203/*psimas.sav'))[1:]
-Tb_fwd=[0]*len(fwd_list)
-Tb_fwd_con=[0]*len(fwd_list)
-freq_fwd=[0]*len(fwd_list)
-beam=[0]*len(fwd_list)
-size=[0]*len(fwd_list)
-flux_fwd=[0]*len(fwd_list)
-flux_fwd_int=[0]*len(fwd_list)
-for i in range(len(fwd_list)):
-    freq_fwd[i]=int(fwd_list[i].split('_')[1].split('M')[0])
-    fwd=readsav(fwd_list[i])
-    Tb_fwd[i]=fwd['stokesstruct'][0][0]
-    fwd_dx=fwd['quantmap'][0][3]*16*60 # in arcsec
-    beam[i]=ut.makeGaussian(60, bmin[i]/fwd_dx, bmax[i]/fwd_dx , center=None)
-    Tb_fwd_con[i] = signal.convolve(Tb_fwd[i],beam[i], mode='same')/np.sum(beam[i])
-    size[i]=fwd_dx*Tb_fwd_con[i].shape[0]
-    flux_fwd[i]=ut.Tb2flux(Tb_fwd[i], fwd_dx, fwd_dx, freq_fwd[i]/1000.)
-    flux_fwd_int[i]=np.sum(flux_fwd[i])
-
-Tb_fwd=np.array(Tb_fwd)
-Tb_fwd_con=np.array(Tb_fwd_con)
-
-######## MWA and FORWARD
-mwa_fwd=0
-if(mwa_fwd):
-    mwa_coord=np.linspace(-2500,2500,100)
-    forward_coord=np.linspace(-2880,2880,256)
-    mwax,mway=np.meshgrid(mwa_coord, mwa_coord)
-    fwdx,fwdy=np.meshgrid(forward_coord,forward_coord)
-    Tb_fwd_interp=[0]*9
-    for i in range(9):
-        print i
-        finterp = interpolate.interp2d(fwdx, fwdy, Tb_fwd_con[i], kind='linear')
-        Tb_fwd_interp[i]=finterp(mwax,mway)
-    Tb_fwd_interp=np.array(Tb_fwd_interp)
-    pickle.dump(Tb_fwd_interp,open('Tb_fwd_interp.p','wb'))
