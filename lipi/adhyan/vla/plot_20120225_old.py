@@ -47,9 +47,9 @@ def read_ds():
     spec=[0]*3
     tim=[0]*3
     freq_=[0]*3
-    bl=['7&16','7&16','16&19']
+    bl=['7_16','7_16','16_19']
     for i in range(3):
-            data=np.load('/home/i4ds1807205/vla_data/yingie_data/ds_plots/2050.1s.cal.ms.bl'+bl[i]+'.spec.npz')
+            data=np.load('/home/i4ds1807205/vla_data/2050.1s.cal.ms.bl'+bl[i]+'.spec.npz')
             spec[i]=data['spec'][0][0]
     tim=data['tim']-data['tim'][0]
     freq_=data['freq']
@@ -146,8 +146,8 @@ def goes_vla_line_plot():
     ax1.legend()
     #ax1.plot(gtime,temp,'o-',label='Temperature')
     #ax1.set_ylabel('Temperature (MK)')
-    ax2.plot(rtime,counts[0,:],'o-',label='RHESSI (3-6 KeV)')
-    ax2.plot(rtime,counts[1,:],'o-',label='RHESSI (6-12 KeV)')
+    ax2.plot(rtime,counts[0,:],'o-',label='RHESSI (3-6 keV)')
+    ax2.plot(rtime,counts[1,:],'o-',label='RHESSI (6-12 keV)')
     ax2.set_ylabel('Corrected Counts')
     ax2.grid(True)
     ax2.legend()

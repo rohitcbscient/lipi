@@ -8,6 +8,7 @@ from surya.plot import movie as mov
 from sunpy.map import Map
 from astropy.wcs import WCS
 import astropy.units as u
+from scipy.io import readsav
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
@@ -62,6 +63,66 @@ rhxl,rhxr,rhyl,rhyr=rhh['XCEN']-rhh['NAXIS1']*0.5,rhh['XCEN']+rhh['NAXIS1']*0.5,
 rhmap=Map(rhd[10][0],rhh)
 rhw=WCS(rhh)
 #rhsubmap=rh.get_submap_(rhmap,xl,xr,yl,yr,rhw)
+rhessi_data=readsav('/home/i4ds1807205/Dropbox/20120225/rhessi_params.sav')
+rhessi_sec=rhessi_data['times']-rhessi_data['times'][0]
+plot_rhessi_param=1
+if(plot_rhessi_param):
+    fig,ax=plt.subplots(1,1)
+    fig.subplots_adjust(right=0.75)
+    ax.plot(rhessi_sec,rhessi_data['e_dens_nonth']/1.e7,'o',color='k')
+    ax.errorbar(rhessi_sec,rhessi_data['e_dens_nonth']/1.e7,yerr=rhessi_data['e_dens_nonth_sigma']/1.e7,color='k')
+    ax.set_ylabel('Nonthermal density ($\\times 10^{7} cm^{-3}$)')
+    ax.set_xlabel('Time (25-Feb-2012 UT)')
+    ax.set_xlim([-60,740])
+    ax1=ax.twinx()
+    ax1.plot(rhessi_sec,rhessi_data['temperature'],'s',color='red')
+    ax1.errorbar(rhessi_sec,rhessi_data['temperature'],yerr=rhessi_data['temperature_sigma'],color='red')
+    ax1.set_ylabel('Temperature (MK)')
+    ax1.set_xlim([-60,740])
+    ax1.yaxis.label.set_color('red')
+    ax1.tick_params(axis='y',colors='red')
+    ax1.spines["right"].set_edgecolor('red')
+    ax2=ax.twinx()
+    ax2.plot(rhessi_sec,rhessi_data['tot_e_flux'],'s',color='green')
+    ax2.errorbar(rhessi_sec,rhessi_data['tot_e_flux'],yerr=rhessi_data['tot_e_flux_sigma'],color='green')
+    ax2.set_ylabel('F$_{e}$ ($\\times 10^{35} s^{-1}$)',color='green')
+    ax2.spines["right"].set_position(("axes", 1.1))
+    ax2.yaxis.label.set_color('green')
+    ax2.tick_params(axis='y',colors='green')
+    ax2.spines["right"].set_edgecolor('green')
+    ax.set_xticks([0,120,240,360,480,600,720])
+    ax.set_xticklabels(['20:46:30','20:48:30','20:50:30','20:52:30','20:54:30','20:56:30','20:58:30'])
+    ax.grid(True)
+    plt.show()
+if(plot_rhessi_param):
+    fig,ax=plt.subplots(1,1)
+    fig.subplots_adjust(right=0.75)
+    ax.plot(rhessi_sec,rhessi_data['em_measure']/1.e46,'o',color='k')
+    ax.errorbar(rhessi_sec,rhessi_data['em_measure']/1.e46,yerr=rhessi_data['em_sigmas']/1.e46,color='k')
+    ax.set_ylabel('Emission Measure ($\\times 10^{46} cm^{-3}$)')
+    ax.set_xlabel('Time (25-Feb-2012 UT)')
+    ax.set_xlim([-60,740])
+    ax1=ax.twinx()
+    ax1.plot(rhessi_sec[1:5],rhessi_data['el_spec_ind'][1:5],'d',color='red')
+    ax1.errorbar(rhessi_sec[1:5],rhessi_data['el_spec_ind'][1:5],yerr=rhessi_data['el_spec_ind_sigma'][1:5],color='red')
+    ax1.set_ylabel('Electron Spectral Index ($\\delta$)',color='red')
+    ax1.set_xlim([-60,740])
+    ax.set_xticks([0,120,240,360,480,600,720])
+    ax.set_xticklabels(['20:46:30','20:48:30','20:50:30','20:52:30','20:54:30','20:56:30','20:58:30'])
+    ax1.yaxis.label.set_color('red')
+    ax1.tick_params(axis='y',colors='red')
+    ax1.spines["right"].set_edgecolor('red')
+    ax.grid(True)
+    ax2=ax.twinx()
+    ax2.plot(rhessi_sec[1:5],rhessi_data['e_cutoff'][1:5],'s',color='green')
+    ax2.errorbar(rhessi_sec[1:5],rhessi_data['e_cutoff'][1:5],yerr=rhessi_data['e_cutoff_sigma'][1:5],color='green')
+    ax2.set_ylabel('E$_{cut}$ (keV)',color='green')
+    ax2.spines["right"].set_position(("axes", 1.1))
+    ax2.yaxis.label.set_color('green')
+    ax2.tick_params(axis='y',colors='green')
+    ax2.spines["right"].set_edgecolor('green')
+    ax1.set_xlim([-60,740])
+    plt.show()
 
 #rhessi st: 20:08:46
 ###################### HMI
@@ -188,9 +249,9 @@ np.savetxt('20120225_error_Tb.txt',Tb_noise)
 ## Plotting
 # rhtime (20:08:46)
 #pl.euv_vla(cmap,vlasubmap[-1],xl,xr,yl,yr)
-#pl.goes_vla_line_plot()
+pl.goes_vla_line_plot()
 #pl.rhessi_vla_line_plot()
-#pl.plot_ds()
+#plo.plot_ds()
 #plo.Tb(Tb1.mean(axis=1),rc_mean.swapaxes(0,1),Tb1.swapaxes(0,1)/1.e6,freq)
 #plo.plot_centroids(xc_mean[:,-3],yc_mean[:,-3])
 lev_1=np.linspace(0.18,0.180001,2) #for 304
@@ -201,7 +262,7 @@ lev_2=np.linspace(0.2,0.2001,3) #for 171
 #pl.hmi_map_inv_lines(hmidata.data[::-1,::-1],cmap[30], xc_mean,yc_mean,lev_all,xl,xr,yl,yr)
 # Change to 131 \AA for the below plot
 #pl.hmi_euv_map_paper(hmidata.data[::-1,::-1],aiadata304.data*1.0,aiadata171.data*1.0, xc_mean,yc_mean,lev_1,lev_2,xl,xr,yl,yr)
-pl.euv_map_paper(aiadata94.data*1.0,aiadata171.data*1.0, xc_mean,yc_mean,lev_1,lev_2,xl,xr,yl,yr)
+#pl.euv_map_paper(aiadata94.data*1.0,aiadata171.data*1.0, xc_mean,yc_mean,lev_1,lev_2,xl,xr,yl,yr)
 #plo.plot_spec(Tb1,Tb_noise,freq)
 #plo.plot_spec_movie(Tb1,Tb_noise,freq)
 sys.exit()

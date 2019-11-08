@@ -154,6 +154,8 @@ def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_l
 		#central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,start_time,end_time = pickle.load(open(DS,'r'))
 		if(mwa_phase==2):
 			ncross=np.mean(ncross,axis=2)
+                if(ncross.shape[2]==1):
+                    ncross=ncross.reshape(ncross.shape[0],ncross.shape[1],ncross.shape[3])
 		ph_ra,ph_dec=azi_pointing,ele_pointing
 		#azi_pointing,ele_pointing,ph_ra,ph_dec = 	308.66, 40.61,	158.79, 8.72
 		mid_time = midtime_calculate(start_time,end_time)

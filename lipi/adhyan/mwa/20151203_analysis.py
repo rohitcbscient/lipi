@@ -26,11 +26,28 @@ def fit_cubic(y):
     snew=np.zeros((y.shape[0],y.shape[1],y.shape[2]))
     for i in range(y.shape[1]):
         for j in range(y.shape[2]):
-            f = np.polyfit(x, y[:,i,j], 3)
+            f = np.polyfit(x, y[:,i,j], 5)
             p = np.poly1d(f)
             snew[:,i,j]=p(x)
             ynew[:,i,j]=y[:,i,j]-p(x)
     return ynew,snew
+
+def robust_median(data_,n):
+	mdata=-10*np.ones((data_.shape[0],data_.shape[1]-n))
+	ndata=-10*np.ones((data_.shape[0],data_.shape[1]-n))
+	for ch in range(data_.shape[0]):
+		print 'Channel: ',ch
+		for i in range(data_.shape[1]-n):
+			data=data_[ch][i:n+i]
+			data[np.isnan(data)] = -10
+			rms=np.std(data)
+			indx=np.arange(data.shape[0])
+			x=(data<np.median(data)+1.2*np.std(data)) & (data>np.median(data)-1.2*np.std(data))
+			datarms=data[x]
+			mdata[ch,i]=np.median(data[x])
+		mdata[ch][np.where(mdata[ch]==0)]=100
+		ndata[ch]=data_[ch][int(n/2):-1*int(n/2)]-mdata[ch]
+	return ndata,mdata
 
 plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
 #freq=[108.0,120.0,132.0,145.0,161.0,179.0,196.0,217.0,240.0]
@@ -115,7 +132,7 @@ Tsky=finters(freq)
 Trec=finterr(freq)
 Tgrd=finterg(freq)
 baseline_filelist=['000-008','000-009','000-010','008-009','008-010','009-010']
-flux_path='/media/rohit/VLA/20151203_MWA/pickle/flux_V1_1133149192-%b'
+flux_path='/media/rohit/MWA/20151203_MWA_NEW/new_pickle/20151203_'
 cal_path='/media/rohit/VLA/20151203_cal/20151203_cal/pickle/flux_V1_1133139776-%b'
 gm_path='/media/rohit/VLA/20151203_MWA/pickle/gm/'
 img_path='/media/rohit/VLA/20151203_MWA/images_all/1133149192-%b'
@@ -145,14 +162,15 @@ def get_flux(flux_path,baseline_filelist,ff,i):
         Ssun_all[:,8,:]=Ssun_all[:,7,:]
         Tb_beam[:,2,:]=Tb_beam[:,1,:]
         Tb_beam[:,8,:]=Tb_beam[:,7,:]
-    Ssun_mean=np.nanmean(Ssun_all,axis=(1))[2]
+    Ssun_all_=np.concatenate((Ssun_all[:,6:13],Ssun_all[:,19:26],Ssun_all[:,38:45],Ssun_all[:,51:58]),axis=1)
+    Ssun_mean=np.nanmean(Ssun_all_,axis=(1))[2]
     Tb_beam=np.nanmean(Tb_beam,axis=(1,2))[2]
     Ssun_std=np.nanstd(Ssun_all,axis=(1))[2]
     return Ssun_mean,Ssun_std,Tb_beam
     
 ############################ Pre- Requisite ############################
 
-get_Tb=1
+get_Tb=0
 if(get_Tb==1):
     print 'Starting Tb computation..'
     del_=50
@@ -253,7 +271,7 @@ if(get_Tb==1):
     win=np.array(win)
     ######
     N=2
-    M=570
+    M=3944
     Mcal=210
     sigrand=np.random.normal(0,1,M)
     sigrand_cal=np.random.normal(0,1,Mcal)
@@ -272,25 +290,30 @@ if(get_Tb==1):
     kernel=(np.arange(N)/N)/np.sum(np.arange(N)/N)
     for i in range(len(fband)):
         S_ts[i]=Ssun_mean[i][0:M]#570]
-        diff_S_=fit_cubic(S_ts[i].reshape(M,1,1))#(570,1,1))
-        diff_S[i]=diff_S_[0].flatten()
+        S_ts[i][np.where(S_ts[i]<0)]=0
+        #S_ts[i][np.isnan(S_ts[i])]=0
+        MM=S_ts[i].shape[0]
+        #diff_S_=fit_cubic(S_ts[i].reshape(M,1,1))#(570,1,1))
+        diff_S_=robust_median(S_ts[i].reshape(1,M,),200)#(570,1,1))
+        diff_S_[0][np.where(diff_S_[0]<-1)]=0
+        diff_S[i]=diff_S_[0]
         #diff_S_smooth[i]=np.correlate(diff_S[i],kernel,'valid')
-        diff_S_std[i]=np.std(diff_S[i])
+        diff_S_std[i]=np.nanstd(diff_S[i])
         #auto_S[i]=np.correlate(diff_S_smooth[i]/diff_S_std[i],diff_S_smooth[i]/diff_S_std[i],'same')
         auto_S[i]=np.correlate(diff_S[i]/diff_S_std[i],diff_S[i]/diff_S_std[i],'same')
         # CAL
-        S_ts_cal[i]=calS_mean[i][0:Mcal]
-        diff_S_cal_=fit_cubic(S_ts_cal[i].reshape(Mcal,1,1))
-        diff_S_cal[i]=diff_S_cal_[0].flatten()
+        #S_ts_cal[i]=calS_mean[i][0:Mcal]
+        #diff_S_cal_=fit_cubic(S_ts_cal[i].reshape(Mcal,1,1))
+        #diff_S_cal[i]=diff_S_cal_[0].flatten()
         #diff_S_smooth_cal[i]=np.correlate(diff_S_cal[i],kernel,'valid')
-        diff_S_std_cal[i]=np.std(diff_S_cal[i])
-        auto_S_cal[i]=np.correlate(diff_S_cal[i]/diff_S_std_cal[i],diff_S_cal[i]/diff_S_std_cal[i],'same')
+        #diff_S_std_cal[i]=np.std(diff_S_cal[i])
+        #auto_S_cal[i]=np.correlate(diff_S_cal[i]/diff_S_std_cal[i],diff_S_cal[i]/diff_S_std_cal[i],'same')
         # RANDOM
         #diff_rand_smooth=np.correlate(sigrand,kernel,'valid')
         auto_rand=np.correlate(sigrand/np.std(sigrand),sigrand/np.std(sigrand),'same')
         #diff_rand_smooth_cal=np.correlate(sigrand_cal,kernel,'valid')
         #auto_rand_cal=np.correlate(diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),'same')
-        auto_rand_cal=np.correlate(sigrand_cal/np.std(sigrand_cal),sigrand_cal/np.std(sigrand_cal),'same')
+        #auto_rand_cal=np.correlate(sigrand_cal/np.std(sigrand_cal),sigrand_cal/np.std(sigrand_cal),'same')
 
     lag=0.5*(np.arange(len(diff_S[0]))-int(diff_S[0].shape[0]/2))
     lagcal=0.5*(np.arange(len(diff_S_cal[0]))-int(diff_S_cal[0].shape[0]/2))
@@ -332,8 +355,10 @@ if(get_Tb==1):
 
 
     ## wavelets
-    widths=np.arange(1,401)*0.5
-    mother='gaus1'
+    #widths=np.arange(1,600)
+    widths=np.logspace(1.0,3.0,num=400)*0.5
+    #mother='gaus1'
+    mother='morl'
     cwtmatr=[0]*len(fband)
     freqs=[0]*len(fband)
     power=[0]*len(fband)
@@ -349,8 +374,8 @@ if(get_Tb==1):
     slope=[0]*len(fband)
     slope_cal=[0]*len(fband)
     for i in range(len(fband)):
-        wdata=diff_S[i]/np.std(diff_S[i])
-        cwtmatr[i], freqs[i] = pywt.cwt(wdata, widths, mother)
+        wdata=diff_S[i]/np.nanstd(diff_S[i])
+        cwtmatr[i], freqs[i] = pywt.cwt(wdata[0], widths, mother)
         #cwtmatr[i]=cwtmatr[i]*diff_S_std[i]
         power[i] = (np.abs(cwtmatr[i])) ** 2
         period[i] = 1 / freqs[i]
@@ -507,7 +532,7 @@ if(get_Tb==1):
                 plt.savefig('cross_corr_f'+str(int(fpair[k][0]))+'-'+str(int(fpair[k][1]))+'.png')
                 plt.close()
 
-azimuth_profile=1
+azimuth_profile=0
 if(azimuth_profile):
     colors = cm.rainbow(np.linspace(0, 1, 8))
     for i in range(len(fband)):

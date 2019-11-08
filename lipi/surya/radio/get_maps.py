@@ -165,7 +165,7 @@ def mean_flux(file_,f,baseline_filelist,res):
     time=[0]*flux[0].shape[1]
     timesec=[0]*flux[0].shape[1]
     for i in range(flux[0].shape[1]):
-        t=aa[14].split(' ')[1]
+        t=aa[14][0].split(' ')[1]
         time[i]=ut.sec2hms_c(t,res,i)
         timesec[i]=ut.hms2sec_c(' '+time[i])
     flux=np.array(flux)
