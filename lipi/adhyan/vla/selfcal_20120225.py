@@ -12,13 +12,13 @@ from astropy.io import fits
 from suncasa.utils import helioimage2fits
 
 #MOMMS='/nas08-data02/vladata/20130423/L-Band/selfcal/20130423T2030-2050.L.50ms.selfcal.ms' 
-MOMMS='/nas08-data02/vladata/20130423/S-Band/selfcal/20130423T2030-2040.S.50ms.cal.ms' 
+MOMMS='/nas08-data02/rohit/20120225_sub_selfcal/2050.1s.sub.ms' 
 split_=1
 if(split_==1):
-    OUTPUT_MS='20130423T203430-203431.S.50ms.cal.ms'
+    OUTPUT_MS='20120225T204709-204710.L.1s.cal.ms'
     os.system('rm -rf '+OUTPUT_MS)
     #timerange_='20:40:00~20:46:00'
-    timerange_='20:34:30~20:34:31' # MARINA timestamps
+    timerange_='20:47:09~20:47:10' # MARINA timestamps
     #timerange_='20:46:09~20:46:10'
     datacolumn_='data'
     print 'Splitting the MS....'+MOMMS
@@ -35,25 +35,26 @@ if(split_==1):
 MS_=OUTPUT_MS
 DIR='selfsol'
 prefix=DIR+'/fsun.selfcal_soln'
-imagename_final='20130423T203430-203431_final'
+imagename_final='20120225T204709-204710_final'
 spw_final='7:55~60'
-timerange_final='20:34:30~20:34:31'
-antennas_=''#'ea01,ea03,ea06,ea07,ea08,ea09,ea17,ea18,ea19,ea21,ea23,ea25,ea26,ea27'
-refant_=''#'ea07'
+timerange_final='20:47:09~20:47:10'
+#antennas_=''#'ea01,ea03,ea06,ea07,ea08,ea09,ea17,ea18,ea19,ea21,ea23,ea25,ea26,ea27'
+antennas_='ea02,ea03,ea04,ea05,ea06,ea07,ea08,ea09,\
+                  ea10,ea11,ea12,ea14,ea15,ea16,ea17,ea18,\
+                            ea19,ea20,ea21,ea22,ea23,ea24,ea25,ea26,ea27,ea28'
+refant_='ea04'
 # RA:02 05 i40.74 DEC:+12 44 01.6 20:34:00
 #phase_centre='J2000 0.548505138896rad 0.222291421955rad'
-solar_centre='J2000 02h05m40.74 +12d44m01.6' # For 203430-203431
-phase_centre='J2000 02h04m51.211 12d43m12.47' # From Yingjie script
-#phase_centre='J2000 02h05m41.97 +12d44m08.2' # For 204200
-#phase_centre='J2000 02h05m42.44 +12d44m10.6' # For 20:45:00 solar centre
-masks_=['mask0.mask']
+solar_centre='J2000 22h32m56.86 -09d07m52.8' # For 203430-203431
+phase_centre='J2000 22h32m18.371  -09d05m07.036'
+masks_=['20120225.mask']
 #phase_centre='J2000 02h04m51.211 12d43m12.47'
-initial_model_L_band='fsun.selfcal_soln.spw.7.cal.5.p.model'
+#initial_model_L_band='fsun.selfcal_soln.spw.7.cal.5.p.model'
 
 # STANDARD PARAMETERS 
-spw_list=['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
-#spw_list=['0','1','2','3','4','5','6','7']
-chanlist=['3~60']*9
+#spw_list=['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
+spw_list=['0','1','2','3','4','5','6','7']
+chanlist=['3~60']*9 # channel range for making models
 gainchan='28~32'
 interactive=False
 timerange_=''
@@ -71,19 +72,19 @@ niter_base=np.array([100,200,400,400,400,400,400,400,400])#[,600,800,1000,1200,1
 uvrange_=['','','','','','','','','','']
 stokes_='I'
 imsize_=[256,256]
-cell_=['2.5arcsec','2.5arcsec']
+cell_=['2.0arcsec','2.0arcsec']
 
 # SCRIPT'S TAG 
 first_clearcal=1
 make_model=1
 apply_model=1
-use_initial_model=1
+use_initial_model=0
 cal_gaincal=1 # Major Step to compute gaincal
 plot_cal_amp=1 # plot amp soln
 plot_cal_phase=1 # plot phase soln
 make_image=1 # make image for each selfcal iteration
 make_images_edges=0 # make images of edge channnels for spw
-do_organise=0 # Put images and pngs and solns into separate folders
+do_organise=1 # Put images and pngs and solns into separate folders
 type1=1 # Use subsequent MS to apply computed soln
 type2=0 # Use first MS to apply computed soln
 apply_cal_type1=0 # Default initilisation of apply cal / apply soln to MS
@@ -92,18 +93,17 @@ if(type1):
     apply_cal_type1=1
 if(type2):
     apply_cal_type2=1
-do_clearcal_momms=0 # Clear solns in Mom MS
-apply_cal_momms=0 # Apply solns in Mom MS
+do_clearcal_momms=1 # Clear solns in Mom MS
+apply_cal_momms=1 # Apply solns in Mom MS
 plot_DR=1 # Plot Dynamic Range for each spw
 
 #################### SCRIPTS STARTS ########################################
 DR=[0]*len(spw_list)
 max_=[0]*len(spw_list)
 std=[0]*len(spw_list)
-initial_model=[0]*len(spw_list)
-initial_model[0]=initial_model_L_band
+
 ss=0
-for spw_ in spw_list[:2]:
+for spw_ in spw_list:
     niter_list=np.array(niter_base/niter_scale_factor[ss],dtype=int)
     print '##### STARTING SELFCAL FOR SPW:'+str(spw_)+' #####'
     print 'Niter list: ', niter_list
@@ -229,7 +229,7 @@ for spw_ in spw_list[:2]:
                     aterm=True,psterm=False,mterm=True,wbawp=False,conjbeams=True,epjtable="", \
                     interpolation="linear",niter=800,gain=0.1,threshold="0.0mJy",psfmode="hogbom",imagermode="csclean", \
                     ftmachine="mosaic",mosweight=False,scaletype="SAULT",multiscale=[],negcomponent=-1, \
-                    smallscalebias=0.6,interactive=False,mask=['mask0.mask'],nchan=-1,start=0,width=1,outframe="",veltype="radio", \
+                    smallscalebias=0.6,interactive=False,mask=masks_,nchan=-1,start=0,width=1,outframe="",veltype="radio", \
                     imsize=[1024, 1024],cell=['2.5arcsec', '2.5arcsec'],phasecenter=phase_centre,restfreq="", \
                     stokes='I',weighting="natural",robust=0.0,uvtaper=False,outertaper=[''],innertaper=['1.0'], \
                     modelimage="",restoringbeam=[''],pbcor=False,minpb=0.2,usescratch=False,noise="1.0Jy", \
@@ -262,8 +262,9 @@ for spw_ in spw_list[:2]:
                 os.system('rm -rf '+MS[step+1])
                 split(vis=MS[0],outputvis=MS[step+1],datacolumn='corrected')
         caltable_all[ss]=image_[0:step+1]
-    initial_model[ss+1]=mod
-    print 'Initial model for next iteration: ',initial_model[ss+1]
+    if(use_initial_model):
+        initial_model[ss+1]=mod
+        print 'Initial model for next iteration: ',initial_model[ss+1]
     ss=ss+1
         ############## SELFCAL ENDS ####################
 
@@ -299,7 +300,7 @@ clean(vis=MOMMS,imagename=imagename_final, \
         aterm=True,psterm=False,mterm=True,wbawp=False,conjbeams=True,epjtable="", \
         interpolation="linear",niter=800,gain=0.1,threshold="0.0mJy",psfmode="hogbom",imagermode="csclean", \
         ftmachine="mosaic",mosweight=False,scaletype="SAULT",multiscale=[],negcomponent=-1, \
-        smallscalebias=0.6,interactive=False,mask=['mask0.mask'],nchan=-1,start=0,width=1,outframe="",veltype="radio", \
+        smallscalebias=0.6,interactive=False,mask=masks_,nchan=-1,start=0,width=1,outframe="",veltype="radio", \
         imsize=[1024, 1024],cell=['2.5arcsec', '2.5arcsec'],phasecenter=solar_centre,restfreq="", \
         stokes="I",weighting="natural",robust=0.0,uvtaper=False,outertaper=[''],innertaper=['1.0'], \
         modelimage="",restoringbeam=[''],pbcor=False,minpb=0.2,usescratch=False,noise="1.0Jy", \
@@ -318,7 +319,7 @@ for i in range(len(spw_list)):
                 aterm=True,psterm=False,mterm=True,wbawp=False,conjbeams=True,epjtable="", \
                 interpolation="linear",niter=800,gain=0.1,threshold="0.0mJy",psfmode="hogbom",imagermode="csclean", \
                 ftmachine="mosaic",mosweight=False,scaletype="SAULT",multiscale=[],negcomponent=-1, \
-                smallscalebias=0.6,interactive=False,mask=['mask0.mask'],nchan=-1,start=0,width=1,outframe="",veltype="radio", \
+                smallscalebias=0.6,interactive=False,mask=masks_,nchan=-1,start=0,width=1,outframe="",veltype="radio", \
                 imsize=[1024, 1024],cell=['2.5arcsec', '2.5arcsec'],phasecenter=phase_centre,restfreq="", \
                 stokes=stokes_,weighting="natural",robust=0.0,uvtaper=False,outertaper=[''],innertaper=['1.0'], \
                 modelimage="",restoringbeam=[''],pbcor=False,minpb=0.2,usescratch=False,noise="1.0Jy", \
@@ -339,7 +340,7 @@ for i in range(len(spw_list)):
                 aterm=True,psterm=False,mterm=True,wbawp=False,conjbeams=True,epjtable="", \
                 interpolation="linear",niter=800,gain=0.1,threshold="0.0mJy",psfmode="hogbom",imagermode="csclean", \
                 ftmachine="mosaic",mosweight=False,scaletype="SAULT",multiscale=[],negcomponent=-1, \
-                smallscalebias=0.6,interactive=False,mask=['mask0.mask'],nchan=-1,start=0,width=1,outframe="",veltype="radio", \
+                smallscalebias=0.6,interactive=False,mask=masks_,nchan=-1,start=0,width=1,outframe="",veltype="radio", \
                 imsize=[1024, 1024],cell=['2.5arcsec', '2.5arcsec'],phasecenter=phase_centre,restfreq="", \
                 stokes="I",weighting="natural",robust=0.0,uvtaper=False,outertaper=[''],innertaper=['1.0'], \
                 modelimage="",restoringbeam=[''],pbcor=False,minpb=0.2,usescratch=False,noise="1.0Jy", \
