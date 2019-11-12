@@ -98,9 +98,11 @@ if(do_flux_density):
         Tb=img_[0].data
         #omega=np.pi*bmin[ii]*bmin[ii]*(np.pi/180)**2/(4*log(2.))
         omega=np.pi*0.5*0.5*(np.pi/180)**2/(4*log(2.))
+        nbeam=(256*2/bmin[ii])*(256*2/bmaj[ii]) # 256 = number of pixels in image, 2" is cell size
+        npix_per_beam=np.pi*0.25*(bmin[ii]/2.)*(bmaj[ii]/2.) # circle with diameter bmin/2 in pixels
         flux=Tb*freq[ii]*freq[ii]*bmin[ii]*bmaj[ii]*3600*3600/(1222*1.e7)
-        sum_flux_jyperbeam[ii]=np.nansum(flux)
-        sum_flux[ii]=sum_flux_jyperbeam[ii]/omega
+        sum_flux_jyperbeam[ii]=np.nansum(flux)/npix_per_beam *nbeam
+        sum_flux[ii]=sum_flux_jyperbeam[ii]
         #sum_flux[ii]=np.nansum(Tb)*(2*1.38e-23*1.4e9*1.4e9)*1.e26*1.e-4/(3.e8*3.e8)*omega
         ii=ii+1
     sum_flux=np.array(sum_flux)
@@ -121,13 +123,32 @@ if(do_flux_density):
         plt.legend()
         plt.show()
 
-sys.exit()
 
 wav=94
 aiapath='/nas08-data02/aiadata/20130423/maps/'
 filename=aiapath+'aia_'+str(wav)+'_sub_map.sav'
 aiamap,xarraia,yarraia,xcaia,ycaia,dxaia,dyaia,aiats,aiatime=get_submap(filename,wav)
 
+########## RSTN ####################
+rstn=readsav('sagamore_hill_fluxes.sav')
+rstn_times=rstn['times']-rstn['times'][0]
+rstn_1415=rstn['sfu_1415mhz']
+rstn_2695=rstn['sfu_2695mhz']
+# BASE time: 09:50:40 UT
+basetime_sec=9*3600+50*60+40
+start_time=20*3600 # 20 hours
+end_time=21*3600
+st_idx=find_predecessor(basetime_sec+rstn_times,start_time)[0]
+ed_idx=find_predecessor(basetime_sec+rstn_times,end_time)[0]
+plt_x=rstn_times[st_idx:ed_idx]-rstn_times[st_idx:ed_idx][0]
+plt.plot(plt_x,rstn_2695[st_idx:ed_idx],'o-')
+plt.xticks([0,900,1800,2700,3600],['20:00','20:15','20:30','20:45','21:00'])
+plt.xlabel('Time (UT)')
+plt.ylabel('RSTN Flux (SFU)')
+plt.title('Sagamore Hill Fluxes')
+plt.show()
+
+sys.exit()
 ########## VLA #####################
 vlapath='/nas08-data02/vladata/20130423/images_203430_203431/'
 prefix=['20130423T2030-2050','20130423T2030-2040']
