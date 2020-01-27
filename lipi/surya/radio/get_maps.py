@@ -49,7 +49,10 @@ def time_array(d):
     '''
     t_=np.zeros(d[:,0].shape[0])
     for i in range(d[:,0].shape[0]):
-        t_[i]=float(list(str(int(d[:,0][i])))[-2]+list(str(int(d[:,0][i])))[-1])+float(list(str(int(d[:,0][i])))[-4]+list(str(int(d[:,0][i])))[-3])*60+float(list(str(int(d[:,0][i])))[-5])*3600
+        if(len(str(int(d[:,0][i])))==5):
+            t_[i]=float(list(str(int(d[:,0][i])))[-2]+list(str(int(d[:,0][i])))[-1])+float(list(str(int(d[:,0][i])))[-4]+list(str(int(d[:,0][i])))[-3])*60+float(list(str(int(d[:,0][i])))[-5])*3600
+        if(len(str(int(d[:,0][0])))==3):
+            t_[i]=float(list(str(int(d[:,0][i])))[-2]+list(str(int(d[:,0][i])))[-1])*60+float(list(str(int(d[:,0][i])))[-3])*3600
     return t_
 
 def interpolate_ra(file_,time_):
@@ -94,7 +97,7 @@ def interpolate_ra_dec(file_,time):
     ra=interpolate_ra(file_,nt)
     return ra,dec
 
-def mean_flux_pfence(file_,f,baseline_filelist,res):
+def mean_flux_pfence(file_,f,baseline_filelist,res,onlyone):
     '''
     FOR PICKET-FENCE data
     Input:
@@ -103,6 +106,7 @@ def mean_flux_pfence(file_,f,baseline_filelist,res):
     MWA frequency band label
     MWA Baseline List
     Time Resolution 
+    onlyone=1 if only one time stamp is used
     Output: 
     flux array in MWA format of DS
     time string array
@@ -127,7 +131,10 @@ def mean_flux_pfence(file_,f,baseline_filelist,res):
     time=[0]*flux[0].shape[1]
     timesec=[0]*flux[0].shape[1]
     for i in range(flux[0].shape[1]):
-        t=aa[14].split(' ')[1]
+        if(onlyone):
+            t=aa[14].split(' ')[1]
+        else:
+            t=aa[14][0].split(' ')[1]
         time[i]=ut.sec2hms_c(t,res,i)
         timesec[i]=ut.hms2sec_c(' '+time[i])
     flux=np.array(flux)
@@ -226,7 +233,6 @@ def get_residuals(f,xc,yc,del_,angle):
     residual map at Sun, total residual maps
     '''
     fit=fits.open(f)
-    bmin,bmaj,bpa=fit[0].header['BMIN'],fit[0].header['BMAJ'],fit[0].header['BPA']
     data_=fit[0].data[0][0]
     ra_,dec_=ut.radec_array(fit[0].header,data_.shape[0],data_)
     ra=ra_[yc-del_:yc+del_,xc-del_:xc+del_]
