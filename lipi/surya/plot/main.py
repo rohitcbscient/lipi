@@ -23,7 +23,7 @@ def add_beam(ax,xcenter,ycenter,width, height,angle):
         x, y = np.dot(R, np.array([x, y]))
         x += xcenter
         y += ycenter
-	ax.fill(x, y, alpha=0.4, facecolor='yellow', edgecolor='yellow', linewidth=0.5, zorder=1)
+	ax.fill(x, y, alpha=0.0, facecolor='yellow', edgecolor='grey', linewidth=0.2, zorder=1)
 
         e1 = patches.Ellipse((xcenter, ycenter), width, height,
                      angle=angle, linewidth=2, fill=False, zorder=2)

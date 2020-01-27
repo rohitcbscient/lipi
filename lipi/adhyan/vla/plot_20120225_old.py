@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 from surya.plot import main as pl
 from surya.utils import main as ut
+import matplotlib as mpl
+import matplotlib.cm as cm
 
 plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
 
@@ -188,22 +190,42 @@ def rhessi_vla_line_plot():
     fig.show()
 
 
-def euv_vla_rhessi_qs_centroids(ccmap,map_qs,rhmap_l,rhmap_h,lev,freq,xc,yc,xl,xr,yl,yr,bmaj,bmin,angle,t):
+def euv_vla_rhessi_qs_centroids(ccmap,map_qs,xc_err,yc_err,rhmap_l,rhmap_h,lev,freq,xc,yc,xl,xr,yl,yr,bmaj,bmin,angle,t):
     fig=plt.figure(figsize=(12,12))
     ax=fig.add_subplot(111,aspect='auto')
-    im=ax.imshow(ccmap,origin=True,extent=[xl,xr,yl,yr],cmap='BuGn',vmin=0.01,vmax=40)
-    plt.contour(rhmap_l,extent=[xl,xr,yl,yr],levels=lev,linewidths=3,colors='blue')
-    plt.contour(rhmap_h,extent=[xl,xr,yl,yr],levels=lev,linewidths=3,colors='magenta')
-    plt.text(xl+5, yl+55, '6-10 keV', color='magenta',bbox=dict(facecolor='white', alpha=0.))
-    plt.text(xl+5, yl+50, '10-18 keV', color='blue',bbox=dict(facecolor='white', alpha=0.))
-    ss=plt.scatter(xc,yc,c=freq,s=90,cmap='YlOrRd')
-    plt.colorbar(ss,label='Frequency (MHz)',fraction=0.056, pad=0.04)
+    im=ax.imshow(ccmap,origin=True,extent=[xl,xr,yl,yr],cmap='Greys',vmin=0.01,vmax=40)
+    ax.contour(rhmap_l,extent=[xl,xr,yl,yr],levels=lev,linewidths=3,colors='blue')
+    ax.contour(rhmap_h,extent=[xl,xr,yl,yr],levels=lev,linewidths=3,colors='magenta')
+    ax.text(xl+3, yr-10, '6-10 keV', color='magenta',bbox=dict(facecolor='white', alpha=0.))
+    ax.text(xl+3, yr-5, '10-18 keV', color='blue',bbox=dict(facecolor='white', alpha=0.))
+    cmap = mpl.cm.get_cmap('jet')
+    norm = mpl.colors.Normalize(vmin=min(freq), vmax=max(freq),clip=True)
+    mapper = cm.ScalarMappable(norm=norm, cmap='jet')
+    time_color = np.array([(mapper.to_rgba(v)) for v in freq])
+    ss=plt.scatter(xc,yc,c=freq,s=90,cmap=cmap)
+    for x, y, ex,ey, color in zip(xc, yc, xc_err, yc_err, time_color):
+        ax.plot(x, y, 'o', color=color)
+        ax.errorbar(x, y, xerr=ex, yerr=ey, lw=1, capsize=3, color=color)
     ax.set_xlabel('arcsec')
     ax.set_ylabel('arcsec')
     ax.set_ylim(yl,yr)
     ax.set_xlim(xl,xr)
-    pl.add_beam(ax,xl+10,yl+10,bmaj, bmin,angle)
-    plt.title(t,fontsize=20)
+    #pl.add_beam(ax,xl+10,yl+10,bmaj, bmin,angle)
+    ax.set_title(t,fontsize=20)
+    ax.grid(True)
+    fig.colorbar(ss,label='Frequency (MHz)',fraction=0.056, pad=0.04)
+
+def euv_vla_rhessi_contour(ccmap,map_qs,lev,xl,xr,yl,yr,bmaj,bmin,angle,t):
+    fig=plt.figure(figsize=(8,8))
+    ax=fig.add_subplot(111,aspect='auto')
+    im=ax.imshow(ccmap,origin=True,extent=[xl,xr,yl,yr],cmap='BuGn',vmin=0.01,vmax=40)
+    ax.contour(map_qs/np.max(map_qs),extent=[xl,xr,yl,yr],levels=lev,linewidths=3,colors='red')
+    ax.set_xlabel('arcsec')
+    ax.set_ylabel('arcsec')
+    ax.set_ylim(yl,yr)
+    ax.set_xlim(xl,xr)
+    #pl.add_beam(ax,xl+10,yl+10,bmaj, bmin,angle)
+    ax.set_title(t,fontsize=20)
     ax.grid(True)
 
 def euv(ccmap,xl,xr,yl,yr,t):

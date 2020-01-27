@@ -1,5 +1,6 @@
 import mayavi.mlab as mlab
 import matplotlib.pyplot as plt
+import matplotlib.pylab as pl
 import numpy as np
 from scipy.io import readsav
 import pickle
@@ -10,6 +11,9 @@ import glob
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib import patches
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
 
 
 def get_forward(list_):
@@ -97,6 +101,11 @@ dtaul=[0]*len(flabel)
 tau_fwd=[0]*len(flabel)
 tau_convolved=[0]*len(flabel)
 eTb_frac=[0]*len(flabel)
+flux_los_mwa=[0]*len(flabel)
+flux_los_fpe=[0]*len(flabel)
+flux_los_r=[0]*len(flabel)
+flux_los=[0]*len(flabel)
+rflux_los=[0]*len(flabel)
 rtt=1
 k=0
 for f in flabel:
@@ -125,18 +134,33 @@ for f in flabel:
     ###
     if(rtt):
         rt=readsav('/home/i4ds1807205/20151203/RT_params_'+str(flist[k])+'MHz.sav')
+        r=rt['r3dall']
         tempobs=rt['tempall']
         densobs=rt['densall']
         brobs=rt['brall']
         bthobs=rt['bthall']
         bphobs=rt['bphall']
         bobs=np.sqrt(brobs*brobs+bthobs*bthobs+bphobs*bphobs)
-        taur[k]=rt['taur'][:,:,-1]
-        taul[k]=rt['taul'][:,:,-1]
-        tau_fwd[k]=taul[k]+taur[k]
+        taur[k]=rt['taur']
+        taul[k]=rt['taul']
+        tau_fwd[k]=(taul[k]+taur[k])*0.5
         dtaur[k]=rt['dtaur']
         dtaul[k]=rt['dtaul']
-        tau_convolved[k] = signal.convolve(tau_fwd[k],beam, mode='same')/np.sum(beam)
+        fpe=9000.*np.sqrt(densobs)
+        flux_los[k]=[0]*tempobs.shape[2]
+        for l in range(tempobs.shape[2]):
+            tempobs_los=signal.convolve(tempobs[:,:,l],beam,mode='same')/np.sum(beam)
+            dtaul_los=signal.convolve(dtaul[k][:,:,l],beam,mode='same')/np.sum(beam)
+            dtaur_los=signal.convolve(dtaur[k][:,:,l],beam,mode='same')/np.sum(beam)
+            Tb_fwd_los=(tempobs[:,:,l]*(1.0-np.exp(-1*taul[k][:,:,l]))+tempobs[:,:,l]*(1.0-np.exp(-1*taur[k][:,:,l])))/2.0
+            #Tb_fwd_los=np.sum((tempobs[:,:,:l]*(1.0-np.exp(-1*dtaul[k][:,:,:l]))+tempobs[:,:,:l]*(1.0-np.exp(-1*dtaur[k][:,:,:l])))/2.0,axis=2)
+            flux_los_=ut.Tb2flux(Tb_fwd_los, size, size, flist[k]/1000.)
+            flux_los[k][l]=signal.convolve(flux_los_,beam,mode='same')/np.sum(beam)
+        tau_convolved[k] = signal.convolve(tau_fwd[k][:,:,-1],beam, mode='same')/np.sum(beam)
+    rflux_los[k]=r[:,:,ut.find_nearest(flux_los[k][-1].sum(axis=(0,1))-np.array(flux_los[k]).sum(axis=(1,2)),mwa_flux[k])[0]] # location in r which matches MWA flux
+    flux_los_mwa[k]=flux_los[k][-1].sum(axis=(0,1))-np.array(flux_los[k]).sum(axis=(1,2))[ut.find_nearest(flux_los[k][-1].sum(axis=(0,1))-np.array(flux_los[k]).sum(axis=(1,2)),mwa_flux[k])[0]]
+    flux_los_fpe[k]=flux_los[k][-1].sum(axis=(0,1))-np.array(flux_los[k]).sum(axis=(1,2))[ut.find_nearest(fpe[50,50],flist[k]*1.e6)[0]]  
+    flux_los_r[k]=r[50,50][ut.find_nearest(fpe[50,50],flist[k]*1.e6)[0]]  
     tau[k]=np.log((0.2*Tb_fwd[k].max()/np.mean(Tb_all[k],axis=(1,2)))-1)
     #print flist[k],np.max(Tb_fwd[k]),np.max(Tb_all[k]),np.std(Tb_all[k]),np.mean(tau[k]),np.std(tau[k])
     h[k]=md.nk_freq2r(flist[k],1)[0]
@@ -144,11 +168,51 @@ for f in flabel:
     k=k+1
 Tb_fwd=np.array(Tb_fwd)
 Tb_all=np.array(Tb_all)
+flux_los=np.array(flux_los)
 
+plot_flux_los=1
+if(plot_flux_los):
+    colors = pl.cm.jet(np.linspace(0,1,8))
+    for k in range(8):
+        plt.plot(r[50,50],flux_los[k][-1].sum(axis=(0,1))-flux_los[k,:].sum(axis=(1,2)),color=colors[k],label=str(flist[k])+' MHz')
+        plt.plot(rflux_los[k][50][50],flux_los_mwa[k],'o',color=colors[k],markersize=20)
+        plt.plot(flux_los_r[k],flux_los_fpe[k],'*',color=colors[k],markersize=20)
+    plt.xlabel('Radial Coordinate (R$_{\odot}$)')
+    plt.ylabel('Flux (SFU)')
+    plt.legend()
+    plt.show()
+
+plot_rflux_los=1
+if(plot_rflux_los):
+    plt.plot(flist,np.array(rflux_los)[:,50,50],'o-',color='k')
+    #plt.errorbar(flist,np.array(rflux_los)[:,50,50],yerr=np.array(rflux_los)[:,50,50]*emwa_flux/mwa_flux,color='k')
+    plt.ylim([1.0,1.05])
+    plt.xlabel('Frequency (MHz)')
+    plt.ylabel('Radial Coordinate (R$_{\odot}$)')
+    plt.show()
+
+plot_image_radial=1
+if(plot_image_radial):
+    rfpe_240=signal.convolve(np.array(rfpe)[-1],beam,mode='same')/np.sum(beam)
+    rfpe_108=signal.convolve(np.array(rfpe)[0],beam,mode='same')/np.sum(beam)
+    #plt.imshow(np.array(rflux_los)[0],aspect='auto',extent=[-2880,2880,-2880,2880])
+    #plt.imshow(np.array(rflux_los)[0]-r[:,:,0],aspect='auto',extent=[-2880,2880,-2880,2880],vmin=0,vmax=0.02)
+    fig,ax=plt.subplots(1)
+    im=ax.imshow(rfpe_108-rfpe_240,origin=0,aspect='equal',extent=[-2500,2500,-2500,2500],vmin=0,vmax=0.15,cmap='YlGnBu')
+    r1=(50*16)
+    r2=(50*32)
+    circ1=plt.Circle((0.5,0.5), radius=r1, color='black',linestyle='--', linewidth=4,fill=False)
+    circ2=plt.Circle((0.5,0.5), radius=r2, color='black',linestyle='--', linewidth=4,fill=False)
+    fig.colorbar(im,label='R$_{\odot}$')
+    ax.add_patch(circ1)
+    ax.add_patch(circ2)
+    plt.xlabel('X (arcsec)')
+    plt.ylabel('Y (arcsec)')
+    plt.show()
 
 
 nlev=60
-lev=np.linspace(0.1,0.9,nlev)
+lev=np.linspace(0.01,0.9,nlev)
 Tb_bimage=[0]*8
 Tb_fwd_bimage=[0]*8
 flux_bimage=[0]*8
@@ -216,12 +280,31 @@ plot_10percent=1
 if(plot_10percent):
     plt.plot(flist,mwa_bsize[:,0]/3600.,'o-',color='blue',label='MWA')
     plt.errorbar(flist,mwa_bsize[:,0]/3600.,yerr=np.sqrt(mwa_bsize[:,0]/3600.),color='blue')
-    plt.plot(flist,fw_bsize[:,0]/3600.,'o-',color='red',label='FORWARD')
+    plt.plot(flist,fw_bsize_decon[:,0]/3600.,'o-',color='red',label='FORWARD')
     plt.xlabel('Frequency (MHz)')
     plt.ylabel('Area (arcmin$^2$)')
     plt.legend()
     plt.xlim(100,250)
     plt.show()
+
+
+mwa_size_tb=[0]*len(flist)
+fwd_size_tb=[0]*len(flist)
+for i in range(len(flist)):
+    Tb_all[i,0][np.isnan(Tb_all[i,0])]=0
+    mwa_min=np.nanmin(Tb_all[i,0][Tb_all[i,0]!=0])
+    mwa_max=np.nanmax(Tb_all[i,0][Tb_all[i,0]!=0])
+    mwa_size_tb[i]=np.nansum(ut.get_bimage(Tb_all[i,0],2.e5/mwa_max))
+    fwd_size_tb[i]=np.nansum(ut.get_bimage(Tb_fwd[i],2.e5/mwa_max))
+    print mwa_max,mwa_min,mwa_size_tb[i],2.e5/mwa_max
+
+print_Tb_new=1
+if(print_Tb_new):
+    cc=0
+    print 'Frequency', '&', 'T$_{B,MWA}$',  '&', 'T$_{B,FWD}$', '&', '$\\tau_{MWA}$', '&', '$\\tau_{FWD}$', '&', '$\Phi_{MWA}$',  '&','r$_{eff}$',' & ','$\Phi_{FWD}$','&','h','\\\\'
+    print  '(MHz)', ' &', ' (MK)', ' &', ' (MK)', ' &', ' &', ' &',  '($10^3$ arcmin$^2$)', ' &',  '($10^3$ arcmin)',  '&',  '($10^3$ arcmin$^2$)','&','(arcmin)','\\\\'
+    for k in range(len(flist)):
+        print np.round(flist[k],1),' & ',np.round(mwa_Tb_mean[cc][k]/1.e6,2),'$\pm$',np.round(mwa_Tb_mean[cc][k]*(emwa_flux[k]/mwa_flux[k])/1.e6,2),' & ',np.round(fwd_Tb_mean[cc][k]/1.e6,2),' & ',np.round(tau[cc][k],3),'$\pm$',np.round(tau[cc][k]*eTb_frac[k]*tau[cc][k],3),' & ',np.round(fwd_tau_mean[cc][k],2),' & ',np.round(mwa_size_tb[k]/1.e3,2),'$\pm$',np.round(np.sqrt(mwa_size_tb[k])/1.e3,2),' & ',np.round(np.sqrt((mwa_size_tb[k])/np.pi),2),'$\pm$',np.round(2*np.sqrt(mwa_size_tb[k])/1.e3,2),' & ',np.round(fwd_size_tb[k]/1.e3,2),'&',np.round(np.sqrt(np.array(mwa_size_tb[k])/np.pi)-np.sqrt(np.array(fwd_size_tb[k])/np.pi),2),'\\\\'
 
 
 tau=[0]*len(lev)
@@ -290,6 +373,9 @@ densobs_rfpe=[0]*len(flist)
 beta=[0]*len(flist)
 ep2byh_freq_mean=[0]*len(flist)
 ave_fpe=[0]*len(flist)
+r_taueq1=[0]*len(flist)
+flux_fwd_rfpe=[0]*len(flist)
+flux_fwd_rfpe_conv=[0]*len(flist)
 for k in range(len(flist)):
     freq=flist[k]*1.e6
     print flist[k],' MHz'
@@ -302,6 +388,8 @@ for k in range(len(flist)):
     densobs_rfpe[k]=[0]*r.shape[0]
     beta[k]=[0]*r.shape[0]
     ave_fpe[k]=[0]*r.shape[0]
+    r_taueq1[k]=[0]*r.shape[0]
+    flux_fwd_rfpe[k]=[0]*r.shape[0]
     for i in range(r.shape[0]):
         tau_sc[k][i]=[0]*r.shape[1]
         shne[i]=[0]*r.shape[0]
@@ -312,8 +400,12 @@ for k in range(len(flist)):
         densobs_rfpe[k][i]=[0]*r.shape[0]
         beta[k][i]=[0]*r.shape[0]
         ave_fpe[k][i]=[0]*r.shape[0]
+        r_taueq1[k][i]=[0]*r.shape[0]
+        flux_fwd_rfpe[k][i]=[0]*r.shape[0]
         for j in range(r.shape[1]):
+            r_taueq1[k][i][j]=r[i][j][ut.find_nearest(tau_fwd[k][i,j],1)[0]]
             finite_r=np.where(fpe[i,j]<freq)[0][2:]
+            #finite_r=np.where(tau_fwd[k][i,j]>1)[0][2:]
             dr=abs(r[i,j][:-1]-r[i,j][1:])[finite_r[:-1]]
             tau_sc_=(np.sqrt(np.pi)/2)*((fpe[i,j,finite_r[:-1]]**4)/(freq**2 -fpe[i,j,finite_r[:-1]]**2)**2)
             tau_sc[k][i][j]=np.sum(tau_sc_*dr*rsun2km)
@@ -325,13 +417,16 @@ for k in range(len(flist)):
             densobs_rfpe[k][i][j]=densobs[i][j][ut.find_nearest(fpe[i,j],freq)[0]]
             beta[k][i][j]=(densobs_rfpe[k][i][j]*1.38e-16*tempobs_rfpe[k][i][j])/(bobs_rfpe[k][i][j]**2/(8*np.pi))
             shne[i][j]=(r[i][j][ut.find_nearest(densarray,np.max(densarray)/np.e)[0]]-r[i][j][ut.find_nearest(densarray,np.max(densarray))[0]])*6.95e5
+            flux_fwd_rfpe[k][i][j]=flux_los[k,-1,i,j]-flux_los[k,ut.find_nearest(fpe[i,j],freq)[0],i,j]
             #ave_fpe[i][j]=np.mean(fpe[i][j][ut.find_nearest(densarray,np.max(densarray)/np.e)[0]:ut.find_nearest(densarray,np.max(densarray))[0]])
     #ep2byh_freq[k]=tau[0][k]/np.array(tau_sc[k])
+    flux_fwd_rfpe_conv[k]=signal.convolve(np.array(flux_fwd_rfpe[k]),beam,mode='same')/np.sum(beam)
     tau_sc_convolved[k]=10**(signal.convolve(np.log10(tau_sc[k]),beam, mode='same')/np.sum(beam))
     ep2byh_freq[k]=tau_1MK[0][k]/np.array(tau_sc[k])
     ep2byh_freq_mean[k]=np.mean(ep2byh_freq[k][35:63,38:60])
     #sc_size[k]=5.8e-9*(dr.max()*ep2byh_freq[k]*densobs[:,:,-1].mean()**2)/((np.sqrt(1-(fpe.mean()/freq)**2))*(freq/1.e6)**4)
 ep2byh_freq=np.array(ep2byh_freq)
+r_taueq1=np.array(r_taueq1)
 rfpe=np.array(rfpe)
 densfpe=np.array(densfpe)
 bobs_rfpe=np.array(bobs_rfpe)
@@ -339,7 +434,10 @@ tempobs_rfpe=np.array(tempobs_rfpe)
 densobs_rfpe=np.array(densobs_rfpe)
 beta=np.array(beta)
 ave_fpe=np.array(ave_fpe)
-# AR1, AR2, AR3, QS, CH
+flux_fwd_rfpe=np.array(flux_fwd_rfpe)
+flux_fwd_rfpe_conv=np.array(flux_fwd_rfpe_conv)
+
+################################################################### AR1, AR2, AR3, QS, CH
 rgn=['AR1','AR2','AR3','QS','CH']
 # MWA
 mwa_ar1xl,mwa_ar1xr,mwa_ar1yl,mwa_ar1yr=57,62,40,48
@@ -386,6 +484,7 @@ diff_max=[0]*len(flist)
 shift=[0]*len(flist)
 ep2byh_shift=[0]*len(flist)
 fwdbymwa=np.array([2.03,1.57,1.52,1.50,1.44,1.21,1.03,1.02])
+mm=10
 for i in range(len(flist)):
     Tb_ar1_mwa[i]=Tb_all[i,0][mwa_ar1yl:mwa_ar1yr,mwa_ar1xl:mwa_ar1xr].mean()
     Tb_ar2_mwa[i]=Tb_all[i,0][mwa_ar2yl:mwa_ar2yr,mwa_ar2xl:mwa_ar2xr].mean()
@@ -393,11 +492,11 @@ for i in range(len(flist)):
     Tb_qs_mwa[i]=Tb_all[i,0][mwa_qsyl:mwa_qsyr,mwa_qsxl:mwa_qsxr].mean()
     Tb_ch_mwa[i]=Tb_all[i,0][mwa_chyl:mwa_chyr,mwa_chxl:mwa_chxr].mean()
     #####
-    Tb_ar1_fwd[i]=Tb_convolved[i][fwd_ar1yl:fwd_ar1yr,fwd_ar1xl:fwd_ar1xr].max()/fwdbymwa[i]
-    Tb_ar2_fwd[i]=Tb_convolved[i][fwd_ar2yl:fwd_ar2yr,fwd_ar2xl:fwd_ar2xr].mean()/fwdbymwa[i]
-    Tb_ar3_fwd[i]=Tb_convolved[i][fwd_ar3yl:fwd_ar3yr,fwd_ar3xl:fwd_ar1xr].mean()/fwdbymwa[i]
-    Tb_qs_fwd[i]=Tb_convolved[i][fwd_qsyl:fwd_qsyr,fwd_qsxl:fwd_qsxr].mean()/fwdbymwa[i]
-    Tb_ch_fwd[i]=Tb_convolved[i][fwd_chyl:fwd_chyr,fwd_chxl:fwd_chxr].mean()/fwdbymwa[i]
+    Tb_ar1_fwd[i]=Tb_convolved[i][fwd_ar1yl:fwd_ar1yr,fwd_ar1xl:fwd_ar1xr].max()#/fwdbymwa[i]
+    Tb_ar2_fwd[i]=Tb_convolved[i][fwd_ar2yl:fwd_ar2yr,fwd_ar2xl:fwd_ar2xr].mean()#/fwdbymwa[i]
+    Tb_ar3_fwd[i]=Tb_convolved[i][fwd_ar3yl:fwd_ar3yr,fwd_ar3xl:fwd_ar1xr].mean()#/fwdbymwa[i]
+    Tb_qs_fwd[i]=Tb_convolved[i][fwd_qsyl:fwd_qsyr,fwd_qsxl:fwd_qsxr].mean()#/fwdbymwa[i]
+    Tb_ch_fwd[i]=Tb_convolved[i][fwd_chyl:fwd_chyr,fwd_chxl:fwd_chxr].mean()#/fwdbymwa[i]
     ######
     rto_ar1[i]=Tb_ar1_mwa[i]/(Tb_ar1_fwd[i])#*fwdbymwa[i])
     rto_ar2[i]=Tb_ar2_mwa[i]/(Tb_ar2_fwd[i])#*fwdbymwa[i])
@@ -405,9 +504,9 @@ for i in range(len(flist)):
     rto_qs[i]=Tb_qs_mwa[i]/(Tb_qs_fwd[i])#*fwdbymwa[i])
     rto_ch[i]=Tb_ch_mwa[i]/(Tb_ch_fwd[i])#*fwdbymwa[i])
     ######
-    Tb_ar1_fwd_nbr[i]=(Tb_convolved[i][fwd_ar1yl-8:fwd_ar1yr+8,fwd_ar1xl-8:fwd_ar1xl].mean()+Tb_convolved[i][fwd_ar1yl-8:fwd_ar1yl,fwd_ar1xl-8:fwd_ar1xr].mean()+Tb_convolved[i][fwd_ar1yl-8:fwd_ar1yr+8,fwd_ar1xr:fwd_ar1xr+8].mean())/3/fwdbymwa[i]
-    Tb_qs_fwd_nbr[i]=(Tb_convolved[i][fwd_qsyl-8:fwd_qsyr+8,fwd_qsxl-8:fwd_qsxl].mean()+Tb_convolved[i][fwd_qsyl-8:fwd_qsyl,fwd_qsxl-8:fwd_qsxr].mean()+Tb_convolved[i][fwd_qsyl-8:fwd_qsyr+8,fwd_qsxr:fwd_qsxr+8].mean())/3/fwdbymwa[i]
-    Tb_ch_fwd_nbr[i]=(Tb_convolved[i][fwd_chyl-8:fwd_chyr+8,fwd_chxl-8:fwd_chxl].mean()+Tb_convolved[i][fwd_chyl-8:fwd_chyl,fwd_chxl-8:fwd_chxr].mean()+Tb_convolved[i][fwd_chyl-8:fwd_chyr+8,fwd_chxr:fwd_chxr+8].mean())/3/fwdbymwa[i]
+    Tb_ar1_fwd_nbr[i]=(Tb_convolved[i][fwd_ar1yl-mm:fwd_ar1yr+mm,fwd_ar1xl-mm:fwd_ar1xl].mean()+Tb_convolved[i][fwd_ar1yl-mm:fwd_ar1yl,fwd_ar1xl-mm:fwd_ar1xr].mean()+Tb_convolved[i][fwd_ar1yl-mm:fwd_ar1yr+mm,fwd_ar1xr:fwd_ar1xr+mm].mean())/3#/fwdbymwa[i]
+    Tb_qs_fwd_nbr[i]=(Tb_convolved[i][fwd_qsyl-mm:fwd_qsyr+mm,fwd_qsxl-mm:fwd_qsxl].mean()+Tb_convolved[i][fwd_qsyl-mm:fwd_qsyl,fwd_qsxl-mm:fwd_qsxr].mean()+Tb_convolved[i][fwd_qsyl-mm:fwd_qsyr+mm,fwd_qsxr:fwd_qsxr+mm].mean())/3#/fwdbymwa[i]
+    Tb_ch_fwd_nbr[i]=(Tb_convolved[i][fwd_chyl-mm:fwd_chyr+mm,fwd_chxl-mm:fwd_chxl].mean()+Tb_convolved[i][fwd_chyl-mm:fwd_chyl,fwd_chxl-mm:fwd_chxr].mean()+Tb_convolved[i][fwd_chyl-mm:fwd_chyr+mm,fwd_chxr:fwd_chxr+mm].mean())/3#/fwdbymwa[i]
     ######
     tau_ar1[i]=np.log(Tb_ar1_fwd[i]/(Tb_ar1_fwd[i]-Tb_ar1_mwa[i]))
     tau_ar2[i]=np.log(Tb_ar2_fwd[i]/(Tb_ar2_fwd[i]-Tb_ar2_mwa[i]))
@@ -471,7 +570,7 @@ for k in range(8):
     tau_ar_lmt[k]=tau_r1[ut.find_nearest(simTb_ar1[k,40],Tb_ar1_mwa[k])[0]]
     etau_ar_lmt[k]=tau_ar_lmt[k]-tau_r1[ut.find_nearest(simTb_ar1[k,40],Tb_ar1_mwa[k]-0.5*Tb_ar1_mwa[k]*emwa_flux[k]/mwa_flux[k])[0]]
     tau_qs_lmt[k]=tau_r1[ut.find_nearest(simTb_qs[k,40],Tb_qs_mwa[k])[0]]
-    etau_qs_lmt[k]=tau_qs_lmt[k]-tau_r1[ut.find_nearest(simTb_qs[k,40],Tb_qs_mwa[k]-0.5*Tb_qs_mwa[k]*emwa_flux[k]/mwa_flux[k])[0]]
+    etau_qs_lmt[k]=tau_qs_lmt[k]-tau_r1[ut.find_nearest(simTb_qs[k,40],Tb_qs_mwa[k]-0.5*Tb_qs_mwa[k]*emwa_flux[k]/mwa_flux[k])[0]] 
     tau_ch_lmt[k]=tau_r1[ut.find_nearest(simTb_ch[k,40],Tb_ch_mwa[k])[0]]
     etau_ch_lmt[k]=tau_ch_lmt[k]-tau_r1[ut.find_nearest(simTb_ch[k,40],Tb_ch_mwa[k]-0.5*Tb_ch_mwa[k]*emwa_flux[k]/mwa_flux[k])[0]]
     ratio_Tb_sc_ar[k]=np.array(Tb_qs_fwd_nbr)[k]*(1-np.e**(-1*tau_ar_lmt[k]))/Tb_ar1_mwa[k]
@@ -523,8 +622,8 @@ if(plot_ratio):
     plt.show()
 
 
-plot_tau=1
-if(plot_tau):
+plot_tau_old=0
+if(plot_tau_old):
     k=5
     #aa=(simTb_qs[k]/1.e6)
     #aa[(aa>1.02) & (aa<1.12)]=np.nan
@@ -543,6 +642,79 @@ if(plot_tau):
     plt.ylabel('$\\tau_{R1}$')
     plt.xlabel('$\\tau_{SC}$')
     plt.show()
+
+############## NEW TAU
+tausc_qs=np.log((Tb_qs_fwd-np.array(Tb_ar1_fwd))/(Tb_qs_mwa-np.array(Tb_ar1_fwd)))
+tausc_ch=np.log((Tb_ch_fwd-np.array(Tb_ar1_fwd))/(Tb_ch_mwa-np.array(Tb_ar1_fwd)))
+plot_tau=1
+if(plot_tau):
+    plt.plot(flist,tausc_qs,'o-',color='green')
+    plt.plot(flist,tausc_ch,'o-',color='blue')
+    plt.errorbar(flist,tausc_qs,yerr=tausc_qs*(emwa_flux/mwa_flux),color='green',label='QS')
+    plt.errorbar(flist,tausc_ch,yerr=tausc_ch*(emwa_flux/mwa_flux),color='blue',label='CH')
+    plt.ylabel('$\\tau_{SC}$')
+    plt.xlabel('Frequency (MHz)')
+    plt.legend(loc=1)
+    plt.xlim([100,250])
+    plt.show()
+
+plot_frac_sc=1
+if(plot_frac_sc):
+    frac_qs=np.array(Tb_ar1_fwd)*(1-np.e**(-1*tausc_qs))/Tb_qs_mwa
+    frac_ch=np.array(Tb_ar1_fwd)*(1-np.e**(-1*tausc_ch))/Tb_qs_mwa
+    plt.plot(flist,frac_qs,'o-',color='green')
+    plt.plot(flist,frac_ch,'o-',color='blue')
+    plt.errorbar(flist,frac_qs,yerr=frac_qs*(emwa_flux/mwa_flux),color='green',label='QS')
+    plt.errorbar(flist,frac_ch,yerr=frac_ch*(emwa_flux/mwa_flux),color='blue',label='CH')
+    plt.ylabel('$T_{B,SC}/T_{B}$')
+    plt.xlabel('Frequency (MHz)')
+    plt.legend(loc=1)
+    plt.xlim([100,250])
+    plt.show()
+    
+plot_epbyh=1
+if(plot_epbyh):
+    epbyh_qs=tausc_qs/np.array(tau_sc_param_qs)
+    epbyh_ch=tausc_qs/np.array(tau_sc_param_ch)
+    plt.plot(flist,epbyh_qs,'o-',color='green')
+    plt.plot(flist,epbyh_ch,'o-',color='blue')
+    plt.errorbar(flist,epbyh_qs,yerr=epbyh_qs*(emwa_flux/mwa_flux),color='green',label='QS')
+    plt.errorbar(flist,epbyh_ch,yerr=epbyh_ch*(emwa_flux/mwa_flux),color='blue',label='CH')
+    plt.ylabel('$T_{B,SC}/T_{B}$')
+    plt.xlabel('Frequency (MHz)')
+    plt.legend(loc=1)
+    plt.xlim([100,250])
+    plt.show()
+
+plot_Tb_contour=1
+if(plot_Tb_contour):
+    levels=(np.array([0.7,0.75,0.8,0.85,0.9,0.95]))
+    res=50
+    m=4
+    for i in [0,4,7]:
+        aa=Tb_all[i].mean(axis=0)
+        aa=np.vstack((np.zeros((m,100)),aa))[int(m/2):-int(m/2)]
+        aa[np.where(aa==0)]=np.nan
+        fig = plt.figure()
+        ax = fig.add_subplot(111, aspect='auto')
+        #im=ax.imshow(aa,aspect='equal',interpolation='none',extent=[-res,res,-res,res],origin='lower',vmin=mn,vmax=mx)
+        im=ax.imshow(aa/1.e6,aspect='equal',interpolation='none',extent=[-2500,2500,-2500,2500],origin='lower',vmin=0,vmax=1.0)
+        ax.contour(aa/np.nanmax(aa), levels,extent=[-2500,2500,-2500,2500], hold='on', colors='k',linewidths=2)
+        spl.add_beam(ax,-2000, -2000,bmax[i]*60,bmin[i]*60,0)
+        ax.set_xlabel('X (arcsec)')
+        ax.set_ylabel('Y (arcsec)')
+        ax.set_xlim(-2500,2500)
+        ax.set_ylim(-2500,2500)
+        ax.set_title(str(flist[i])+' MHz')
+        r1=16.*60
+        r2=32.*60
+        circ1=plt.Circle((0.5,0.5), radius=r1, color='brown', linewidth=4,fill=False)
+        circ2=plt.Circle((0.5,0.5), radius=r2, color='brown', linewidth=4,fill=False)
+        ax.add_patch(circ2)
+        ax.add_patch(circ1)
+        ax.grid(True)
+        fig.colorbar(im,label='(MK)')
+        plt.show()
 
 old_loop=0
 if(old_loop):
@@ -581,16 +753,10 @@ if(print_size):
     for k in range(len(flist)):
         print np.round(flist[k],1),' & ',np.round(mwa_full_size[k]/1.e3,3),'$\pm$',np.round(np.sqrt(mwa_full_size[k])/1.e3,3),' & ',np.round(np.sqrt((mwa_full_size[k])/np.pi),3),'$\pm$',np.round(2*np.sqrt(mwa_full_size[k])/1.e3,3),'\\\\'
 
-print_Tb_new=1
-if(print_Tb_new):
-    cc=0
-    print 'Frequency (MHz)','&','T$_{B,MWA}$ (MK)','&','T$_{B,FWD}$ (MK)','&','$\\tau_{MWA}$','&','$\\tau_{FWD}$','&','$\Phi_{MWA}$ ($10^3$ arcmin$^2$)',' & ','r$_{eff}$ (arcmin)','\\\\'
-    for k in range(len(flist)):
-        print np.round(flist[k],1),' & ',np.round(mwa_Tb_mean[cc][k]/1.e6,2),'$\pm$',np.round(mwa_Tb_mean[cc][k]*(emwa_flux[k]/mwa_flux[k])/1.e6,2),' & ',np.round(fwd_Tb_mean[cc][k]/1.e6,2),' & ',np.round(tau[cc][k],3),'$\pm$',np.round(tau[cc][k]*eTb_frac[k]*tau[cc][k],3),' & ',np.round(fwd_tau_mean[cc][k],2),' & ',np.round(mwa_full_size[k]/1.e3,2),'$\pm$',np.round(np.sqrt(mwa_full_size[k])/1.e3,2),' & ',np.round(np.sqrt((mwa_full_size[k])/np.pi),2),'$\pm$',np.round(2*np.sqrt(mwa_full_size[k])/1.e3,2),'\\\\'
 
 plot_ep2byh=1
 if(plot_ep2byh):
-    plt.imshow(np.array(tau_sc_sum).swapaxes(0,1),origin=True,extent=[0,7,1,500],interpolation=None,aspect='auto')
+    plt.imshow(np.arrayS(tau_sc_sum).swapaxes(0,1),origin=True,extent=[0,7,1,500],interpolation=None,aspect='auto')
     plt.plot(np.arange(6)+0.5,np.array(ep2byh_freq)[:-2]/1.0e-7,'o-',color='white')
     plt.xticks([0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0],flist)
     plt.yticks([1,100,200,300,400,500],['1$\\times 10^{-7}$','1$\\times 10^{-5}$','2$\\times 10^{-5}$','3$\\times 10^{-5}$','4$\\times 10^{-5}$','5$\\times 10^{-5}$'])
@@ -598,6 +764,16 @@ if(plot_ep2byh):
     plt.xlabel('Frequency (MHz)')
     plt.ylabel('$\epsilon^2$/h (km$^{-1}$)')
     plt.show()
+
+plot_height_diff=1
+if(plot_height_diff):
+    qs_fwd_tau=rt['taur'][fwd_qsyl:fwd_qsyr,fwd_qsxl:fwd_qsxr,:].mean(axis=(0,1))+rt['taul'][fwd_qsyl:fwd_qsyr,fwd_qsxl:fwd_qsxr,:].mean(axis=(0,1))
+    qs_fwd_Te=tempobs[fwd_qsyl:fwd_qsyr,fwd_qsxl:fwd_qsxr,:].mean(axis=(0,1))
+    qs_fwd_Tb_sum=(1-np.e**(+qs_fwd_tau[:-1]-qs_fwd_tau[1:]))*qs_fwd_Te[1:]
+    qs_fwd_Tb_cumsum=np.cumsum(qs_fwd_Tb_sum[::-1])
+    qs_fwd_Tb=np.array(Tb_convolved)[:,fwd_qsyl:fwd_qsyr,fwd_qsxl:fwd_qsxr].mean(axis=(1,2))
+    qs_fwd_r=r[fwd_qsyl:fwd_qsyr,fwd_qsxl:fwd_qsxr,:].mean(axis=(0,1))
+    
 
 
 tau_sc=np.array(tau_sc)
@@ -660,6 +836,26 @@ for j in range(len(flist)):
 polTb_mwa=np.array(polTb_mwa)
 polTb_fwd=np.array(polTb_fwd)
 
+plot_limb=1
+if(plot_limb):
+    rmwa=r_mwa[:,0]
+    thmwa=th_mwa[0]*180/np.pi
+    colors = cm.rainbow(np.linspace(0, 1, len(flist)))
+    f, (ax0,ax1) = plt.subplots(2, 1, figsize=(6,12))
+    im0=ax0.imshow(polTb_mwa[0]/1.e6,extent=[thmwa[0],thmwa[-1],0,rmwa[-1]*50./60],aspect='auto',origin='lower',cmap='jet',vmin=0,vmax=1.0)
+    divider = make_axes_locatable(ax0)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    plt.colorbar(im0,label='$T_B$ (MK)',cax=cax)
+    ax0.axvline(x=thmwa[46],color='orange')
+    ax0.set_xlabel('$\\theta$ (degrees)')
+    ax0.set_ylabel('r (arcmin)')
+    for i in range(len(flist)):
+        ax1.plot(polTb_mwa[i][:,46]/1.e6,color=colors[i],label=str(flist[i])+' MHz')
+        ax1.set_xlabel('r (arcmin)')
+        ax1.set_ylabel('$T_B$ (MK)')
+        ax1.legend()
+    plt.show()
+
 plot_radius_240=1
 if(plot_radius_240):
     plt.plot(r_mwa[:,0]*(50/60.),polTb_mwa[-1].mean(axis=1)/1.e6,'o-',color='blue',label='MWA')
@@ -672,17 +868,31 @@ if(plot_radius_240):
 
 plot_density=1
 if(plot_density):
-    plt.plot(r[43,60],densobs[43,60]/1.e9,'-',color='b',label='AR')
-    plt.plot(rfpe[:,43,60],densfpe[:,43,60]/1.e9,'o',color='b')
-    plt.plot(r[42,45],densobs[42,45]/1.e9,'-',color='g',label='QS')
-    plt.plot(rfpe[:,42,45],densfpe[:,42,45]/1.e9,'o',color='g')
-    plt.plot(r[58,52],densobs[58,52]/1.e9,'-',color='r',label='CH')
-    plt.plot(rfpe[:,58,52],densfpe[:,58,52]/1.e9,'o',color='r')
-    plt.plot(md.nk_freq2r(np.array(flist),1)[0],md.nk_freq2r(np.array(flist),1)[1]/1.e9,'o-',color='k',label='Newkirk')
+    plt.plot(r[43,60,2:],densobs[43,60,2:]/1.e9,'-',color='b',label='AR')
+    plt.plot(rfpe[:,43,60],densfpe[:,43,60]/1.e9,'*',markersize=15,color='b')
+    plt.plot(r[42,45,4:],densobs[42,45,4:]/1.e9,'-',color='g',label='QS')
+    plt.plot(rfpe[:,42,45],densfpe[:,42,45]/1.e9,'*',markersize=15,color='g')
+    plt.plot(r[58,52,8:],densobs[58,52,8:]/1.e9,'-',color='r',label='CH')
+    plt.plot(rfpe[:,58,52],densfpe[:,58,52]/1.e9,'*',markersize=15,color='r')
+    plt.plot(md.nk_freq2r(np.array(flist),1)[0],md.nk_freq2r(np.array(flist),1)[1]/1.e9,'*-',color='k',markersize=15,label='Newkirk')
     plt.xlabel('Radial distance ($R_{\odot}$)')
-    plt.ylabel('Density ($\\times 10^{9}cm^{-3}$)')
+    plt.ylabel('Coronal Density ($\\times 10^{9}cm^{-3}$)')
     plt.legend()
     plt.show()
+
+plot_taueq1=1
+if(plot_taueq1):
+    plt.plot(flist,r_taueq1[:,43,60],'o-',color='b',label='AR ($\\tau_{ff}=1$)')
+    plt.plot(flist,rfpe[:,43,60],'s--',color='b',label='AR ($\\omega=\\omega_{pe}$)')
+    plt.plot(flist,r_taueq1[:,42,45],'o-',color='g',label='QS ($\\tau_{ff}=1$)')
+    plt.plot(flist,rfpe[:,42,45],'s--',color='g',label='QS ($\\omega=\\omega_{pe}$)')
+    plt.plot(flist,r_taueq1[:,58,52],'o-',color='r',label='CH ($\\tau_{ff}=1$)')
+    plt.plot(flist,rfpe[:,58,52],'s--',color='r',label='CH ($\\omega=\\omega_{pe}$)')
+    plt.ylabel('Radial distance ($R_{\odot}$)')
+    plt.xlabel('Frequency (MHz)')
+    plt.legend(loc=2)
+    plt.show()
+
 
 ## Radius of the disk
 fmiss_size=mwa_size[0]-fw_size[0]
@@ -723,7 +933,7 @@ if(print_pw):
     for k in range(len(flist)):
         print np.round(flist[k],1),' & ',np.round(pw[k],3),' $\pm$ ', np.round(epw[k],3),'\\\\'
 
-plot_radius_108=1
+plot_radius_108=0
 if(plot_radius_108):
     plt.plot(r_mwa[:,0],polTb_mwa[0].mean(axis=1)/1.e6,'o-',color='blue',label='MWA')
     plt.plot(r_mwa[:,0],polTb_fwd[0].mean(axis=1)/1.e6,'o-',color='red',label='FORWARD')
@@ -735,7 +945,7 @@ if(plot_radius_108):
     plt.legend()
     plt.show()
 
-plot_size_comparison=1
+plot_size_comparison=0
 if(plot_size_comparison):
     cont_list=[0]
     for cc in cont_list:
@@ -749,8 +959,10 @@ if(plot_size_comparison):
     plt.xlabel('Frequency (MHz)')
     plt.ylabel('Size (arcmin$^{2}$)')
     plt.show()
+    
 
-plot_size_comparison_diff=1
+
+plot_size_comparison_diff=0
 if(plot_size_comparison_diff):
     cont_list=[0]
     for cc in cont_list:
@@ -786,7 +998,7 @@ if(plot_Tb_regions):
     plt.ylabel('T$_{B}$ (MK)')
     plt.show()
 
-plot_source_size_analysed=1
+plot_source_size_analysed=0
 if(plot_source_size_analysed):
     i_=[0,1,6,7]
     colors = cm.rainbow(np.linspace(0, 1, len(i_)))
@@ -809,7 +1021,6 @@ if(plot_source_size_analysed):
     plt.ylabel('FORWARD source size (arcmin$^2$)')
     plt.show()
 
-sys.exit()
 powlaw=[0]*len(flist)
 epowlaw=[0]*len(flist)
 mwa_total_area=[0]*len(flist)
@@ -849,7 +1060,7 @@ if(plot_tau==1):
     plt.title('For 40 MHz')
     #plt.xlim([1.7,2.7])
     plt.show()
-plot_ratio=1
+plot_ratio=0
 if(plot_ratio):
     plt.plot(flist,np.mean(Tb_fwd,axis=(1,2))/np.mean(Tb_all,axis=(1,2,3)),'o-')
     plt.errorbar(flist,np.mean(Tb_fwd,axis=(1,2))/np.mean(Tb_all,axis=(1,2,3)),yerr=np.std(Tb_all,axis=(1,2,3))/np.max(Tb_all)+np.std(Tb_fwd,axis=(1,2))/np.max(Tb_fwd))
@@ -878,7 +1089,7 @@ if(plot_fluxes==1):
     plt.xlim([100,250])
     plt.show()
 
-plot_fluxes_diff=1
+plot_fluxes_diff=0
 if(plot_fluxes_diff==1):
     del fluxall[0]
     del fluxall[1]
@@ -926,7 +1137,7 @@ if(plot_contour_maps_analysed):
             #plt.savefig('/home/i4ds1807205/Dropbox/20151203/contours_analysed/cont_'+str(int(cont))+'_freq_'+str(int(flist[f]))+'.png')
             plt.close()
 
-image_dens=1
+image_dens=0
 if(image_dens):
     plt.imshow(np.log10(densobs[:,:,-1]),origin=True,extent=[-2500,2500,-2500,2500],aspect='equal')
     plt.title('Density')
@@ -936,7 +1147,7 @@ if(image_dens):
     plt.ylabel('arcsec')
     plt.show()
 
-image_temp=1
+image_temp=0
 if(image_temp):
     plt.imshow(np.log10(tempobs[:,:,-1]),origin=True,extent=[-2500,2500,-2500,2500],aspect='equal')
     plt.title('Temperature')
@@ -946,7 +1157,7 @@ if(image_temp):
     plt.ylabel('arcsec')
     plt.show()
 
-image_bfield=1
+image_bfield=0
 if(image_bfield):
     plt.imshow(bobs[:,:,-1],origin=True,extent=[-2500,2500,-2500,2500],aspect='equal',vmin=0.001,vmax=3)
     plt.title('Absolute Magnetic field')
@@ -955,7 +1166,7 @@ if(image_bfield):
     plt.xlabel('arcsec')
     plt.ylabel('arcsec')
     plt.show()
-image_tau=1
+image_tau=0
 if(image_tau):
     fig,ax=plt.subplots(1)
     im=ax.imshow(np.log10(tau_convolved[-1]),origin=True,extent=[-2500,2500,-2500,2500],aspect='equal')
@@ -974,7 +1185,7 @@ if(image_tau):
     ax.add_patch(circ2)
     plt.show()
 
-Tb_3D=1
+Tb_3D=0
 if(Tb_3D):
     fig = plt.figure(figsize=(8,30))
     ax = fig.gca(projection='3d')
@@ -1004,31 +1215,61 @@ if(image_fwd_mwa):
     fr1=7
     fr2=6
     levels_=np.array([0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9])*1.5e6
-    f, ax = plt.subplots(2, 2, figsize=(20,10),sharex=True)
+    f, ax = plt.subplots(2, 2, figsize=(20,10))
     im00=ax[0,0].imshow(Tb_bimage[fr1,c]/1.e6,aspect='equal',cmap='YlGnBu',extent=[-2500,2500,-2500,2500],origin=True,vmin=0.01,vmax=1.5)
-    f.colorbar(im00,ax=ax[0,0],label='T$_{B}$(MK)')
+    #f.colorbar(im00,ax=ax[0,0],label='T$_{B}$(MK)')
     ax[0,0].contour(Tb_bimage[fr1,c],levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
     ax[0,0].set_title('240 MHz')
     ax[0,0].set_ylabel('arcsec')
     ax[0,0].grid(True)  
+    r1=(50*16)
+    r2=(50*32)
+    circ1=plt.Circle((0.5,0.5), radius=r1, color='black',linestyle='--', linewidth=4,fill=False)
+    circ2=plt.Circle((0.5,0.5), radius=r2, color='black',linestyle='--', linewidth=4,fill=False)
+    ax00=ax[0,0]
+    ax00.add_patch(circ1)
+    ax00.add_patch(circ2)
+    ax00.set_xlim([-2500,2500])
+    ax00.set_ylim([-2500,2500])
     im10=ax[1,0].imshow(Tb_fwd_bimage[fr1,c]/1.e6,aspect='equal',cmap='YlGnBu',extent=[-2500,2500,-2500,2500],origin=True,vmin=0.01,vmax=1.5)
-    f.colorbar(im10,ax=ax[1,0],label='T$_{B}$(MK)')
+    #f.colorbar(im10,ax=ax[1,0],label='T$_{B}$(MK)')
     ax[1,0].contour(Tb_fwd_bimage[fr1,c],levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
     ax[1,0].set_xlim([-2500,2500])
     ax[1,0].grid(True)
     ax[1,0].set_ylabel('arcsec')
     ax[1,0].set_xlabel('arcsec')
+    circ1=plt.Circle((0.5,0.5), radius=r1, color='black',linestyle='--', linewidth=4,fill=False)
+    circ2=plt.Circle((0.5,0.5), radius=r2, color='black',linestyle='--', linewidth=4,fill=False)
+    ax10=ax[1,0]
+    ax10.add_patch(circ2)
+    ax10.add_patch(circ1)
+    ax10.set_xlim([-2500,2500])
+    ax10.set_ylim([-2500,2500])
     im01=ax[0,1].imshow(Tb_bimage[fr2,c]/1.e6,aspect='equal',cmap='YlGnBu',extent=[-2500,2500,-2500,2500],origin=True,vmin=0.01,vmax=1.5)
     f.colorbar(im01,ax=ax[0,1],label='T$_{B}$(MK)')
     ax[0,1].contour(Tb_bimage[fr2,c],levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
     ax[0,1].set_title('217 MHz')
     ax[0,1].grid(True)
+    circ1=plt.Circle((0.5,0.5), radius=r1, color='black',linestyle='--', linewidth=4,fill=False)
+    circ2=plt.Circle((0.5,0.5), radius=r2, color='black',linestyle='--', linewidth=4,fill=False)
+    ax01=ax[0,1]
+    ax01.add_patch(circ2)
+    ax01.add_patch(circ1)
+    ax01.set_xlim([-2500,2500])
+    ax01.set_ylim([-2500,2500])
     im11=ax[1,1].imshow(Tb_fwd_bimage[fr2,c]/1.e6,aspect='equal',cmap='YlGnBu',extent=[-2500,2500,-2500,2500],origin=True,vmin=0.01,vmax=1.5)
     f.colorbar(im11,ax=ax[1,1],label='T$_{B}$(MK)')
     ax[1,1].contour(Tb_fwd_bimage[fr2,c],levels=levels_,extent=[-2500,2500,-2500,2500],colors='red')
     ax[1,1].set_xlim([-2500,2500])
     ax[1,1].grid(True)
     ax[1,1].set_xlabel('arcsec')
+    circ1=plt.Circle((0.5,0.5), radius=r1, color='black',linestyle='--', linewidth=4,fill=False)
+    circ2=plt.Circle((0.5,0.5), radius=r2, color='black',linestyle='--', linewidth=4,fill=False)
+    ax11=ax[1,1]
+    ax11.add_patch(circ2)
+    ax11.add_patch(circ1)
+    ax11.set_xlim([-2500,2500])
+    ax11.set_ylim([-2500,2500])
     plt.show()
     
 def add_beam(ax,xcenter,ycenter,width, height,angle):
@@ -1134,7 +1375,7 @@ if(plot_flux_resolve):
         plt.title(str(flist[i])+' MHz')
         plt.show()
 
-plot_composite=0
+plot_composite=1
 if(plot_composite==1):
     levels_=[0.3,0.4,0.5,0.6,0.7,0.8,0.9]
     f, ax = plt.subplots(3, 3, figsize=(20,10),sharex=True)

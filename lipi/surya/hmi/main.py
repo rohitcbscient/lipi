@@ -5,6 +5,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 from astropy.wcs.utils import skycoord_to_pixel as sp
+import matplotlib.pyplot as plt
 
 def get_submap(f,xl,xr,yl,yr):
     h,d=ut.read_fits(f)
@@ -39,9 +40,9 @@ def get_submap_(f,xl,xr,yl,yr):
 def plot_hmi(hmifile,xl,xr,yl,yr):
     hmi_=Map(hmifile)
     ax = plt.subplot(projection=hmi_)
-    hmi_.plot(axes=ax,aspect='auto',cmap='gray',vmin=-100,vmax=100)
-    plt.xlim([int(xlh),int(xrh)])
-    plt.ylim([int(ylh),int(yrh)])
+    hmi_.plot(axes=ax,aspect='auto',cmap='gray')
+    plt.xlim([int(xl),int(xr)])
+    plt.ylim([int(yl),int(yr)])
     plt.show()
 
 

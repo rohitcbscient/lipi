@@ -1,5 +1,7 @@
+import mayavi.mlab as mlab
 from surya.utils import main as ut
-from surya.plot import visual as vs
+from surya.utils import maps as umaps
+#from surya.plot import visual as vs
 from surya.aia import main as aia
 from surya.vla import main as vla
 from surya.hmi import main as hmi
@@ -7,6 +9,7 @@ from surya.rhessi import main as rh
 from surya.plot import movie as mov
 from sunpy.map import Map
 from astropy.wcs import WCS
+from astropy.io import fits
 import astropy.units as u
 from scipy.io import readsav
 import numpy as np
@@ -14,6 +17,7 @@ import glob
 import matplotlib.pyplot as plt
 import plot_20120225 as pl
 import plot_20120225_old as plo
+from mpl_toolkits.mplot3d import axes3d
 import os
 import pickle
 
@@ -26,6 +30,7 @@ aiafile_all.sort(key=lambda ss: len(ss))
 wavelength=wavel
 wav=[94,131,171,193,211,304,335,1600,1700]
 xl,xr,yl,yr=450,520,320,390
+#xl,xr,yl,yr=460,500,330,370
 #xl,xr,yl,yr=420,540,280,420 # For Quiet Sun plotting
 res=0.6
 aiaxarray=np.linspace(xl,xr,100)
@@ -47,9 +52,9 @@ for j in range(len(ccmap)):
     aiamax_xid[j]=aiaxarray[np.where(ccmap[j]==np.max(ccmap[j]))[0][0]]
     aiamax_yid[j]=aiayarray[np.where(ccmap[j]==np.max(ccmap[j]))[1][0]]
 
-aiadata304=hmi.get_submap_('/media/rohit/VLA/20120225_aia/AIA20120225_205132_0304.fits',xl,xr,yl,yr)[0]
-aiadata171=hmi.get_submap_('/media/rohit/VLA/20120225_aia/AIA20120225_204600_0171.fits',xl,xr,yl,yr)[0]
-aiadata94=hmi.get_submap_('/media/rohit/VLA/20120225_aia/AIA20120225_204902_0094.fits',xl,xr,yl,yr)[0]
+aiadata304=umaps.get_submap('/media/rohit/VLA/20120225_aia/AIA20120225_205132_0304.fits',xl,xr,yl,yr)[0]
+aiadata171=umaps.get_submap('/media/rohit/VLA/20120225_aia/AIA20120225_204600_0171.fits',xl,xr,yl,yr)[0]
+aiadata94=umaps.get_submap('/media/rohit/VLA/20120225_aia/AIA20120225_204902_0094.fits',xl,xr,yl,yr)[0]
 
 ###################### RHESSI
 
@@ -65,7 +70,7 @@ rhw=WCS(rhh)
 #rhsubmap=rh.get_submap_(rhmap,xl,xr,yl,yr,rhw)
 rhessi_data=readsav('/home/i4ds1807205/Dropbox/20120225/rhessi_params.sav')
 rhessi_sec=rhessi_data['times']-rhessi_data['times'][0]
-plot_rhessi_param=1
+plot_rhessi_param=0
 if(plot_rhessi_param):
     fig,ax=plt.subplots(1,1)
     fig.subplots_adjust(right=0.75)
@@ -129,9 +134,52 @@ if(plot_rhessi_param):
 hmifile='/home/i4ds1807205/vla_data/20120225/hmi/hmi.m_45s.2012.02.25_20_51_45_TAI.magnetogram.fits'
 #hmifile='/home/i4ds1807205/Downloads/try.fits'
 #hmidata=hmi.get_submap(hmifile,xl,xr,yl,yr)
-hmidata,xlh,ylh,xrh,yrh=hmi.get_submap_(hmifile,xl,xr,yl,yr)
+hmidata,xlh,ylh,xrh,yrh=umaps.get_submap(hmifile,xl,xr,yl,yr)
 #pl.plot_hmi_rhessi(hmifile,rhmap,rhxl,rhxr,rhyl,rhyr)
+h,d=ut.read_fits(hmifile)
 
+############# MAGNETIC FIELD
+expolB_=readsav('/home/i4ds1807205/Downloads/gregory_gyrosynchroton/hmi.M_720s.20120225_203413.W133N16CR.CEA.NAS.sav')
+expolB=expolB_['box']
+bx,by,bz=expolB['bx'][0],expolB['by'][0],expolB['bz'][0]
+babs=np.sqrt(bx*bx+by*by+bz*bz)
+dr=expolB['dr'] # 3 values of extrapolated box in units Rsun
+index=expolB['index'][0]
+crval1=index['crval1']
+crval2=index['crval2']
+crpix1=index['crpix1']
+crpix2=index['crpix2']
+ctype1=index['ctype1']
+ctype2=index['ctype2']
+cdelt1=index['cdelt1']
+cdelt2=index['cdelt2']
+cunit1=index['cunit1']
+cunit2=index['cunit2']
+hdu = fits.PrimaryHDU(babs[0])
+list_all=list(index.dtype.names)
+list_all.remove('COMMENT')
+list_all.remove('HISTORY')
+list_all.remove('SIMPLE')
+list_all.remove('BITPIX')
+list_all.remove('NAXIS')
+ii=0
+for idx in list_all:
+    print idx
+    #hdu.header.append((idx,index[list_all[ii]][0],[]))
+    hdu.header.update({str(idx):index[list_all[ii]][0]})
+    ii=ii+1
+#hdu.header.update({'WCSNAME':'HeliographicCarrington','CTYPE1':'HGS','CTYPE2':'HGS'})
+hdu.data=babs[0]
+hhdu=hdu.header
+hdul = fits.HDUList([hdu])
+mymap=Map(babs,hhdu)
+#hp_coord=mymap.observer_coordinate.transform_to(frames.Helioprojective(observer="earth"))
+
+dr=dr*16*60
+bx,by,bz=expolB['bx'][0],expolB['by'][0],expolB['bz'][0]
+babs=np.sqrt(bx*bx+by*by+bz*bz)
+bxc,byc=360,480
+# time: 20:34:13.3
 ###################### VLA
 
 
@@ -210,6 +258,11 @@ noise,peak=pickle.load(open('/media/rohit/VLA/20120225_cube/20120225_noise.p','r
 tt=int(vlasubmap.shape[0])
 bmaj=np.concatenate((np.ones(96)*19.68,np.ones(96)*18.40,np.ones(96)*17.08),axis=0)
 bmin=np.concatenate((np.ones(96)*12.30,np.ones(96)*11.46,np.ones(96)*10.69),axis=0)
+#bmaj=np.concatenate((np.ones(96)*19.68,np.ones(96)*18.40,np.ones(96)*17.08),axis=0)
+#bmin=np.concatenate((np.ones(96)*12.30,np.ones(96)*11.46,np.ones(96)*10.69),axis=0) 92-->32
+rdh,rdd=ut.read_fits(filelist[0])
+#xl,xr,yl,yr=450,520,320,390
+rd_xc_array,rd_yc_array=np.linspace(450,510,24),np.linspace(320,380,25)
 
 contour_ref=0.9
 region1=np.where(vlasubmap[68][-1]>contour_ref*np.max(vlasubmap[68][-1]))
@@ -247,9 +300,17 @@ np.savetxt('20120225_freq.txt',freq)
 np.savetxt('20120225_error_Tb.txt',Tb_noise)
 
 ## Plotting
+pl.plot_3d_B(babs,bxc,byc,Tb[68][-1],rd_xc_array,rd_yc_array)
+sys.exit()
+for i in range(3):
+    idx=[40,68,159]
+    aia_j=ut.find_predecessor(aiatsec,vlatsec[0][idx[i]])[0]
+    title='AIA: '+aiatstring[aia_j]+'   VLA: '+vlat[idx[i]]
+    plo.euv_vla_rhessi_contour(cmap[aia_j],Tb[idx[i]][5][:,2:],[0.8,0.85,0.9,0.95,0.99],xl,xr,yl,yr,21,13,-60,title)
+    plt.close()
 # rhtime (20:08:46)
 #pl.euv_vla(cmap,vlasubmap[-1],xl,xr,yl,yr)
-pl.goes_vla_line_plot()
+#pl.goes_vla_line_plot()
 #pl.rhessi_vla_line_plot()
 #plo.plot_ds()
 #plo.Tb(Tb1.mean(axis=1),rc_mean.swapaxes(0,1),Tb1.swapaxes(0,1)/1.e6,freq)
@@ -261,28 +322,34 @@ lev_2=np.linspace(0.2,0.2001,3) #for 171
 #pl.centroid_map(hmidata.data[::-1,::-1],cmap[30], xc_mean,yc_mean,lev_1,xl,xr,yl,yr)
 #pl.hmi_map_inv_lines(hmidata.data[::-1,::-1],cmap[30], xc_mean,yc_mean,lev_all,xl,xr,yl,yr)
 # Change to 131 \AA for the below plot
-#pl.hmi_euv_map_paper(hmidata.data[::-1,::-1],aiadata304.data*1.0,aiadata171.data*1.0, xc_mean,yc_mean,lev_1,lev_2,xl,xr,yl,yr)
+#pl.hmi_euv_map_paper(hmidata.data,aiadata304.data*1.0,aiadata171.data*1.0, xc_mean,yc_mean,lev_1,lev_2,xl,xr,yl,yr)
 #pl.euv_map_paper(aiadata94.data*1.0,aiadata171.data*1.0, xc_mean,yc_mean,lev_1,lev_2,xl,xr,yl,yr)
 #plo.plot_spec(Tb1,Tb_noise,freq)
 #plo.plot_spec_movie(Tb1,Tb_noise,freq)
 sys.exit()
+snr=np.array(peak)/np.array(noise)
+yc_err=12.3/(snr*np.sqrt(8*np.log10(2)))
+xc_err=19.7/(snr*8*np.log10(2))
 pngfiles=[0]*len(vlatsec[0])
 #for i in range(1):
+#    i=68
 for i in range(len(vlatsec[0])):
     ii="%03d" %i 
     #pngfiles[i]=vlapath+'../png/'+'cube_rh'+ii+'.png'
-    #pngfiles[i]='/media/rohit/VLA/20120225_sub/png/'+'subvis_rh'+ii+'_high.png'
-    pngfiles[i]='/media/rohit/VLA/20120225_sub/aia/'+'aia'+str(wavel)+'_'+ii+'.png'
+    pngfiles[i]='/media/rohit/VLA/20120225_sub/png/'+'subvis_rh'+ii+'_high.png'
+    #pngfiles[i]='/media/rohit/VLA/20120225_sub/aia/'+'aia'+str(wavel)+'_'+ii+'.png'
     aia_j=ut.find_predecessor(aiatsec,vlatsec[0][i])[0]
     rh_j=ut.find_predecessor(rh_tsec,vlatsec[0][i])[0]
     title='AIA: '+aiatstring[aia_j]+'   VLA: '+vlat[i]+'     RHESSI: '+rhessi_time[rh_j]
     rh_norm_low=rhsubmap_low[rh_j]/np.max(rhsubmap_low[rh_j])
     rh_norm_high=rhsubmap_high[rh_j]/np.max(rhsubmap_high[rh_j])
     rhlev=[0.65,0.75,0.85,0.95]
-    #plo.euv_vla_rhessi_qs_centroids(cmap[aia_j],vlasubmap[i],rh_norm_low,rh_norm_high,rhlev,freq[::-1],xc_mean[i],yc_mean[i],xl,xr,yl,yr,21,13,-60,title)
-    plo.euv(cmap[aia_j],xl,xr,yl,yr,'AIA '+str(wavel)+' $\AA$ : '+aiatstring[aia_j])
+    #plo.euv_vla_rhessi_qs_centroids(cmap[aia_j],vlasubmap[i],xc_err,yc_err,rh_norm_low,rh_norm_high,rhlev,freq,xc_mean[i][::-1],yc_mean[i][::-1],xl,xr,yl,yr,21,13,-60,title)
+    #xl,xr,yl,yr=460,500,330,370
+    plo.euv_vla_rhessi_qs_centroids(cmap[aia_j],vlasubmap[i],xc_err,yc_err,rh_norm_low,rh_norm_high,rhlev,freq,xc_mean[i][::-1],yc_mean[i][::-1],xl,xr,yl,yr,21,13,-60,title)
+    #plo.euv(cmap[aia_j],xl,xr,yl,yr,'AIA '+str(wavel)+' $\AA$ : '+aiatstring[aia_j])
     #pl.euv_vla_qs_centroids(cmap[j],vlasubmap[i],freq,xc_mean[i],yc_mean[i],xl,xr,yl,yr,21,13,-60,title)
-    plt.savefig(pngfiles[i])
+    plt.savefig(pngfiles[i],dpi=50)
     plt.close()
 
 pngfiles.remove(pngfiles[85])

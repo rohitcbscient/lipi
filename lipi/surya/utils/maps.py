@@ -8,6 +8,10 @@ from astropy.coordinates import SkyCoord
 import sys
 
 def get_submap(f,xl,xr,yl,yr):
+    '''
+    Inputs: fits file, xl, xr, yl, yr (coordinates for cropping)
+    Outputs: submap, xl, xr, yl, yr (in pixels)
+    '''
     h,d=ut.read_fits(f)
     w=WCS(f)
     mymap_=Map(f)
@@ -21,8 +25,23 @@ def get_submap(f,xl,xr,yl,yr):
     xrpix,yrpix=sp(tr,w)
     return submap,xlpix,xrpix,ylpix,yrpix
 
+def get_pixels(x,y,coord_frame,w):
+    '''
+    Inputs: x,y (wcs coordinate in arcsec),coordinate frame (e.g. sunpy.coordinates), WCS keywords
+    Outputs: submap, xl, xr, yl, yr (in pixels)
+    '''
+    xcor=x*u.arcsec
+    ycor=y*u.arcsec
+    bl=SkyCoord(xcor, ycor, frame=coord_frame)
+    xlpix,ylpix=sp(bl,w)
+    return xlpix,ylpix
 
 def get_submap_hmi(f,xl,xr,yl,yr,ins):
+    '''
+    ONLY FOR HMI
+    Inputs: fits file, xl, xr, yl, yr (coordinates for cropping)
+    Outputs: submap, xl, xr, yl, yr (in pixels)
+    '''
     if(ins!='hmi'):
         print 'Use get_submap for non-hmi maps... Existing..'
         sys.exit()
@@ -42,4 +61,12 @@ def get_submap_hmi(f,xl,xr,yl,yr,ins):
     xrpix,yrpix=sp(tr,w)
     return submap,xlpix,xrpix,ylpix,yrpix
 
+
+def read_gxs_magstr(box):
+    '''
+    Reads the gx simulator magnetic extrapolated structures
+    Inputs:
+    Outputs:
+    '''
+    
 
