@@ -79,8 +79,8 @@ if(do_flux_density):
         i=i+1
     i=0
     for SPW in SSPW_LIST:
-        imgSLL[i]=sorted(glob.glob('*.S.*.LL.spw.*'+SPW+'.FITS'),key=lambda f: int(filter(str.isdigit, f)))
-        imgSRR[i]=sorted(glob.glob('*.S.*.RR.spw.*'+SPW+'.FITS'),key=lambda f: int(filter(str.isdigit, f)))
+        imgSLL[i]=sorted(glob.glob('*.S.*.LL.spw.'+SPW+'*.FITS'),key=lambda f: int(filter(str.isdigit, f)))
+        imgSRR[i]=sorted(glob.glob('*.S.*.RR.spw.'+SPW+'*.FITS'),key=lambda f: int(filter(str.isdigit, f)))
         i=i+1
     img_list_LL=list(itertools.chain(*imgLLL))+list(itertools.chain(*imgSLL))
     img_list_RR=list(itertools.chain(*imgLRR))+list(itertools.chain(*imgSRR))
@@ -97,24 +97,24 @@ if(do_flux_density):
         freq[ii]=img_[0].header['RESTFRQ']/1.e9
         Tb=img_[0].data
         #omega=np.pi*bmin[ii]*bmin[ii]*(np.pi/180)**2/(4*log(2.))
-        omega=np.pi*0.5*0.5*(np.pi/180)**2/(4*log(2.))
-        nbeam=(256*2/bmin[ii])*(256*2/bmaj[ii]) # 256 = number of pixels in image, 2" is cell size
-        npix_per_beam=np.pi*0.25*(bmin[ii]/2.)*(bmaj[ii]/2.) # circle with diameter bmin/2 in pixels
+        nbeam=(256*2/bmin[ii])*(256*2/bmaj[ii])/(3600)**2 # 256 = number of pixels in image, 2" is cell size
+        #npix_per_beam=np.pi*0.25*(bmin[ii]/2.)*(bmaj[ii]/2.)*3600**2 # circle with diameter bmin/2 in arcsec
+        npix_per_beam=(bmin[ii]/2.)*(bmaj[ii]/2.)*3600**2 #  bmin/2 in arcsec
         flux=Tb*freq[ii]*freq[ii]*bmin[ii]*bmaj[ii]*3600*3600/(1222*1.e7)
-        sum_flux_jyperbeam[ii]=np.nansum(flux)/npix_per_beam *nbeam
-        sum_flux[ii]=sum_flux_jyperbeam[ii]
+        sum_flux_jyperbeam[ii]=np.nansum(flux)
+        sum_flux[ii]=sum_flux_jyperbeam[ii]/npix_per_beam
         #sum_flux[ii]=np.nansum(Tb)*(2*1.38e-23*1.4e9*1.4e9)*1.e26*1.e-4/(3.e8*3.e8)*omega
         ii=ii+1
     sum_flux=np.array(sum_flux)
     plot_flux=1
     if(plot_flux):
-        plt.plot(freq,sum_flux_jyperbeam,'o')
-        plt.ylabel('Total Flux (SFU/beam)')
-        #plt.plot(freq,sum_flux,'o-')
-        #plt.ylabel('Total Flux (SFU)')
+        #plt.plot(freq,sum_flux_jyperbeam,'o')
+        #plt.ylabel('Total Flux (SFU/beam)')
+        plt.plot(freq,sum_flux,'o')
+        plt.ylabel('Total Flux (SFU)')
         plt.xlabel('Frequency (GHz)')
         plt.show()
-    plot_beam=1
+    plot_beam=0
     if(plot_beam):
         plt.plot(freq,np.array(bmin)*3600,'o-',label='BMIN')
         plt.plot(freq,np.array(bmaj)*3600,'o-',label='BMAJ')
@@ -122,7 +122,7 @@ if(do_flux_density):
         plt.xlabel('Frequency (GHz)')
         plt.legend()
         plt.show()
-
+sys.exit()
 
 wav=94
 aiapath='/nas08-data02/aiadata/20130423/maps/'

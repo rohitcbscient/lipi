@@ -27,11 +27,11 @@ def define_TIMES(MSNAME,TIME_STEP):
 
 ###### im.open 
 FBAND='L'
-MSNAME='20130423T2030-2050.L.50ms.selfcal.ms/'
+MSNAME='20130423T2030-2050.L.50ms.selfcal.sub.ms/'
 ###### im.defineimage 
 IMSIZE=256
 CELLSIZE='2.0arcsec'
-STOKES='LL'
+STOKES='RR'
 MODE='mfs'
 NCHAN=1         # No. of channels in output image
 START_CHAN=0    # Start ch. in the band
@@ -42,7 +42,6 @@ UVRANGE_IN=''
 #TYPE='superuniform' 
 WEIGHTING='natural'
 ###### im.clean 
-SPW_='7'#'0:32~63'#'0:45' 
 #ALGORITHM='cs' ## 'cs' was used when working with SanB
 INTERPOLATION='linear'
 NITER=500
@@ -64,24 +63,42 @@ TIME_LIST=define_TIMES(MSNAME,TIME_STEP)# Get the time stamps from the MS
 
 
 ############ TIME
-TIME_LIST=TIME_LIST[0]+np.arange(1200)*1
-
+tres=0.05
+total_images=400
+TIME_LIST=TIME_LIST[0]+np.arange(400)*tres
+first_time='20:45:25'
 i=0
 time_list=[0]*(TIME_LIST.shape[0])
 time_pair=[0]*(TIME_LIST.shape[0]-1)
 imagename=[0]*(TIME_LIST.shape[0]-1)
 for i in range(TIME_LIST.shape[0]):
         timed=TIME_LIST[i]-TIME_LIST[0]
-        reftime=qa.time(qa.quantity(TIME_LIST[0],'s'),form="ymd")
-        reftime_sec=int(reftime[0].split('/')[3].split(':')[0])*3600+int(reftime[0].split('/')[3].split(':')[1])*60+int(reftime[0].split('/')[3].split(':')[2])
-        time_list[i]=time.strftime('%H:%M:%S', time.gmtime(np.round(timed+reftime_sec+1,2)))
+        #reftime=qa.time(qa.quantity(TIME_LIST[0],'s'),form="ymd")
+        #reftime=qa.time(qa.quantity(1,'s'),form="ymd")
+        #reftime_sec=int(reftime[0].split('/')[3].split(':')[0])*3600+int(reftime[0].split('/')[3].split(':')[1])*60+int(reftime[0].split('/')[3].split(':')[2])
+        reftime_sec=int(first_time.split(':')[0])*3600+int(first_time.split(':')[1])*60+int(first_time.split(':')[2])
+        #time_list[i]=time.strftime('%H:%M:%S', time.gmtime(np.round(timed+reftime_sec+1,2)))
+        hour,min_,sec=int(first_time.split(':')[0]),int(first_time.split(':')[1]),int(first_time.split(':')[2])
+        microsec=1.e6*(tres*i)
+        if(microsec>=int(1.e6)):
+            n=int(microsec/1.e6)
+            microsec=int((microsec/1.e6-int(microsec/1.e6))*1.e6)
+            sec=sec+n
+        else:
+            microsec=int(microsec)
+        time_=datetime.datetime(2009, 12, 4, hour, min_, sec, microsec)
+        time_list[i]=time_.strftime("%H:%M:%S.%f").rstrip('0')
 #for i in range(TIME_LIST.shape[0]/2):
 #        time_list[2*i+1]=time_list[2*i].split(':')[0]+':'+time_list[2*i].split(':')[1]+':'+str(float(time_list[2*i].split(':')[2])+0.5)
 for i in range(TIME_LIST.shape[0]-1):
         time_pair[i]=time_list[i]+'~'+time_list[i+1]
 
+#TIME_LIST=TIME_LIST[240:330]
+#time_pair=time_pair[240:330] # SELECT THE FLARE TIME FOR 1 SEC
+#TIME_LIST=TIME_LIST[240:330]
+#time_pair=time_pair[240:330] # SELECT THE FLARE TIME FOR 1 SEC
 ############ FREQ
-ave_chan=4
+ave_chan=1
 #tot_chan=64
 tot_chan=64
 #fband_list=['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
@@ -94,32 +111,29 @@ for fband in fband_list:
     for i in range(len(spw_list1)):
             spw_list[j]=fband+':'+str(spw_list1[i])+'~'+str(spw_list2[i])
             j=j+1
-
-TIME_LIST=TIME_LIST[240:330]
-time_pair=time_pair[240:330] # SELECT THE FLARE TIME FOR 1 SEC
+spw_list=spw_list[0:128]
 
 #TIME_LIST=TIME_LIST[29:49]
 #time_pair=time_pair[29:49]  # FOR AIA 12 sec average
 if(FBAND=='L'):
     bmajall=np.linspace(70,45,128)
-    bmaj=bmajall[int(SPW_)*16:(int(SPW_)+1)*16]
 if(FBAND=='S'):
     bmajall=np.linspace(45,25,256)
-    bmaj=bmajall[int(SPW_)*16:(int(SPW_)+1)*16]
-
 rotate_crop=1
 phasecenter_='J2000 02h04m51.211 12d43m12.47'
 antennas=''#"ea01,ea03,ea06,ea07,ea08,ea09,ea17,ea18,ea19,ea21,ea23,ea25,ea26,ea27"
 date='2013/04/23'
 mf=hf.read_msinfo(vis=MSNAME)
 j=0#494*3
-#for i in range(TIME_LIST.shape[0]-2):
-for i in range(1):
-    i=59
+for i in range(TIME_LIST.shape[0]-2):
+#for i in range(1):
     ss=0
-    for s in spw_list:
+    #time_pair[i]='20:30:00~20:30:01'
+    for s in spw_list:  # spw_list[51] RSTN 1.415GHz, spw_list[88] RSTN 2.695GHz
+    #for s in [spw_list[88]]:
             sname=s.split(':')[0]+'_'+s.split(':')[1].split('~')[0]+'-'+s.split(':')[1].split('~')[1]
-            imagename[i]='images_203500_203501_test/'+NAME+'.spw.'+sname+'.time.'+time_pair[i]
+            tname=time_pair[i].split('~')[0]+'-'+time_pair[i].split('~')[1]
+            imagename[i]='spikes_'+STOKES+'/'+NAME+'.spw.'+sname+'.time.'+tname
             #imagename[i]='try/'+NAME+'.spw.'+s+'.time.'+time_pair[i]
             OUTNAME=imagename[i]+'.FITS'
             if (os.path.isfile(OUTNAME)==False):
@@ -143,7 +157,7 @@ for i in range(1):
                 os.system('rm -rf '+imagename[i]+'.flux')
                 os.system('rm -rf '+imagename[i]+'.model')
                 os.system('rm -rf '+imagename[i]+'.mask')
-                os.system('rm -rf '+imagename[i]+'.residual')
+                #os.system('rm -rf '+imagename[i]+'.residual')
                 os.system('rm -rf '+imagename[i]+'.pb')
                 os.system('rm -rf '+imagename[i]+'.sumwt')
                 if(rotate_crop==1):
