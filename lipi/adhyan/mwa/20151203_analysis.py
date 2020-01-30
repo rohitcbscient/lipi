@@ -117,6 +117,8 @@ Tsys=[0]*len(freq)
 sa=[0]*len(freq)
 Aeff=[0]*len(freq)
 polTb=[0]*len(freq)
+Ssun_mean_diff=[0]*len(freq)
+Ssun_mean_cont=[0]*len(freq)
 print 'Reading files...'
 
 c=3.e8 # S.I. Unit
@@ -151,12 +153,12 @@ def get_solidangle(S,Tbeam,f):
     return np.nanmean(sa)
 
 
-def get_flux(flux_path,baseline_filelist,ff,i):
+def get_flux(flux_path,baseline_filelist,ff,i,sol):
     '''
     Output:
     mean flux in frequency and baselines, std flux in frequency and time
     '''
-    Ssun_all,Tb_beam,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5)
+    Ssun_all,Tb_beam,time_str,timesec=tb.mean_flux(flux_path,fband[ff],baseline_filelist,0.5,sol)
     if(i):
         Ssun_all[:,2,:]=Ssun_all[:,1,:]
         Ssun_all[:,8,:]=Ssun_all[:,7,:]
@@ -170,7 +172,7 @@ def get_flux(flux_path,baseline_filelist,ff,i):
     
 ############################ Pre- Requisite ############################
 
-get_Tb=0
+get_Tb=1
 if(get_Tb==1):
     print 'Starting Tb computation..'
     del_=50
@@ -180,9 +182,9 @@ if(get_Tb==1):
     #for ff in range(1):
         print str(freq[ff])+' MHz'
         ### GET FLUX ###
-        Ssun_mean[ff],Ssun_std[ff],Tb_beam[ff]=get_flux(flux_path,baseline_filelist,ff,1)
+        Ssun_mean[ff],Ssun_std[ff],Tb_beam[ff]=get_flux(flux_path,baseline_filelist,ff,1,1)
         ### GET CAL FLUX ###
-        calS_mean[ff],calS_std[ff],calT=get_flux(cal_path,baseline_filelist,ff,0)
+        calS_mean[ff],calS_std[ff],calT=get_flux(cal_path,baseline_filelist,ff,0,0)
         ### GM Parameters ##
         gm_filepath=gm_path+str(int(freq[ff]))+'MHz/T'
         std_ni[ff]=[0]*len(baseline_filelist)
@@ -296,11 +298,12 @@ if(get_Tb==1):
         #diff_S_=fit_cubic(S_ts[i].reshape(M,1,1))#(570,1,1))
         diff_S_=robust_median(S_ts[i].reshape(1,M,),200)#(570,1,1))
         diff_S_[0][np.where(diff_S_[0]<-1)]=0
-        diff_S[i]=diff_S_[0]
+        diff_S[i]=diff_S_[0][0]
         #diff_S_smooth[i]=np.correlate(diff_S[i],kernel,'valid')
         diff_S_std[i]=np.nanstd(diff_S[i])
         #auto_S[i]=np.correlate(diff_S_smooth[i]/diff_S_std[i],diff_S_smooth[i]/diff_S_std[i],'same')
-        auto_S[i]=np.correlate(diff_S[i]/diff_S_std[i],diff_S[i]/diff_S_std[i],'same')
+        #auto_S[i]=np.correlate(diff_S[i]/diff_S_std[i],diff_S[i]/diff_S_std[i],'same')
+        auto_S[i]=np.correlate(diff_S[i],diff_S[i],'same')
         # CAL
         #S_ts_cal[i]=calS_mean[i][0:Mcal]
         #diff_S_cal_=fit_cubic(S_ts_cal[i].reshape(Mcal,1,1))
@@ -310,18 +313,20 @@ if(get_Tb==1):
         #auto_S_cal[i]=np.correlate(diff_S_cal[i]/diff_S_std_cal[i],diff_S_cal[i]/diff_S_std_cal[i],'same')
         # RANDOM
         #diff_rand_smooth=np.correlate(sigrand,kernel,'valid')
-        auto_rand=np.correlate(sigrand/np.std(sigrand),sigrand/np.std(sigrand),'same')
+        #auto_rand=np.correlate(sigrand/np.std(sigrand),sigrand/np.std(sigrand),'same')
+        auto_rand=np.correlate(sigrand*th_noise_base[i]/np.std(sigrand),sigrand*th_noise_base[i]/np.std(sigrand),'same')
         #diff_rand_smooth_cal=np.correlate(sigrand_cal,kernel,'valid')
         #auto_rand_cal=np.correlate(diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),diff_rand_smooth_cal/np.std(diff_rand_smooth_cal),'same')
         #auto_rand_cal=np.correlate(sigrand_cal/np.std(sigrand_cal),sigrand_cal/np.std(sigrand_cal),'same')
 
     lag=0.5*(np.arange(len(diff_S[0]))-int(diff_S[0].shape[0]/2))
-    lagcal=0.5*(np.arange(len(diff_S_cal[0]))-int(diff_S_cal[0].shape[0]/2))
-    plot_auto=0
+    lagrand=0.5*(np.arange(len(sigrand))-int(sigrand.shape[0]/2))
+    #lagcal=0.5*(np.arange(len(diff_S_cal[0]))-int(diff_S_cal[0].shape[0]/2))
+    plot_auto=1
     if(plot_auto):
+        #plt.plot(lagcal,auto_S_cal[-2],'o-',label='CAL')
+        plt.plot(lagrand,auto_rand,'o',label='RANDOM')
         plt.plot(lag,auto_S[-2],'o-',label='218 MHz')
-        plt.plot(lagcal,auto_S_cal[-2],'o-',label='CAL')
-        #plt.plot(lag,auto_rand,'o',label='RANDOM')
         plt.xlabel('Lag Time (sec)')
         plt.ylabel('Auto-correlation')
         plt.legend()

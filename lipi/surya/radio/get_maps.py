@@ -142,14 +142,15 @@ def mean_flux_pfence(file_,f,baseline_filelist,res,onlyone):
     return flux,Tb_beam,time,timesec
 
 
-def mean_flux(file_,f,baseline_filelist,res):
+def mean_flux(file_,f,baseline_filelist,res,mult):
     '''
     Input:
-    file_,f,baseline_filelist,res
+    file_,f,baseline_filelist,res,mult
     NASA Horizon file path
     MWA frequency band label
     MWA Baseline List
     Time Resolution 
+    mult=0 if one time, else mult=1 if multiple times
     Output: 
     flux array in MWA format of DS
     time string array
@@ -172,7 +173,10 @@ def mean_flux(file_,f,baseline_filelist,res):
     time=[0]*flux[0].shape[1]
     timesec=[0]*flux[0].shape[1]
     for i in range(flux[0].shape[1]):
-        t=aa[14][0].split(' ')[1]
+        if(mult):
+            t=aa[14][0].split(' ')[1]
+        else:
+            t=aa[14].split(' ')[1]
         time[i]=ut.sec2hms_c(t,res,i)
         timesec[i]=ut.hms2sec_c(' '+time[i])
     flux=np.array(flux)
