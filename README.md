@@ -1,5 +1,5 @@
 
-# Project Title
+# VLA Flares package
 
 lipi: Master package of the software development done for VLA-Flares
 
