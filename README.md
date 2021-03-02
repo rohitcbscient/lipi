@@ -1,4 +1,13 @@
+
+# Project Title
+
 lipi: Master package of the software development done for VLA-Flares
+
+## Prerequisites
+
+SUNCASA (latest); SUNPY; CASA (5.3.0); SCIPY; ASTROPY; SKLEARN; MATPLOTLIB; NUMPY
+
+### Description
 
 The software package contains customised scripts for various solar instruments.
 Primarily EUV, X-rays and Radio intruments. We majorly used AIA for EUV and RHESSI for X-rays.
