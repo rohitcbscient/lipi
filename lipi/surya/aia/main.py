@@ -23,6 +23,8 @@ def read_submap(f,ff):
     for i in range(n):
         map_[i]=data[i][0]
         time=data[i][5]
+        if(str(time).split('\'')[0]=='b'):
+            time=str(time).split('\'')[1]
         ts[i]=ut.hms2sec_c(time)
         ti[i]=time.split(' ')[1]
     return map_,ts,ti,data[0][1],data[0][2]

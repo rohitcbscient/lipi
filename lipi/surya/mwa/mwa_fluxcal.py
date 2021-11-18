@@ -133,7 +133,7 @@ def radec2azel(ra,dec,date):
 
 ###############################################################################################################################################
 def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_lon,array_lat,array_elevation,rec_path,grd_path,spidx_path,ifsun,star_ra,star_dec):
-	if (os.path.isfile(str(WORKING_DIR)+'flux_V1_'+DS.split('.')[0] + '.p')==False):
+	if (os.path.isfile(str(WORKING_DIR)+'flux_V1_'+DS.split('.DS.dat')[0] + '.p')==False):
 		phi_resolution = 1.0		# Resolution in azimuth (in degrees)
 		theta_resolution = 1.0		# Resolution in elevation (in degrees)
 		azimuth_bins = int(360/phi_resolution)
@@ -150,8 +150,8 @@ def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_l
 		solidangle = solid_angle(azimuth_bins,elevation_bins)
 		print '######## Working with ',str(DS_DIR),str(DS),' ###########'
 		os.chdir(DS_DIR)
-		central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,ph_ra,ph_dec,start_time,end_time = pickle.load(open(DS,'r'))
-		#central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,start_time,end_time = pickle.load(open(DS,'r'))
+		#central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,ph_ra,ph_dec,start_time,end_time = pickle.load(open(DS,'r'))
+		central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,start_time,end_time = pickle.load(open(DS,'r'))
 		if(mwa_phase==2):
 			ncross=np.mean(ncross,axis=2)
                 if(ncross.shape[2]==1):
@@ -223,6 +223,7 @@ def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_l
 					if (os.path.isfile(str(HASLAM_DIR)+str(StartTimeStr)+'.p')== False):
 						print 'Creating haslam array....'
 						alt_haslam_m,azi_haslam_m,T_sky_m,spectral_index_array = skymodel.Tsky_408(haslam_gal,haslam_ra,haslam_dec,array_lon,array_lat,this_time,azimuth_bins,elevation_bins,spec_index,theta_resolution,phi_resolution,str(HASLAM_DIR)+str(StartTimeStr)) # np.ones((2048,4096)),np.ones((2048,4096)),np.ones((360,90)),np.ones((360,90))#
+                                        print str(HASLAM_DIR)+str(StartTimeStr)+'.p'
 					alt_haslam_m,azi_haslam_m,T_sky_m,spectral_index_array = pickle.load(open(str(HASLAM_DIR)+str(StartTimeStr)+'.p','r'))
 					T_sky_m[np.isnan(T_sky_m)] = 0
 					Tsky_m = skymodel.sky_model(T_sky_m, spectral_index_array,freq)
@@ -262,7 +263,8 @@ def tsun_computation(DS,DS_DIR,BEAM_DIR,WORKING_DIR,HASLAM_DIR,mwa_phase,array_l
 			#sys.exit()
 			dynamic_spectrum = ds(T_sun,S_sun,Temp_beam_sun,Un_Tbeam_Sun,corr_factor,fringe_factor,T_baseline,Tsky_integrated)
 			os.chdir(DS_DIR)
-			pickle.dump([central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,ph_az,ph_el,start_time,mid_time,end_time,[0,0,corr_factor,S_sun,T_sun,Un_Tbeam_Sun,Temp_beam_sun,fringe_factor,T_baseline,Tsky_integrated]],open('flux_V1_'+DS.split('.')[0] + '.p','wb'))
+                        print DS
+			pickle.dump([central_freq,chan_list,auto_t1,auto_t2,cross,ncross,phase_ncross,u,v,w,azi_pointing,ele_pointing,ph_az,ph_el,start_time,mid_time,end_time,[0,0,corr_factor,S_sun,T_sun,Un_Tbeam_Sun,Temp_beam_sun,fringe_factor,T_baseline,Tsky_integrated]],open('flux_V1_'+DS.split('.DS.dat')[0] + '.p','wb'))
 			#pickle.dump([Tsky_integrated,T_baseline,Tbeam_sun,Temp_beam_sun,T_sun,S_sun],open('check_flux.dat.p','wb'))
 		    	os.chdir(WORKING_DIR)
 		#time2=time.time()

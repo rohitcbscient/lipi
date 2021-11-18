@@ -43,7 +43,7 @@ def get_submap_hmi(f,xl,xr,yl,yr,ins):
     Outputs: submap, xl, xr, yl, yr (in pixels)
     '''
     if(ins!='hmi'):
-        print 'Use get_submap for non-hmi maps... Existing..'
+        print('Use get_submap for non-hmi maps... Existing..')
         sys.exit()
     h,d=ut.read_fits(f)
     w=WCS(f)

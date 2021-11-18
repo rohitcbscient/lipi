@@ -20,7 +20,7 @@ def get_submap(f,xl,xr,yl,yr):
     hmyl=ut.find_nearest(lyarc,yl)[0]
     hmyr=ut.find_nearest(lyarc,yr)[0]
     d_=d[hmyl:hmyr,hmxl:hmxr]
-    print hmyl,hmyr,hmxl,hmxr
+    #print hmyl,hmyr,hmxl,hmxr
     return d_
 
 def get_submap_(f,xl,xr,yl,yr):
@@ -34,7 +34,7 @@ def get_submap_(f,xl,xr,yl,yr):
     submap=mymap.submap(bl,tr)
     xlpix,ylpix=sp(bl,w)
     xrpix,yrpix=sp(tr,w)
-    print xlpix,ylpix,xrpix,yrpix
+    #print xlpix,ylpix,xrpix,yrpix
     return submap,xlpix,ylpix,xrpix,yrpix
 
 def plot_hmi(hmifile,xl,xr,yl,yr):

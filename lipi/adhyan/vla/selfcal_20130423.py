@@ -12,8 +12,9 @@ from astropy.io import fits
 from suncasa.utils import helioimage2fits
 
 #MOMMS='/nas08-data02/vladata/20130423/L-Band/selfcal/20130423T2030-2050.L.50ms.selfcal.ms' 
-MOMMS='/nas08-data02/vladata/20130423/S-Band/selfcal/20130423T2030-2040.S.50ms.cal.ms' 
-split_=1
+MOMMS='/media/rohit/VLA/20130423_sub_selfcal_new/flare1/20130423T202641.5-202642.5.L.50ms.cal.sub.ms' 
+OUTPUT_MS=MOMMS
+split_=0
 if(split_==1):
     OUTPUT_MS='20130423T203430-203431.S.50ms.cal.ms'
     os.system('rm -rf '+OUTPUT_MS)
@@ -51,21 +52,21 @@ masks_=['mask0.mask']
 initial_model_L_band='fsun.selfcal_soln.spw.7.cal.5.p.model'
 
 # STANDARD PARAMETERS 
-spw_list=['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
-#spw_list=['0','1','2','3','4','5','6','7']
+#spw_list=['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
+spw_list=['0','1','2','3','4','5','6','7']
 chanlist=['3~60']*9
 gainchan='28~32'
 interactive=False
 timerange_=''
-modes=['p','p','a','p','a','p']#['p','p','p','p']#['ap','ap','ap','ap','ap','ap','ap']
-snr_=[2,3,3,3,3,3,3]
+modes=['p','p','a','p','p','p']#['p','p','p','p']#['ap','ap','ap','ap','ap','ap','ap']
+snr_=[2,2,2,2,2,2,2]
 caltable_all=[0]*len(spw_list)
 MS=[0]*(len(modes)+1)
 MS[0]=MS_
 niter_scale_factor=np.ones(len(spw_list))#np.linspace(2,1,len(spw_list))
 niter_scale_factor[1]=1.0#4.0
-niter_base=np.array([100,200,400,400,400,400,400,400,400])#[,600,800,1000,1200,1300,1000,1000])
-#niter_base=np.array([50,100,100,200,200,400,400,400,400])#[,600,800,1000,1200,1300,1000,1000])
+#niter_base=np.array([100,200,400,400,400,400,400,400,400])#[,600,800,1000,1200,1300,1000,1000])
+niter_base=np.array([100,100,100,200,200,200,400,400,400])#[,600,800,1000,1200,1300,1000,1000])
 #niter_base=np.ones(len(modes))*100
 #uvrange_=['2000~7000lambda','500~7000lambda','','','','','','','','']
 uvrange_=['','','','','','','','','','']
@@ -77,7 +78,7 @@ cell_=['2.5arcsec','2.5arcsec']
 first_clearcal=1
 make_model=1
 apply_model=1
-use_initial_model=1
+use_initial_model=0
 cal_gaincal=1 # Major Step to compute gaincal
 plot_cal_amp=1 # plot amp soln
 plot_cal_phase=1 # plot phase soln
@@ -103,7 +104,7 @@ std=[0]*len(spw_list)
 initial_model=[0]*len(spw_list)
 initial_model[0]=initial_model_L_band
 ss=0
-for spw_ in spw_list[:2]:
+for spw_ in spw_list[::-1]:
     niter_list=np.array(niter_base/niter_scale_factor[ss],dtype=int)
     print '##### STARTING SELFCAL FOR SPW:'+str(spw_)+' #####'
     print 'Niter list: ', niter_list
@@ -236,14 +237,14 @@ for spw_ in spw_list[:2]:
                     npixels=0,npercycle=10,cyclefactor=1.5,cyclespeedup=-1,nterms=1,reffreq="",chaniter=False, \
                     flatnoise=True,allowchunk=False)
             os.system('rm -rf '+image_f[step]+'.model')
-            os.system('rm -rf '+image_f[step]+'.residual')
+            #os.system('rm -rf '+image_f[step]+'.residual')
             os.system('rm -rf '+image_f[step]+'.mask')
             os.system('rm -rf '+image_f[step]+'.flux')
             os.system('rm -rf '+image_f[step]+'.psf')
             img_=imstat(imagename=image_f[step]+".image/",axes=-1,region="",box="",chans="",stokes="",listit=True, \
                     verbose=True,mask="",stretch=False,logfile="",append=True,algorithm="classic",fence=-1, \
                     center="mean",lside=True,zscore=-1,maxiter=-1,clmethod="auto",niter=3)
-            img_std=imstat(imagename=image_f[step]+".image/",axes=-1,region="",box="10,10,200,200",chans="",stokes="",listit=True, \
+            img_std=imstat(imagename=image_f[step]+".residual/",axes=-1,region="",box="10,10,200,200",chans="",stokes="",listit=True, \
                     verbose=True,mask="",stretch=False,logfile="",append=True,algorithm="classic",fence=-1, \
                     center="mean",lside=True,zscore=-1,maxiter=-1,clmethod="auto",niter=3)
             std[ss][step]=img_std['rms']

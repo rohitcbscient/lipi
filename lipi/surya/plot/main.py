@@ -15,19 +15,19 @@ def make_circle(axx,x,y,res,xshape,s):
     axx.add_patch(circ)
 
 def add_beam(ax,xcenter,ycenter,width, height,angle):
-	theta = np.arange(0.0, 360.0, 1.0)*np.pi/180.0
-        x = 0.5 * width * np.cos(theta)
-        y = 0.5 * height * np.sin(theta)
-        rtheta = np.radians(angle)
-        R = np.array([[np.cos(rtheta), -np.sin(rtheta)],[np.sin(rtheta),np.cos(rtheta)],])
-        x, y = np.dot(R, np.array([x, y]))
-        x += xcenter
-        y += ycenter
-	ax.fill(x, y, alpha=0.0, facecolor='yellow', edgecolor='grey', linewidth=0.2, zorder=1)
+    theta = np.arange(0.0, 360.0, 1.0)*np.pi/180.0
+    x = 0.5 * width * np.cos(theta)
+    y = 0.5 * height * np.sin(theta)
+    rtheta = np.radians(angle)
+    R = np.array([[np.cos(rtheta), -np.sin(rtheta)],[np.sin(rtheta),np.cos(rtheta)],])
+    x, y = np.dot(R, np.array([x, y]))
+    x += xcenter
+    y += ycenter
+    ax.fill(x, y, alpha=0.0, facecolor='yellow', edgecolor='grey', linewidth=0.2, zorder=1)
 
-        e1 = patches.Ellipse((xcenter, ycenter), width, height,
-                     angle=angle, linewidth=2, fill=False, zorder=2)
-        ax.add_patch(e1)
+    e1 = patches.Ellipse((xcenter, ycenter), width, height,
+                 angle=angle, linewidth=2, fill=False, zorder=2)
+    ax.add_patch(e1)
 
 def plot_polar_dot(data,colorbar,az_sun,el_sun):#,title):
         '''

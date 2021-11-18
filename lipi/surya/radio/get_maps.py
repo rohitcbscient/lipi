@@ -121,11 +121,11 @@ def mean_flux_pfence(file_,f,baseline_filelist,res,onlyone):
         #aa[17][3][0][np.isnan(aa[17][3][0])]=0
         aa[17][3][0][aa[17][3][0]==0]=np.nan
         data1=aa[17][3][0]
-        data2=np.vstack((data1[6:13],data1[19:26],data1[38:45],data1[51:58]))
+        data2=data1#np.vstack((data1[6:13],data1[19:26],data1[38:45],data1[51:58]))
         flux[bb]=data2
         aa[17][6][0][aa[17][6][0]==0]=np.nan
         data1_=aa[17][6][0]
-        data2_=np.vstack((data1_[6:13],data1_[19:26],data1_[38:45],data1_[51:58]))
+        data2_=data1_#np.vstack((data1_[6:13],data1_[19:26],data1_[38:45],data1_[51:58]))
         Tb_beam[bb]=data2_
         bb=bb+1
     time=[0]*flux[0].shape[1]
@@ -141,6 +141,46 @@ def mean_flux_pfence(file_,f,baseline_filelist,res,onlyone):
     Tb_beam=np.array(Tb_beam)
     return flux,Tb_beam,time,timesec
 
+def mean_flux_gen(file_,f,baseline_filelist,res,mult):
+    '''
+    Input:
+    file_,f,baseline_filelist,res,mult
+    NASA Horizon file path
+    MWA frequency band label
+    MWA Baseline List
+    Time Resolution 
+    mult=0 if one time, else mult=1 if multiple times
+    Output: 
+    flux array in MWA format of DS
+    time string array
+    time second array
+    '''
+    bb=0
+    flux=[0]*len(baseline_filelist)
+    Tb_beam=[0]*len(baseline_filelist)
+    std_flux=[0]*len(baseline_filelist)
+    for b in baseline_filelist:
+        aa=pickle.load(open(file_[bb],'r'))
+        #aa[17][3][0][np.isnan(aa[17][3][0])]=0
+        aa[17][3][0][aa[17][3][0]==0]=np.nan
+        data1=aa[17][3][0]
+        flux[bb]=data1
+        aa[17][6][0][aa[17][6][0]==0]=np.nan
+        data1_=aa[17][6][0]
+        Tb_beam[bb]=data1_
+        bb=bb+1
+    time=[0]*flux[0].shape[1]
+    timesec=[0]*flux[0].shape[1]
+    for i in range(flux[0].shape[1]):
+        if(mult):
+            t=aa[14][0].split(' ')[1]
+        else:
+            t=aa[14].split(' ')[1]
+        time[i]=ut.sec2hms_c(t,res,i)
+        timesec[i]=ut.hms2sec_c(' '+time[i])
+    flux=np.array(flux)
+    Tb_beam=np.array(Tb_beam)
+    return flux,Tb_beam,time,timesec
 
 def mean_flux(file_,f,baseline_filelist,res,mult):
     '''
@@ -208,12 +248,13 @@ def compute_Tb(f,xc,yc,del_,angle,res,freq,n,S_sun_t_):
     fit=fits.open(f)
     bmin,bmaj,bpa=fit[0].header['BMIN'],fit[0].header['BMAJ'],fit[0].header['BPA']
     data_=fit[0].data[0][0]
+    #data_=np.vstack((np.hstack((data_,1.e-4*np.ones((1280,100)))),1.e-4*np.ones((100,1380))))
     ra_,dec_=ut.radec_array(fit[0].header,data_.shape[0],data_)
     ra=ra_[yc-del_:yc+del_,xc-del_:xc+del_]
     dec=dec_[yc-del_:yc+del_,xc-del_:xc+del_]
     data=data_[yc-del_:yc+del_,xc-del_:xc+del_]
     data_rot=rotateimage(data,angle,del_-1,del_-1)
-    noise=data_[0:xc-del_*5,:]
+    noise=data_[0:xc-del_*7,:]
     mean=np.mean(noise)
     std=np.std(noise)
     max_=np.max(data_rot)
