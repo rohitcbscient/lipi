@@ -23,10 +23,11 @@ reffile=fitsfiles(300)
 xrange=[550,1150]
 yrange=[-700,-100]
 n=n_elements(fitsfiles)
-for i=770,n do begin 
+for i=0,5 do begin 
 	print,fitsfiles(i)
 	read_sdo,fitsfiles(i),index,data
 	aia_prep,index,data,final_index,final_data,/normalize
+	print,max(final_data)
 	index2map,final_index,final_data,fullsunmap
 	read_sdo,reffile,refindex,refdata
 	aia_prep,refindex,refdata,ref_final_index,ref_final_data,/normalize
@@ -35,8 +36,8 @@ for i=770,n do begin
 	;sub_map,ref_fullsunmap,ref_submap,xrange=xrange,yrange=yrange
 	drot_map_=drot_map(fullsunmap,ref_map=ref_fullsunmap,/KEEP_LIMB)
 	sub_map,drot_map_,submap,xrange=xrange,yrange=yrange
-	;SAVE, drot_map_, FILENAME = fitsfiles(i)+'rot.sav'
-	SAVE, submap, FILENAME = fitsfiles(i)+'submap.sav'
+	SAVE, drot_map_, FILENAME = fitsfiles(i)+'rot.sav'
+	;SAVE, sub_map, FILENAME = fitsfiles(i)+'submap.sav'
 	;SAVE, drot_map_, FILENAME = fitsfiles(i)+'rot.fits'
 	endfor
 

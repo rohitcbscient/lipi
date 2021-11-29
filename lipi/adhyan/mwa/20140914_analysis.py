@@ -15,7 +15,7 @@ for b in bl:
         listp=sorted(glob.glob('/media/rohit/MWA/20140914/pickle/f*'+str(fid)+'*T'+b+'*.p'))
         Tb[k][j]=[0]*len(listp);nccf[k][j]=[0]*len(listp);corr[k][j]=[0]*len(listp)
         for i in range(len(listp)):
-            aa=pickle.load(open(listp[i],'r'))
+            aa=pickle.load(open(listp[i],'rb'))
             Tb[k][j][i]=aa[17][3][0][1:3].mean(axis=0);nccf[k][j][i]=aa[5][0][1:3].mean(axis=0);corr[k][j][i]=aa[17][2][0][1:3].mean(axis=0)
         Tb[k][j]=np.array(Tb[k][j]);nccf[k][j]=np.array(nccf[k][j]);corr[k][j]=np.array(corr[k][j])
         j=j+1

@@ -23,6 +23,41 @@ aa=readsav('/media/rohit/VLA/20130423/hmi.M_720s.20130423_202220.E31N13CR.CEA.NA
 vx=aa['box']['bx'][0]#[0:50,120:-120,120:-120]#flow['vx']
 vy=aa['box']['by'][0]#[0:50,120:-120,120:-120]#flow['vy']
 vz=aa['box']['bz'][0]#[0:50,120:-120,120:-120]#flow['vz']
+babs=np.sqrt(vx*vx+vy*vy+vz*vz)
+bspk=babs[:,172,77];r=np.arange(400)*1.4
+plt.plot(r,bspk,'o-',label='Magnetic Field')
+plt.show()
+
+h=np.arange(400)*1400/1.e3
+omega_spk=bspk/2.8
+ne=1.e9+1.16e17*np.exp(-1*(h*1000/500.))
+fp=9000*np.sqrt(ne)/1.e6
+R=np.linspace(2000,280.e3,1000)
+nkne=4.2e4 *10**(4.32/((695700.+h*1.e6)/695700.))
+th=10*np.pi/180.
+saitone=(3.09e8*(1-0.5*np.sin(th))/((695700.+h*1.e6)/695700.)**16)+(1.58e8*(1-0.95*np.sin(th))/((695700.+h*1.e6)/695700.)**6)+(0.0251e8*(1-np.sqrt(np.sin(th)))/((695700.+h*1.e6)/695700.)**2.5)
+nkfp=9000*np.sqrt(nkne)/1.e6
+saitofp=9000*np.sqrt(saitone)/1.e6
+
+
+f,ax=plt.subplots(2,2)
+ax[0,0].plot(h,bspk,'o-',label='Magnetic Field')
+ax[0,0].set_ylabel('|B| (Gauss)')
+ax[0,1].plot(h,ne,'o-',label='Electron density')
+ax[0,1].set_ylabel(' n$_e$ ($cm^{-3}$)')
+ax[1,0].plot(h,omega_spk,'o-',label='Gyroresonce Frequency')
+ax[1,0].set_ylabel('Frequency (MHz)')
+ax[1,1].plot(h,fp,'-',label='Plasma Freqeuncy')
+ax[1,1].plot(h,omega_spk,'o-',label='Gyroresonce Frequency')
+ax[1,1].set_ylabel('Frequency (MHz)')
+ax[1,0].set_xlabel('Coronal Height (Mm)');ax[1,1].set_xlabel('Coronal Height (Mm)')
+ax[0,0].legend()
+ax[0,1].legend()
+ax[1,0].legend()
+ax[1,1].legend()
+plt.show()
+
+
 
 dim=vx.shape
 
@@ -32,6 +67,10 @@ hmidata=hmi[0].data
 hmihead=hmi[0].header
 hmimap=Map('/media/rohit/VLA/20130423/hmi.m_45s.2013.04.23_20_35_15_TAI.magnetogram.fits')
 hmimap.pixel_to_world(694*u.pix,1550*u.pix)
+
+sys.exit()
+#########################
+
 nhmi=150
 zz,yy,xx=np.mgrid[0:nhmi,0:nhmi,0:10]
 zz1,yy1,xx1=np.mgrid[-1:1:150j, -1:1:150j, 0:1:10j]

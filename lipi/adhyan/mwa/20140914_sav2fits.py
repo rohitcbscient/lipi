@@ -75,23 +75,24 @@ def idl2sunpy_sdo(mapsav,n,wave,inst):
     header['NAXIS'] = 2
     header['NAXIS2'], header['NAXIS1'] = np.array(dat.shape)/n
     header['HGLN_OBS'] = 0.
-    header['HGLT_OBS'] = sunpy.coordinates.get_sun_B0(header['DATE-OBS']).value
+    header['HGLT_OBS'] = sunpy.coordinates.get_horizons_coord('SUN',time=header['DATE-OBS']).lat.value#sunpy.coordinates.get_sun_B0(header['DATE-OBS']).value
     header['RSUN_REF'] = sunpy.sun.constants.radius.value
     header['RSUN_OBS'] = 958.11#sunpy.coordinates.sun.angular_radius(header['DATE-OBS']).value
-    header['DSUN_OBS'] = sunpy.coordinates.get_sunearth_distance(header['DATE-OBS']).to(u.meter).value
+    header['DSUN_OBS'] = 147.86e9#sunpy.coordinates.get_sunearth_distance(header['DATE-OBS']).to(u.meter).value
     d=reduce_size(dat,n)
     smp = smap.Map(d, header)
     return smp
 
 
-def produce_tstring(mapp):
-    date=mapp.date
-    hhmmss=' '+str(date.hour)+':'+str(date.minute)+':'+str(date.second)+'.'+str(date.microsecond/1.e6).split('.')[1]
+def produce_tstring(date):
+    #date=mapp.date
+    #hhmmss=' '+str(date.hour)+':'+str(date.minute)+':'+str(date.second)+'.'+str(date.microsecond/1.e6).split('.')[1]
+    hhmmss=' '+str(date.split('T')[1].split(':')[0])+':'+str(date.split('T')[1].split(':')[1])+':'+str(date.split('T')[1].split(':')[2])
     sec=ut.hms2sec_c(hhmmss)
     return sec
 
 def get_sunpy_maps_rot(f,m,wave,inst,filename):
-    print 'Reading...'+f[0]
+    print('Reading...'+f[0])
     n=len(f)
     for i in range(n):
         ii="%04d"%i
@@ -99,11 +100,11 @@ def get_sunpy_maps_rot(f,m,wave,inst,filename):
             maplist=idl2sunpy_hmi(f[i],m)
         if(inst=='AIA'):
             maplist=idl2sunpy_sdo(f[i],m,wave,inst)
-        tt=maplist.meta['date-obs'].split('T')[1];ti=produce_tstring(maplist)
-        pickle.dump(maplist,open(filename+'_'+tt+'_'+str(int(ti))+'.sunpy','wb'))
+        tt=maplist.meta['date-obs'].split('T')[1];ti=produce_tstring(maplist.meta['date-obs']);
+        pickle.dump(maplist,open(str(filename)+'_'+str(tt.replace(':','-'))+'_'+str(int(ti))+'.sunpy','wb'))
 
 def get_sunpy_maps(f):
-    print 'Reading...'+f[0]
+    print('Reading...'+f[0])
     n=len(f);maplist=[0]*n;datalist=[0]*n;time=[0]*n
     for i in range(n):
         maplist[i]=Map(f[i])
@@ -113,7 +114,7 @@ def get_sunpy_maps(f):
     return maplist,datalist,time
 
 def get_sunpy_basediff_maps(f,m,wave,inst,filename):
-    print 'Reading...'+f[0]
+    print('Reading...'+f[0])
     n=len(f)
     for i in range(n):
         ii="%04d"%i
@@ -138,7 +139,7 @@ def get_sunpy_basediff_maps(f,m,wave,inst,filename):
 
 
 def get_sunpy_rundiff_maps(f,m,wave,inst,filename):
-    print 'Reading...'+f[0]
+    print('Reading...'+f[0])
     n=len(f)-1
     for i in range(1,n):
         ii="%04d"%i
@@ -160,7 +161,7 @@ def get_sunpy_rundiff_maps(f,m,wave,inst,filename):
         pickle.dump(maplist,open(filename+'_'+tt+'_'+str(int(ti))+'.sunpy','wb'))
 
 def get_evla_submap(f,xbl,ybl,xtr,ytr):
-    print 'Reading...'+f[0]
+    print('Reading...'+f[0])
     #xcen=(xbl+xtr)*0.5;ycen=(ybl+ytr)*0.5
     n=len(f);maplist=[0]*n;datalist=[0]*n;time=[0]*n
     for i in range(n):
@@ -192,7 +193,7 @@ sys.exit()
 dump_submaps=1
 if(dump_submaps):
     list193=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/*193*rot.sav'))[0:5]
-    list171=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/*171*.sav'))[0:5]
+    list171=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/*171*rot.sav'))[0:5]
     hmilist=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/hmi*rot.sav'))[0:5]
     get_sunpy_maps_rot(list171,1,'171','AIA','/media/rohit/MWA/20140914/sunpy_maps/map171')
     get_sunpy_maps_rot(list193,1,'193','AIA','/media/rohit/MWA/20140914/sunpy_maps/map193')
