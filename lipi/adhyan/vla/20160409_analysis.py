@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib as mpl
+mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 import sys
 import glob
@@ -7,7 +9,6 @@ from sunpy.map import Map
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from surya.utils import main as ut
-import matplotlib as mpl
 import pickle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.patches as patches
@@ -83,9 +84,12 @@ def idl2sunpy_sdo(mapsav,wave,inst):
     return smp
 
 
-def produce_tstring(mapp):
-    date=mapp.date
-    hhmmss=' '+str(date.hour)+':'+str(date.minute)+':'+str(date.second)+'.'+str(date.microsecond/1.e6).split('.')[1]
+def produce_tstring(f):
+    mapp=Map(f);d=mapp.date
+    print(d)
+    date=mapp.date.ymdhms#.date
+    #hhmmss=' '+str(date.hour)+':'+str(date.minute)+':'+str(date.second)+'.'+str(date.microsecond/1.e6).split('.')[1]
+    hhmmss=' '+str(date[3])+':'+str(date[4])+':'+str(date[4])+'.'+str(date[5]/1.e6).split('.')[1]
     sec=ut.hms2sec_c(hhmmss)
     return sec
 
@@ -236,10 +240,10 @@ def get_evla_submap(f,xbl,ybl,xtr,ytr):
         #cent_pix=map_.world_to_pixel(SkyCoord(xcen*u.arcsec, ycen*u.arcsec, frame=map_.coordinate_frame)) 
         bl = SkyCoord(xbl*u.arcsec, ybl*u.arcsec, frame=map_.coordinate_frame)
         tr = SkyCoord(xtr*u.arcsec, ytr*u.arcsec, frame=map_.coordinate_frame)
-        maplist[i]=map_.submap(bl,tr)
+        #maplist[i]=map_.submap(bl,tr)
         maplist[i]=map_
         datalist[i]=maplist[i].data
-        time[i]=produce_tstring(maplist[i])
+        time[i]=produce_tstring(maplist[i].date)
     time=np.array(time)
     return maplist,datalist,time
 
@@ -527,14 +531,21 @@ if(get_max):
     pickle.dump([xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr],open('/media/rohit/VLA/20160409/vlamax_loc_r.p','wb'))
 
 
-xcvmax,ycvmax,xcv90,ycv90,maxTbv,Tbv_r1,Tbv_r2,eTbv=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_v.p','rb'))
+xcvmax,ycvmax,xcv90,ycv90,maxTbv,Tbv_r1,Tbv_r2,eTbv=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_v.p','rb'),encoding='latin1')
 Tbmayn=maxTbv*1.0;Tbmays=maxTbv*1.0
 #Tbmayn[np.where(ycmax<255)]=np.nan;Tbmays[np.where(ycmax>255)]=np.nan
-xcimax,ycimax,xci90,yci90,maxTbi,Tbi_r1,Tbi_r2,areai50,eTbi=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_i.p','rb'))
-xclmax,yclmax,xcl90,ycl90,maxTbl,Tbl_r1,Tbl_r2,eTbl=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_l.p','rb'))
-xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r.p','rb'))
+xcimax,ycimax,xci90,yci90,maxTbi,Tbi_r1,Tbi_r2,areai50,eTbi=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_i.p','rb'),encoding='latin1')
+xclmax,yclmax,xcl90,ycl90,maxTbl,Tbl_r1,Tbl_r2,eTbl=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_l.p','rb'),encoding='latin1')
+xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r.p','rb'),encoding='latin1')
 #Tbmayn=maxTbi*1.0;Tbmays=maxTbi*1.0
 #Tbmayn[np.where(ycmax<255)]=np.nan;Tbmays[np.where(ycmax>255)]=np.nan
+
+do_pearson=1
+if(do_pearson):
+    pr=[0]*32;pv=[0]*32
+    for i in range(32):
+        pr[i],pv[i]=stats.pearsonr(maxTbi[0],maxTbi[i])
+
 
 get_submap_pol=1
 if(get_submap_pol):
@@ -612,10 +623,10 @@ if(get_qs):
 
 get_max=1
 if(get_max):
-    spc=['0-15','16-31','32-47','48-63'];cc0_s=[0]*8;cc0_t=[0]*8
+    spc=['0-15','16-31','32-47','48-63'];cc0_s=[0]*8;cc0_t=[0]*8;pr0_s=[0]*8;pv0_s=[0]*8
     for i in range(1):
         i=2
-        cc0_s[i]=[0]*4;cc0_t[i]=[0]*4
+        cc0_s[i]=[0]*4;cc0_t[i]=[0]*4;pr0_s[i]=[0]*100;pv0_s[i]=[0]*100
         for j in range(1):
             j=2
             listvla_r=sorted(glob.glob('/media/rohit/VLA/20160409/images_50ms_RR/spw_'+str(i)+'/*spw.*'+spc[j]+'*.FITS'))[0:2000]
@@ -624,9 +635,9 @@ if(get_max):
                 ts1[k]=[0]*100
                 mr1,dr1,tr1=get_evla_submap([listvla_r[k]],0,-1,0,-1);ts1[k]=dr1[0][78:178,78:178]
             ts1=np.array(ts1)
-            cc0_s[i][j]=[0]*100;cc0_t[i][j]=[0]*100
+            cc0_s[i][j]=[0]*100;cc0_t[i][j]=[0]*100;pr0_s[i][j]=[0]*100;pv0_s[i][j]=[0]*100
             for k1 in range(100):
-                cc0_s[i][j][k1]=[0]*100;cc0_t[i][j][k1]=[0]*100
+                cc0_s[i][j][k1]=[0]*100;cc0_t[i][j][k1]=[0]*100;pr0_s[i][j][k1]=[0]*100;pv0_s[i][j][k1]=[0]*100
                 for k2 in range(100):
                     #tt1=ts1[:,124-78,135-78]/np.sum(ts1[:,124-78,135-78]);tt2=ts1[:,k1,k2]/np.sum(ts1[:,k1,k2])
                     tt1=ts1[:,135-78,124-78]/np.sum(ts1[:,135-78,124-78]);tt2=ts1[:,k1,k2]/np.sum(ts1[:,k1,k2])
@@ -634,6 +645,7 @@ if(get_max):
                     cc0_s[i][j][k1][k2]=np.correlate(tt2,tt1, "same");cc0_s[i][j][k1][k2]=cc0_s[i][j][k1][k2]/np.max(cc0_s[i][j][k1][k2])
                     t1=ut.find_nearest(cc0_s[i][j][k1][k2][750:800],np.max(cc0_s[i][j][k1][k2][750:850])*0.4)[0];t2=ut.find_nearest(cc0_s[i][j][k1][k2][800:850][::-1],np.max(cc0_s[i][j][k1][k2][750:850])*0.4)[0]
                     cc0_t[i][j][k1][k2]=t2-t1
+                    pr0_s[i][j][k1][k2],pv0_s[i][j][k1][k2]=stats.pearsonr(tt2,tt1)
                     #cc0_t[i][j][k1][k2]=ut.find_nearest(cc0_s[i][j][k1][k2],np.max(cc0_s[i][j][k1][k2]))[0]-1000
             sys.exit()
     cc0_s=np.array(cc0_s).reshape(32,100,100,1601);cc0_t=np.array(cc0_t).reshape(32,100,100)

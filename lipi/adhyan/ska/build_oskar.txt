@@ -1,0 +1,24 @@
+CASACORE:
+
+sudo apt install libboost1.67-dev libboost-thread1.67-dev libboost-program-options1.67-dev libboost-system1.67-dev libboost-math1.67-dev libboost-test1.67-dev libboost-python1.67-dev
+
+cmake -DDATA_DIR=../data -DBUILD_PYTHON3=ON -DPYTHON3_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.8.so -DPYTHON3_INCLUDE_DIR=/usr/include/x86_64-linux-gnu/python3.8 -DBoost_NO_BOOST_CMAKE=True -SOFA_LIBRARY=~/sofa/sofa/build/lib  ..
+
+Error Soln: sudo make CFLAGS=-fPIC
+-DFORCE_OWN_FFTW=ON
+
+BLAS Library Problem:
+sudo apt-get -y install libopenblas-dev
+
+cmake -DDATA_DIR=/usr/share/casacore/data -DBUILD_PYTHON=ON -DPYTHON3_LIBRARY=~/anaconda3/envs/py38/lib/libpython3.8.so -DPYTHON3_INCLUDE_DIR=~/anaconda3/envs/py38/include/python3.8 -DBoost_NO_BOOST_CMAKE=True -DPYTHON2_LIBRARY=~/anaconda3/envs/py27/lib/libpython2.7.so -DPPYTHON2_INCLUDE_DIR=~/anaconda3/envs/py27/include/python2.7 ..
+
+~/sofa/sofa/build/lib
+
+OSKAR:
+
+locate .so files link it to the correct location using "ln -s LIB_SOURCE LIB_DESTINATION"
+
+link the libraries correctly
+See the compatibility of the numpy with other packages
+
+

@@ -5,9 +5,18 @@ import numpy as np
 from oskar.sky import Sky
 from oskar.measurement_set import MeasurementSet as ms
 import oskar
+import pandas
+
+
+tel = oskar.Telescope()
+tel.load('/home/rohit/ska_pipeline/SKA-main/data/telescope.tm')
+alma_conf=np.loadtxt('/home/rohit/simulations/alma/alma.cycle5.3.edited.cfg')
+# UTM Zone for ALMA is 19
+p = Proj(proj='utm',zone=19,ellps='WGS84', preserve_units=False);p(-120.108, 34.3)
 
 ra_deg=0;dec_deg=0;I=1
 sky_data=np.array([[20.0, -30.0, 1],[20.0, -30.5, 3]])
+sources_x=np.random.normal(-40,40,1000);sources_y=np.random.normal(-40,40,1000)
 s1=Sky.from_array(sky_data)
 
 filename = "test_zenith.ms"
@@ -17,10 +26,10 @@ num_channels = 2
 num_stations = 3
 num_times = 4
 num_baselines = num_stations * (num_stations - 1) // 2
-ref_freq_hz = 230e9 # Observational Frequency 
-freq_inc_hz = 7.8e6 #
-exposure_sec = 10.0
-interval_sec = 10.0
+ref_freq_hz = 100e6
+freq_inc_hz = 100e3
+exposure_sec = 1.0
+interval_sec = 1.0
 
 # Data to write are stored as numpy arrays.
 uu = np.zeros([num_baselines])
@@ -55,24 +64,6 @@ ms_.write_coords(start_row, num_baselines, uu, vv, ww,exposure_sec, interval_sec
 
 
 
-
-
 ##########################
 
-aaM=fits.open('/home/i4ds1807205/skymodels/lambda_mollweide_haslam408_nofilt.fits')
-hM,dM=aaM[1].header,aaM[1].data;wcsM=WCS(hM)
-aaH=fits.open('/home/i4ds1807205/skymodels/lambda_haslam408_nofilt.fits')
-hH,dH=aaH[1].header,aaH[1].data;wcsH=WCS(hH)
-aaZ=fits.open('/home/i4ds1807205/skymodels/lambda_zea_haslam408_nofilt.fits')
-hZ,dZ=aaZ[1].header,aaZ[1].data;wcsZ=WCS(hZ)
-
-
-plt.figure()
-ax0=plt.subplot(211,projection=wcsZ)
-ax1=plt.subplot(212,projection=wcsM)
-im0=ax0.imshow(np.log10(dZ),origin='lower');ax0.set_title('ZEA Projection')
-im1=ax1.imshow(np.log10(dM),origin='lower');ax1.set_title('Mollweide Projection')
-plt.colorbar(im0,ax=ax0,label='Log10(Temperature (MK))')
-plt.colorbar(im1,ax=ax1,label='Log10(Temperature (MK))')
-plt.show()
 
