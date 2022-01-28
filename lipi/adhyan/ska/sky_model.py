@@ -4,18 +4,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from oskar.sky import Sky
 from oskar.measurement_set import MeasurementSet as ms
+from oskar.telescope import Telescope as tel
 import oskar
 
 ra_deg=0;dec_deg=0;I=1
 sky_data=np.array([[20.0, -30.0, 1],[20.0, -30.5, 3]])
 s1=Sky.from_array(sky_data)
+tel = oskar.Telescope()
+tel.load('/home/rohit/simulations/alma/alma.tm')
 
 filename = "test_zenith.ms"
 # Define data dimensions.
 num_pols = 4
 num_channels = 2
 num_stations = 3
-num_times = 4
+num_times = 400
 num_baselines = num_stations * (num_stations - 1) // 2
 ref_freq_hz = 230e9 # Observational Frequency 
 freq_inc_hz = 7.8e6 #
@@ -51,7 +54,7 @@ for t in range(num_times):
 start_row = t * num_baselines
 time_stamp=10
 ms_.write_coords(start_row, num_baselines, uu, vv, ww,exposure_sec, interval_sec, time_stamp)
-
+ms_.close()
 
 
 

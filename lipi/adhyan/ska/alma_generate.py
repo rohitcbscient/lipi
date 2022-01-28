@@ -14,6 +14,7 @@ alma_conf=np.loadtxt('/home/rohit/simulations/alma/alma.cycle5.3.edited.cfg')
 # UTM Zone for ALMA is 19
 p = Proj(proj='utm',zone=19,ellps='WGS84', preserve_units=False);p(-120.108, 34.3)
 
+
 ra_deg=0;dec_deg=0;I=1
 sky_data=np.array([[20.0, -30.0, 1],[20.0, -30.5, 3]])
 sources_x=np.random.normal(-40,40,1000);sources_y=np.random.normal(-40,40,1000)
