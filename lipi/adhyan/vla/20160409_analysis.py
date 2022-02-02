@@ -1,6 +1,5 @@
-import numpy as np
 import matplotlib as mpl
-mpl.use('TkAgg')
+#mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 import sys
 import glob
@@ -19,7 +18,6 @@ import sunpy
 import sunpy.map as smap
 from sunpy import sun
 from dateutil import parser
-import numpy as np
 
 def idl2sunpy_hmi(mapsav):
     mapstruc = readsav(mapsav)

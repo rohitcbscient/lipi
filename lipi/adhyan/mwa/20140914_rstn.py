@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 filename='/media/rohit/MWA/20140914/rstn_20140914.SRD'
-print 'Reading '+str(filename)+'....'
+print('Reading '+str(filename)+'....')
 ff=open(str(filename),"r")
 l = ff.readlines()
 n=30700
