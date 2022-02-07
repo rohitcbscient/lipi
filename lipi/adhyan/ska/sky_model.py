@@ -10,8 +10,9 @@ import oskar
 ra_deg=0;dec_deg=0;I=1
 sky_data=np.array([[20.0, -30.0, 1],[20.0, -30.5, 3]])
 s1=Sky.from_array(sky_data)
+ss=oskar.Sky();ss.load('sky.osm')
 tel = oskar.Telescope()
-tel.load('/home/rohit/simulations/alma/alma.tm')
+tel.load('/home/rohit/simulations/alma/alma1.tm')
 
 filename = "test_zenith.ms"
 # Define data dimensions.

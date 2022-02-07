@@ -18,6 +18,7 @@ import sunpy
 import sunpy.map as smap
 from sunpy import sun
 from dateutil import parser
+from scipy import stats
 
 def idl2sunpy_hmi(mapsav):
     mapstruc = readsav(mapsav)
