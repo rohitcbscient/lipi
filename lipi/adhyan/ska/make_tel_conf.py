@@ -1,11 +1,11 @@
 import numpy as np
 import os
 
-lay=np.loadtxt('alma.tm/layout.txt')
+lay=np.loadtxt('meerkat_config.txt')
 station_num=lay.shape[0]
-name='alma1'
+name='meerkat'
 os.system('mkdir '+name+'.tm')
-os.system('cp alma.tm/layout.txt '+name+'.tm')
+os.system('cp meerkat_config.txt '+name+'.tm')
 for i in range(station_num):
     ii="%03d" %i
     os.system('mkdir '+name+'.tm/station'+ii)
