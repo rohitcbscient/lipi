@@ -1,15 +1,16 @@
-import numpy as np
-import matplotlib as mpl
-mpl.use('TkAgg')
-import matplotlib.pyplot as plt
 import sys
 import glob
-from astropy.io import fits
 from sunpy.map import Map
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from surya.utils import main as ut
+import matplotlib as mpl
 import pickle
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.patches as patches
+import os
+from scipy.io import readsav
+from astropy.time import Time
 from sunpy import sun
 from dateutil import parser
 from reproject import reproject_interp
@@ -17,106 +18,64 @@ from sunpy.coordinates import frames
 from astropy.wcs import WCS
 from astropy.wcs import utils
 import csv
+import sunpy
 from sunpy.coordinates import get_body_heliographic_stonyhurst
 from surya.utils import model
 from sunpy.map import make_fitswcs_header, Map
-from scipy.io import readsav
-import os
-import sunpy
+import matplotlib.pyplot as plt
 
-rename=0
-if(rename):
-    lst=glob.glob('hmi.m_45s.*.fits')
-    for l in lst:
-        out=l.split('.')[0]+'_'+l.split('.')[2]+l.split('.')[3]+l.split('.')[4].split('_')[0]+'_'+l.split('.')[4].split('_')[1]+l.split('.')[4].split('_')[2]+l.split('.')[4].split('_')[3]+'_magnetogram.fits'
-        os.system('mv '+l+' '+out)
-        
+import numpy as np
+from astropy.io import fits
+from surya.utils import Bextrap
+from astropy import units as u
+ff='/media/rohit/VLA/20160409_EUV/hmi.M_720s.20160409_183417.E18N10CR.CEA.NAS.sav'
+bsmap,bcarrmap=Bextrap.get_gxs_sav2hpp(ff,'2016-04-09T18:34:17.00')
+file_name_radio='/media/rohit/VLA/paraview/EUV_loop_radio.csv'
+x,y,z,bx,by,bz=Bextrap.get_fieldlines('/media/rohit/VLA/paraview/EUV_loop_radio.csv')
+x,y,z,bx,by,bz,b_hp,b_proj=Bextrap.transform_fieldlines(x,y,z,bx,by,bz,'2016/04/09T18:45:00',bsmap[0].wcs,bcarrmap[0])
 
-hmifile='/sdata/20140914_hmi/hmi.m_45s.2014.09.14_01_55_30_TAI.magnetogram.fits'
-hmifile='/sdata/20140914_hmi/hmi.m_45s.2014.09.14_02_45_45_TAI.magnetogram.fits'
-hmimap=Map(hmifile)
-hmid=hmimap.data#[::-1,::-1]
-hmid[np.where(hmid<-5000)]=1
-hmimap=Map(hmid,hmimap.meta)
-###########################
-aiamap=Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T01_57_35.34Z.image_lev1.fits')
-
-blh = SkyCoord(625*u.arcsec, -425*u.arcsec, frame=hmimap.coordinate_frame)
-trh = SkyCoord(775*u.arcsec, -275*u.arcsec, frame=hmimap.coordinate_frame)
-bla = SkyCoord(625*u.arcsec, -425*u.arcsec, frame=aiamap.coordinate_frame)
-tra = SkyCoord(775*u.arcsec, -275*u.arcsec, frame=aiamap.coordinate_frame)
-hmisubmap=hmimap.submap(blh, top_right=trh)
-aiasubmap=aiamap.submap(bla, top_right=tra)
-###########################
-out_hmi = hmimap.reproject_to(aiamap.wcs)
-
-fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_subplot(1, 2, 1, projection=map_aia)
-
-
-#expolB_=readsav('/sdata/20140914_hmi/20140914_magnetic_extrapolation_1arcsec.sav');expolB=expolB_['box']
-#expolB_1=readsav('/sdata/20140914_hmi/20140914_magnetic_extrapolation_024450.sav');expolB1=expolB_1['box']
-listB=sorted(glob.glob('/sdata/20140914_hmi/hmi/*cube.sav'))
-for i in range(len(listB)):
-    ii="%04d" % i
-    expolB_=readsav(listB[i]);expolB=expolB_['bout']
-    bx,by,bz=expolB[0],expolB[1],expolB[2]
-    babs=np.sqrt(bx*bx+by*by+bz*bz)
-    # Generate the grid
-    dim=bx.shape
-    zz,yy,xx=np.mgrid[0:dim[0],0:dim[1],0:dim[2]]
-    pts = np.empty(bx.shape + (3,), dtype=np.int32)
-    pts[..., 0] = xx
-    pts[..., 1] = yy
-    pts[..., 2] = zz
-    vectors = np.empty(bx.shape + (3,), dtype=np.float64)
-    vectors[..., 0] = bx
-    vectors[..., 1] = by
-    vectors[..., 2] = bz
-    # We reorder the points and vectors so this is as per VTK's
-    # requirement of x first, y next and z last.
-    pts = pts.transpose(2, 1, 0, 3).copy()
-    pts.shape = pts.size // 3, 3
-    vectors = vectors.transpose(2, 1, 0, 3).copy()
-    vectors.shape = vectors.size // 3, 3
-    sg = tvtk.StructuredGrid(dimensions=xx.shape, points=pts)
-    sg.point_data.vectors = vectors
-    sg.point_data.vectors.name = 'Magnetic Field'
-    absv=np.sqrt(vectors[:,0]**2+vectors[:,1]**2+vectors[:,2]**2)
-    sg.point_data.scalars = absv
-    sg.point_data.scalars.name = 'Magnitude'
-    write_data(sg, listB[i]+'_'+str(ii)+'.vtk')
-
+expolB_=readsav(ff)
+expolB=expolB_['box']
+bx,by,bz=expolB['bx'][0],expolB['by'][0],expolB['bz'][0]
+babs=np.sqrt(bx*bx+by*by+bz*bz)
+dr=expolB['dr'] # 3 values of extrapolated box in units Rsun
 
 sys.exit()
 
+xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r.p','rb'),encoding = 'latin1')
+qsx,qsy,qsxcr90,qsycr90,qsmaxTbr,qsTbr_r1,qsTbr_r2,qsarear50,qstimevla=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs.p','rb'),encoding = 'latin1')
+qsmaxTbr=np.array(qsmaxTbr)
+x0,y0,sigx0,sigy0,rot0,tb0,x1,y1,sigx1,sigy1,rot1,tb1=np.load('/media/rohit/VLA/20160409/blob/all_params.npz.npy')
+corr_t=np.load('/media/rohit/VLA/20160409/correlation_t.npz.npy')
+
+hmifile='/media/rohit/VLA/20160409_EUV/hmi.m_45s.2016.04.09_18_45_00_TAI.magnetogram.fits'
+hmimap=Map(hmifile)
+hmid=hmimap.data[::-1,::-1]
+hmid[np.where(hmid<-5000)]=0
+hmimap=Map(hmid,hmimap.meta)
+
+
 k=0 # Layer
-expolB_=readsav('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_014621.W97S14CR.CEA.NAS.sav');expolB=expolB_['box']
-#expolB_=readsav('/data/Dropbox/20120225_VLA_work/gregory_gyrosynchroton/hmi.M_720s.20120225_203413.W133N16CR.CEA.NAS.sav');expolB=expolB_['box']
-bx=expolB['bx'][0];by=expolB['by'][0];bz=expolB['bz'][0]
-babs=np.sqrt(bx**2 + by**2 + bz**2)
-ff=0
-if(ff):
-    index=expolB['index'][0]
-    crval1=index['crval1']
-    crval2=index['crval2']
-    crpix1=index['crpix1']
-    crpix2=index['crpix2']
-    ctype1=index['ctype1']
-    ctype2=index['ctype2']
-    cdelt1=index['cdelt1']
-    cdelt2=index['cdelt2']
-    cunit1=index['cunit1']
-    cunit2=index['cunit2']
-    hdu = fits.PrimaryHDU(babs[k])
-    list_all=list(index.dtype.names)
-    list_all.remove('COMMENT')
-    list_all.remove('HISTORY')
-    list_all.remove('BITPIX')
-    list_all.remove('NAXIS')
-    list_all.remove('DATE_D$OBS')
-    index['WCSNAME'],index['CTYPE1'],index['CUNIT1'],index['CTYPE2'],index['CUNIT2']=['Carrington-Heliographic'],['CRLN-CEA'],['deg'],['CRLT-CEA'],['deg']
-    index['DATE_OBS']=['2014-09-14T01:55:30']
+index=expolB['index'][0]
+crval1=index['crval1']
+crval2=index['crval2']
+crpix1=index['crpix1']
+crpix2=index['crpix2']
+ctype1=index['ctype1']
+ctype2=index['ctype2']
+cdelt1=index['cdelt1']
+cdelt2=index['cdelt2']
+cunit1=index['cunit1']
+cunit2=index['cunit2']
+hdu = fits.PrimaryHDU(babs[k])
+list_all=list(index.dtype.names)
+list_all.remove('COMMENT')
+list_all.remove('HISTORY')
+list_all.remove('BITPIX')
+list_all.remove('NAXIS')
+list_all.remove('DATE_D$OBS')
+index['WCSNAME'],index['CTYPE1'],index['CUNIT1'],index['CTYPE2'],index['CUNIT2']=['Carrington-Heliographic'],['CRLN-CEA'],['deg'],['CRLT-CEA'],['deg']
+index['DATE_OBS']=['2016-04-09T18:45:00']
 ii=0
 for idx in list_all:
     #print idx
@@ -125,7 +84,8 @@ for idx in list_all:
     ii=ii+1
 
 #source_height=1400;hdu.header.update({'NAXIS':3});hdu.header.append(('CRPIX3',0));hdu.header.append(('CRVAL3',695700.0));hdu.header.append(('CTYPE3','HECH'));hdu.header.append(('CUNIT3','km'));hdu.header.append(('CDELT1',1400))
-#hdu.header.append(('RSUN_REF',source_height))
+source_height=695700000+1400000*k
+hdu.header.append(('RSUN_REF',source_height))
 hdu.data=babs[0]
 hhdu=hdu.header
 hdul = fits.HDUList([hdu])
@@ -133,19 +93,17 @@ mymap=Map(babs[k],hhdu)
 hp_coord=mymap.reference_coordinate.transform_to(frames.Helioprojective(observer="earth"))
 hp_hcc=mymap.reference_coordinate.transform_to(frames.Heliocentric(observer="earth"))
 
-sys.exit()
 ############################
 
-out_shape = (334, 334)
-out_header = sunpy.map.make_fitswcs_header(mymap.data,hp_coord)
+out_shape = (300, 300)
+out_header = sunpy.map.make_fitswcs_header(out_shape,hp_coord)
 out_wcs = WCS(out_header)
-#earth = get_body_heliographic_stonyhurst('earth', mymap.date)
-#out_wcs.heliographic_observer = earth
+earth = get_body_heliographic_stonyhurst('earth', mymap.date)
+out_wcs.heliographic_observer = earth
 output, footprint = reproject_interp(mymap, out_wcs, out_shape)
 outmap = sunpy.map.Map((output, out_header))
 outmap.plot_settings = mymap.plot_settings
-
-
+aiamap=Map('/media/rohit/VLA/20160409_EUV/171/ssw_cutout_20160409_184434_AIA_171_.fts')
 
 #file_name_fr="/media/rohit/VLA/paraview/field_radio.csv"
 file_name_fr="/media/rohit/VLA/paraview/radio_loop_new.csv"

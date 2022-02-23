@@ -47,10 +47,12 @@ params = {
         "length": "12:00:00.000"
     },
     "telescope": {
-        "input_directory": "../data/telescope.tm"
+        #"input_directory": "../alma/telescope.tm"
+        "input_directory": "meerkat.tm"
     },
     "interferometer": {
-        "ms_filename": "visibilities_gleam.ms",
+        "ms_filename": "visibilities_gleam_meerkat.ms",
+        "oskar_vis_filename": "visibilities_gleam.vis",
         "channel_bandwidth_hz": 1e6,
         "time_average_sec": 10
     }
@@ -66,6 +68,16 @@ sim = oskar.Interferometer(settings=settings)
 
 sim.set_sky_model(sky)
 sim.run()
+
+(header, handle) = oskar.VisHeader.read('visibilities_gleam.vis')
+block = oskar.VisBlock.create_from_header(header)
+tasks_read = []
+import concurrent
+executor = concurrent.futures.ThreadPoolExecutor(2)
+for i_block in range(header.num_blocks):
+    tasks_read.append(executor.submit(block.read, header, handle,i_block))
+vis = block.cross_correlations()
+
 
 from rascil.apps import rascil_imager
 from rascil.processing_components.util.performance import (

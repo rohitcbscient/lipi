@@ -246,5 +246,7 @@ def ra_hms2deg(ra_h,ra_m,ra_s):
     sign=ra_h/abs(ra_h)
     ra_=ra_h*15.0+sign*ra_m*(15/60.)+sign*ra_s*(15/3600.) # In degrees
     return ra_
+    
+
 
 

@@ -55,7 +55,7 @@ aiadata94=umaps.get_submap('/media/rohit/VLA/20120225_aia/AIA20120225_204902_009
 #######################################
 
 
-expolB_=readsav('/home/i4ds1807205/Dropbox/20120225_VLA_work/gregory_gyrosynchroton/hmi.M_720s.20120225_203413.W133N16CR.CEA.NAS.sav')
+expolB_=readsav('/data/Dropbox/20120225_VLA_work/gregory_gyrosynchroton/hmi.M_720s.20120225_203413.W133N16CR.CEA.NAS.sav')
 expolB=expolB_['box']
 bx,by,bz=expolB['bx'][0],expolB['by'][0],expolB['bz'][0]
 babs=np.sqrt(bx*bx+by*by+bz*bz)
@@ -96,9 +96,7 @@ hp_coord=mymap.reference_coordinate.transform_to(frames.Helioprojective(observer
 ###################################
 
 out_shape = (140, 200)
-out_header = sunpy.map.make_fitswcs_header(
-            out_shape,
-            hp_coord)
+out_header = sunpy.map.make_fitswcs_header(out_shape,hp_coord)
 out_wcs = WCS(out_header)
 earth = get_body_heliographic_stonyhurst('earth', mymap.date)
 out_wcs.heliographic_observer = earth

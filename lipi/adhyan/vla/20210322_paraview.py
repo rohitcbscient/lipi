@@ -16,27 +16,27 @@ import matplotlib.pyplot as plt
 from sunpy.map import Map
 # Unpack velocity information
 
-aa=readsav('/sdata/20210322/magnetic_fields_exp_20210322.sav')
+aa=readsav('/sdata/20210322/hmi.M_720s.20210322_202236.E115N20CR.CEA.NAS.sav')
 
-vx=aa['box'][0][0][0]#[0:50,120:-120,120:-120]#flow['vx']
-vy=aa['box'][0][0][1]#[0:50,120:-120,120:-120]#flow['vy']
-vz=aa['box'][0][0][2]#[0:50,120:-120,120:-120]#flow['vz']
+vx=aa['box'][0][0]#[0:50,120:-120,120:-120]#flow['vx']
+vy=aa['box'][0][1]#[0:50,120:-120,120:-120]#flow['vy']
+vz=aa['box'][0][2]#[0:50,120:-120,120:-120]#flow['vz']
 
 dim=vx.shape
 
-hmi=fits.open('/media/rohit/VLA/20160409_EUV/hmi/hmi.m_45s.2016.04.09_18_45_45_TAI.magnetogram.fits')
+hmi=fits.open('/sdata/20210322/hmi.m_45s.2021.03.22_20_35_15_TAI.magnetogram.fits')
 hmidata=hmi[0].data
 hmimap=Map(hmidata,hmi[0].header)
-nhmi=400
+nhmi=300
 zz,yy,xx=np.mgrid[0:nhmi,0:nhmi,0:10]
-zz1,yy1,xx1=np.mgrid[-1:1:400j, -1:1:400j, 0:1:200j]
-pts = np.empty((400,400,200) + (3,), dtype=np.float64)
+zz1,yy1,xx1=np.mgrid[-1:1:300j, -1:1:300j, 0:1:300j]
+pts = np.empty((300,300,300) + (3,), dtype=np.float64)
 pts[..., 0] = xx1
 pts[..., 1] = yy1
 pts[..., 2] = zz1
 pts.shape = pts.size // 3, 3
 
-vectors = np.empty((400,400,200) + (1,), dtype=np.float64)
+vectors = np.empty((300,300,300) + (1,), dtype=np.float64)
 vectors[:,:,0, 0] = hmidata[-1200:-1000,-1200:-1000]
 #vectors[:,:,5,0]=hmidata[-1200:-1000,-1200:-1000]
 vectors.shape = vectors.size // 1, 1

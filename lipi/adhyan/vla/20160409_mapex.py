@@ -27,10 +27,10 @@ for i in range(200):
     hdu.data=bx[0];hhdu=hdu.header;hdul = fits.HDUList([hdu]);mymap=Map(bx[i],hhdu);hp_coord=mymap.reference_coordinate.transform_to(frames.Helioprojective(observer="earth"))
     mapex_center=[-800,220]
     out_shape = (300, 300)
-    out_header = sunpy.map.make_fitswcs_header(out_shape,hp_coord)
+    out_header = sunpy.map.make_fitswcs_header(mymap.data,hp_coord)
     out_wcs = WCS(out_header)
-    earth = get_body_heliographic_stonyhurst('earth', mymap.date)
-    out_wcs.heliographic_observer = earth
+    #earth = get_body_heliographic_stonyhurst('earth', mymap.date)
+    #out_wcs.heliographic_observer = earth
     output, footprint = reproject_interp(mymap, out_wcs, out_shape)
     outmap = sunpy.map.Map((output, out_header))
     outmap.plot_settings = mymap.plot_settings
