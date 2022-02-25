@@ -1,0 +1,87 @@
+config:
+  # Generate the cached products and SVDs
+    beamtransfers:      Yes
+  # Generate the FG filter
+    kltransform:        Yes
+  # Generate products needed for PS estimator
+    psfisher:           Yes
+
+    output_directory:   /cluster/scratch/saliqolizade/MeerKAT_Under70m_kperp_0.01_0.5/
+
+layout_spec:
+  type: file
+  filenames: /cluster/home/saliqolizade/HIRAX_SKA/MeerKATpairs_test.txt
+
+    
+telescope:
+    # Specify the simulated telescope
+    # This will use the default grid array layout for HIRAX
+    # We will set a maximum baseline length to trim this down
+    type:
+        class:  HIRAXSurvey     #  The telescope object to instantiate
+        module: dish_array.hirax
+
+    # Set the freuencies like your maps
+    freq_lower: 500
+    freq_upper: 600
+    freq_mode: edge
+    num_freq: 32
+
+    # Set the noise properties
+    tsys_flat: 50
+    ndays: 730
+
+    # This will give use baselines ~ from a 2x2 with this layout
+    maxlength: 11  # m
+
+    # Set to 1-1.5 times the minimum baseline spacing in meters
+    min_uv: 12 # m
+
+    # If we're doing multiple pointings, specify the range
+    # Currently a single pointing at the zenith declination
+    # of the telescope.
+    elevation_start: 0 # deg
+    elevation_stop: 0 # deg
+    npointings: 1
+
+    # Just use a simple Gaussian beam for a 6 meter dish size
+    beam_spec:
+      type: gaussian
+      dish_diameter: 6
+      fwhm_fac: 1.0
+      pol_type: pure
+
+kltransform:
+  # Details of the FG filter
+
+  # Use a 2 stage Filter as in Shaw et al.
+    - type: DoubleKL
+      name: dk_3thresh_fg_10thresh
+      inverse: Yes  
+      threshold: 3              # Final stage S/(N+F) threshold
+      use_thermal: Yes
+      use_foregrounds: Yes
+      use_polarised: Yes
+      foreground_threshold: 10  # First stage S/F threshold
+
+psfisher:
+  # Set up PS estimator
+
+    -   type:           MonteCarlo # Use Montecarlo q-estimator
+        name:           psmc_dk_3thresh_fg_10thresh_1threshold 
+        klname:         dk_3thresh_fg_10thresh #  Which FG filter to use
+        threshold:      1
+        # Set up PS bands in k-space
+        # Here we setup a cartesian grid, linearly spaced in kperp and kpar
+        bandtype:       cartesian
+        kpar_bands:
+        -   spacing:    linear
+            start:      0.0
+            stop:       0.15                   
+            num:        11
+
+        kperp_bands:
+        -   spacing:    linear
+            start:      0.01
+            stop:       0.6
+            num:        11

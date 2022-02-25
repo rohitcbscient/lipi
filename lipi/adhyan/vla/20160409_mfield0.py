@@ -185,6 +185,7 @@ xlaia=-948;xraia=-648;ylaia=70;yraia=370;j=0
 plot_fields=1
 if(plot_fields):
     f,ax0=plt.subplots(1,1)
+    ax = fig.add_subplot(projection=bsmap[0])
     p=outmap.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
     #ax0.scatter(b_hp_fr.Tx.value[idx1],b_hp_fr.Ty.value[idx1],s=5,color='tab:olive')
     ax0.scatter(b_hp_fr.Tx.value,b_hp_fr.Ty.value,s=5,color='tab:olive')
