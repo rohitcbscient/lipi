@@ -9,40 +9,52 @@ import oskar
 import time
 import sys
 import os
+import concurrent
 
 precision='single'
-ra_deg=20.0;dec_deg=30.0;I=1
+ra_deg=45.0;dec_deg=45.0;I=1
 sky = oskar.Sky.generate_grid(ra_deg, dec_deg,25, 3.0, precision=precision)
-#sky_data=np.array([[20.0, -30.0, 1],[20.0, -30.5, 3]])
+sky_data=np.array([[0.0, 0.0, 1]])
 #ss=oskar.Sky()
-sky.load('sky.osm')
+#sky.load('sky.osm')
 tel = oskar.Telescope(precision)
-#tel.load('/home/rohit/simulations/meerKat/meerkat.tm')
-tel.load('/home/rohit/simulations/alma/telescope.tm')
-#tel.set_channel_bandwidth(1.0e3)
-#tel.set_time_average(10.0)
-#tel.set_pol_mode('Scalar')
+tel.load('/home/rohit/simulations/meerKat/meerkat.tm')
+#tel.load('/home/rohit/simulations/alma/telescope.tm')
+tel.set_channel_bandwidth(1.0e3)
+tel.set_time_average(10.0)
+tel.set_pol_mode('Scalar')
 # Set station properties after stations have been defined.
-#tel.set_phase_centre(ra_deg, dec_deg)
-#tel.set_station_type('Gaussian beam')
-#tel.set_gaussian_station_beam_width(5.0, 100e6)
+tel.set_phase_centre(ra_deg, dec_deg)
+tel.set_station_type('Gaussian beam')
+tel.set_gaussian_station_beam_width(5.0, 100e6)
 
 simulator = oskar.Interferometer(precision)
-#simulator.set_settings_path(os.path.abspath('.')
+#simulator.set_settings_path(os.path.abspath('.'))
 simulator.set_max_sources_per_chunk(sky.num_sources+1)
 simulator.set_sky_model(sky)
 simulator.set_telescope_model(tel)
-simulator.set_observation_frequency(start_frequency_hz=200.0e6,inc_hz=4.e4,num_channels=10)
-simulator.set_observation_time(start_time_mjd_utc=51545.0, length_sec=43200.0, num_time_steps=48)
-simulator.set_output_measurement_set('gg.ms')
-simulator.set_output_vis_file('gg.vis')
+simulator.set_observation_frequency(start_frequency_hz=950.0e6,inc_hz=5.e6,num_channels=32)
+#simulator.set_observation_time(start_time_mjd_utc=51545.0, length_sec=8.0, num_time_steps=80000)
+simulator.set_observation_time(start_time_mjd_utc=0, length_sec=8.0, num_time_steps=80)
+simulator.set_output_measurement_set('run1.ms')
+simulator.set_output_vis_file('run1.vis')
 simulator.set_gpus(None)
 print('Running interferometer simulator...')
 simulator.run()
 
-(header, handle) = oskar.VisHeader.read('gg.vis')
+
+sys.exit()
+
+(header, handle) = oskar.VisHeader.read('run1.vis')
+#(header, handle) = oskar.VisHeader.read('example.vis')
 block = oskar.VisBlock.create_from_header(header)
+tasks_read = []
+executor = concurrent.futures.ThreadPoolExecutor(2)
+for i_block in range(header.num_blocks):
+        tasks_read.append(executor.submit(block.read, header, handle,i_block))
 vis = block.cross_correlations()
+um=block.baseline_uu_metres();vm=block.baseline_vv_metres()
+print(vis.shape)
 
 
 settings = oskar.SettingsTree('oskar_sim_interferometer')
