@@ -10,7 +10,22 @@ import time
 import sys
 import os
 import concurrent
+from cora.foreground import galaxy, pointsource
 
+nside = 64
+nfreq=32
+fa = np.linspace(950.0, 1110.0, nfreq)*1.e6
+cr = pointsource.CombinedPointSources()
+cr.nside=nside
+cr.frequencies = fa
+unpol = cr.getsky()
+pol = cr.getpolsky()
+unpol=unpol.reshape(nfreq,12,nside,nside)
+plt.imshow(np.log10(unpol.max(axis=(0,1))),aspect='auto')
+plt.colorbar(label='Log(T (K))')
+plt.show()
+
+hZ,dZ=aaZ[1].header,aaZ[1].data;wcsZ=WCS(hZ)
 precision='single'
 ra_deg=45.0;dec_deg=45.0;I=1
 sky = oskar.Sky.generate_grid(ra_deg, dec_deg,25, 3.0, precision=precision)
@@ -43,7 +58,6 @@ print('Running interferometer simulator...')
 simulator.run()
 
 
-sys.exit()
 
 (header, handle) = oskar.VisHeader.read('run1.vis')
 #(header, handle) = oskar.VisHeader.read('example.vis')
@@ -56,91 +70,14 @@ vis = block.cross_correlations()
 um=block.baseline_uu_metres();vm=block.baseline_vv_metres()
 print(vis.shape)
 
-
-settings = oskar.SettingsTree('oskar_sim_interferometer')
-python_dict = {
-   'simulator': {
-       'double_precision': 'true',
-       'use_gpus': 'true',
-       'max_sources_per_chunk': 23000
-   },
-   'observation' : {
-       'length': 14400.0,
-       'start_frequency_hz': 132e6,
-       'frequency_inc_hz': 100e3,
-       'num_channels': 160,
-       'num_time_steps': 240
-   },
-   'telescope': {
-       'input_directory': '/path/to/telescope/model',
-       'pol_mode': 'Scalar'
-   },
-   'interferometer': {
-       'channel_bandwidth_hz': 100e3,
-       'time_average_sec': 1.0,
-       'max_time_samples_per_block': 4
-   }
-}
-settings.from_dict(python_dict)
-
 sys.exit()
 
-filename = "test_zenith.ms"
-# Define data dimensions.
-num_pols = 4
-num_channels = 2
-num_stations = 64
-num_times = 400
-num_baselines = num_stations * (num_stations - 1) // 2
-ref_freq_hz = 230e9 # Observational Frequency 
-freq_inc_hz = 7.8e6 #
-exposure_sec = 10.0
-interval_sec = 10.0
-
-# Data to write are stored as numpy arrays.
-uu = np.zeros([num_baselines])
-vv = np.zeros_like(uu)
-ww = np.zeros_like(uu)
-vis = np.zeros([num_times, num_channels,num_baselines, num_pols], dtype='c8')
-
-# Create the empty Measurement Set.
-ms_ = ms.create(filename, num_stations,num_channels, num_pols,ref_freq_hz, freq_inc_hz)
-
-# Set phase centre.
-ra_rad = np.pi / 4
-dec_rad = -np.pi / 4
-ms_.set_phase_centre(ra_rad, dec_rad)
-
-# Write data one block at a time.
-for t in range(num_times):
-    # Dummy data to write.
-    time_stamp = 51544.5 * 86400.0 + t
-    uu[:] = 1e0 * t + 1
-    vv[:] = 1e1 * t + 2
-    ww[:] = 1e2 * t + 3
-    for c in range(num_channels):
-        for b in range(num_baselines):
-            vis[t, c, b, :] = (t * 10 + b) + 1j * (c + 1)
-
-# Write coordinates and visibilities.
-start_row = t * num_baselines
-time_stamp=10
-ms_.write_coords(start_row, num_baselines, uu, vv, ww,exposure_sec, interval_sec, time_stamp)
-ms_.close()
-
-
-
-
-
-##########################
-
-aaM=fits.open('/home/i4ds1807205/skymodels/lambda_mollweide_haslam408_nofilt.fits')
-hM,dM=aaM[1].header,aaM[1].data;wcsM=WCS(hM)
-aaH=fits.open('/home/i4ds1807205/skymodels/lambda_haslam408_nofilt.fits')
-hH,dH=aaH[1].header,aaH[1].data;wcsH=WCS(hH)
-aaZ=fits.open('/home/i4ds1807205/skymodels/lambda_zea_haslam408_nofilt.fits')
-hZ,dZ=aaZ[1].header,aaZ[1].data;wcsZ=WCS(hZ)
-
+ms.open('run1.ms')
+amp=ms.getdata('amplitude');u=ms.getdata('u')['u'];u=ms.getdata('v')['v']
+f,ax=plt.subplots(1,2);ax0=ax[0];ax1=ax[1]
+ax0.plot(u,v,'o')
+ax1.plot(u,v,'o')
+plt.show()
 
 plt.figure()
 ax0=plt.subplot(211,projection=wcsZ)
