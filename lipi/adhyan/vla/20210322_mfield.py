@@ -5,6 +5,15 @@ from astropy import units as u
 import matplotlib.pyplot as plt
 import pickle
 from astropy.coordinates import SkyCoord
+import sys
+
+euifile='/data/Dropbox/20210321/EUI/solo_L2_eui-fsi174-image_20210322T203913290_V02.fits'
+euimap=Map(euifile)
+euiwcs=euimap.wcs
+
+
+
+sys.exit()
 
 file_name_fr="/media/rohit/VLA/paraview/radio_loop_new.csv"
 file_name_ls="/media/rohit/VLA/paraview/large_scale.csv"

@@ -1,6 +1,8 @@
 import numpy as np
 import os
 
+# Path to Configuration: ~/simulations/configuration
+
 lay=np.loadtxt('meerkat_config.txt')
 station_num=lay.shape[0]
 name='meerkat'

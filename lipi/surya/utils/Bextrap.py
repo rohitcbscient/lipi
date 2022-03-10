@@ -98,8 +98,10 @@ def transform_fieldlines(x,y,z,bx,by,bz,date,out_wcs,mymap):
     #source_height=695700000+num*hres*1000.
     sc = SkyCoord(xkm*u.km, ykm*u.km, zkm*u.km,obstime=date, observer="earth", frame="heliocentric")
     b_hp=sc.transform_to(frames.Helioprojective(observer='earth'))
-    b_proj = utils.skycoord_to_pixel(b_hp, out_wcs)
-    return x,y,z,bx,by,bz,b_hp,b_proj
+    b_hp_pix = utils.skycoord_to_pixel(b_hp, out_wcs)
+    b_carr=sc.transform_to(frames.HeliographicCarrington(observer='earth'))
+    b_carr_pix = utils.skycoord_to_pixel(b_carr, mymap.wcs)
+    return x,y,z,bx,by,bz,b_hp,b_hp_pix,b_carr,b_carr_pix
 
 
 
