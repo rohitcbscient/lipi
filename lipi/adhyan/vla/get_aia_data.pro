@@ -1,11 +1,11 @@
 
 ;download full sun level 1 data 
 
-;t0='2016/04/09 18:40:00'
-;t1='2016/04/09 18:50:00'
+t0='2021/03/22 20:30:00'
+t1='2021/03/22 20:40:00'
 
-;searchfile = vso_search(t0,t1, wave='1700 Angstrom',inst='aia')
-;getfile=vso_get(searchfile,out_dir="/media/rohit/VLA/20160409_EUV/full_sun/")
+searchfile = vso_search(t0,t1, wave='171 Angstrom',inst='aia')
+getfile=vso_get(searchfile,out_dir=".")
 
 ;for n=0,5 do begin
 ;	  print, n

@@ -6,12 +6,25 @@ import matplotlib.pyplot as plt
 import pickle
 from astropy.coordinates import SkyCoord
 import sys
+from sunpy.map import Map
+from reproject import reproject_interp
 
-euifile='/data/Dropbox/20210321/EUI/solo_L2_eui-fsi174-image_20210322T203913290_V02.fits'
-euimap=Map(euifile)
-euiwcs=euimap.wcs
+euifile='/data/Dropbox/20210322/EUI/solo_L2_eui-fsi174-image_20210322T203913290_V02.fits'
+hmifile='/data/Dropbox/20210322/EUI/hmi.m_45s.2021.03.22_20_39_00_TAI.magnetogram.fits'
+aiafile='/media/rohit/VLA/20210322_EUV/aia.lev1.171A_2021-03-22T20_30_33.35Z.image_lev1.fits'
+euimap=Map(euifile);hmimap=Map(hmifile);aiamap=Map(aiafile)
+euiwcs=euimap.wcs;hmiwcs=hmimap.wcs;aiawcs=aiamap.wcs
+hmieui_map, footprint = reproject_interp(hmimap, euiwcs, shape_out=(2048,2048))
+aiaeui_map, footprint = reproject_interp(aiamap, euiwcs, shape_out=(2048,2048))
+aiahmi_map, footprint = reproject_interp(aiamap, hmiwcs, shape_out=(2048,2048))
+euihmi_map, footprint = reproject_interp(euimap, hmiwcs, shape_out=(2048,2048))
+euiaia_map, footprint = reproject_interp(euimap, aiawcs, shape_out=(2048,2048))
 
-
+sun_to_stereo = aiamap.observer_coordinate.transform_to('hcrs')
+stereo_to_sun = SkyCoord(-sun_to_stereo.spherical, obstime=sun_to_stereo.obstime,frame='hcrs')
+tbl_crds = SkyCoord(ra=result[0]['RA_ICRS'],dec=result[0]['DE_ICRS'],distance=Distance(parallax=u.Quantity(result[0]['Plx'])),pm_ra_cosdec=result[0]['pmRA'],pm_dec=result[0]['pmDE'],radial_velocity=result[0]['RV'],frame='icrs',obstime=Time(result[0]['Epoch'], format='jyear'))
+tbl_crds = tbl_crds.apply_space_motion(new_obstime=cor2.date)
+mars = get_body_heliographic_stonyhurst('mars', cor2.date, observer=cor2.observer_coordinate)
 
 sys.exit()
 
