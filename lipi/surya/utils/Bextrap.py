@@ -105,4 +105,23 @@ def transform_fieldlines(x,y,z,bx,by,bz,date,out_wcs,mymap):
 
 
 
+def transform_fieldlines_2SO(x,y,z,bx,by,bz,date,out_wcs,mymap,euimap):
+    '''
+    Input:
+    x,y,z,bx,by,bz
+    Carrington Map
+    out_wcs: Output WCS
+    date: E.g. 2016/04/09T18:45:00
+    Output:x,y,z,bx,by,bz,b_hp,b_proj
+    '''
+    dd1=mymap.pixel_to_world(x[1:]*u.pix,y[1:]*u.pix);dd=dd1.transform_to("heliocentric")
+    xkm=dd.cartesian.x.value;ykm=dd.cartesian.y.value;zkm=dd.cartesian.z.value
+    #source_height=695700000+num*hres*1000.
+    sc = SkyCoord(xkm*u.km, ykm*u.km, zkm*u.km,obstime=date, observer="earth", frame="heliocentric")
+    b_carr=sc.transform_to(frames.HeliographicCarrington(observer='earth'))
+    b_carr_pix = utils.skycoord_to_pixel(b_carr, mymap.wcs)
+    ####
+    b_hp=sc.transform_to(euimap.coordinate_frame)
+    b_hp_pix = utils.skycoord_to_pixel(b_hp, out_wcs)
+    return x,y,z,bx,by,bz,b_hp,b_hp_pix,b_carr,b_carr_pix
 
