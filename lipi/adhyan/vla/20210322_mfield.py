@@ -28,7 +28,8 @@ if stereo:
     tbl_crds = tbl_crds.apply_space_motion(new_obstime=cor2.date)
     mars = get_body_heliographic_stonyhurst('mars', cor2.date, observer=cor2.observer_coordinate)
 
-file_name_fr='/data/Dropbox/proposals/vla_stix_psp_2022/fieldmodel1.csv'
+#file_name_fr='/data/Dropbox/proposals/vla_stix_psp_2022/fieldmodel1.csv'
+file_name_fr='/data/Dropbox/proposals/vla_stix_psp_2022/20210322_fieldlines.csv'
 x,y,z,bx,by,bz=Bextrap.get_fieldlines(file_name_fr)
 ff='/sdata/20210322/hmi.M_720s.20210322_202236.E115N20CR.CEA.NAS.sav'
 bsmap,bcarrmap=Bextrap.get_gxs_sav2hpp(ff,'2021-03-22T20:22:36.00')

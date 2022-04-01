@@ -50,7 +50,7 @@ cfg_list=sorted(glob.glob('*.cfg'))
 for filename in cfg_list:
     tel_list=list(tel_param.keys())
     tel=filename.split('.')[0].split('_')[0].split('-')[0]
-    if((tel!='alma') & (tel!='aca') & (tel!='sma') & (tel!='meerkat')):
+    if((tel!='alma') & (tel!='aca') & (tel!='sma') & (tel!='meerkat') & (tel!='mwa')):
         x,y,z=get_xyz(filename)
         lon, lat, alt = convert_ecef2latlong(x,y,z)
         lat0,lon0,alt0=tel_param[tel]
@@ -62,7 +62,8 @@ for filename in cfg_list:
     os.system('rm -rf '+filename.split('.cfg')[0]+'.tm')
     os.system('mkdir '+filename.split('.cfg')[0]+'.tm')
     station_num=len(enu_x)
-    np.savetxt(filename.split('.cfg')[0]+'.tm/layout.txt',np.array((enu_x,enu_y)).T)
+    #np.savetxt(filename.split('.cfg')[0]+'.tm/layout.txt',np.array((enu_x,enu_y)).T)
+    np.savetxt(filename.split('.cfg')[0]+'.tm/layout.txt',np.array((enu_x,enu_y,enu_z)).T)
     np.savetxt(filename.split('.cfg')[0]+'.tm/position.txt',np.c_[lon0,lat0])
     for i in range(station_num):
         ii="%03d"%i

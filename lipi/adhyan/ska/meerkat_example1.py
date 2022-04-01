@@ -19,7 +19,8 @@ output_root = 'meerkat_visibilities'
 os.system("rm -rf "+output_root+'.vis')
 #telescope_conf='/home/rohit/simulations/meerKat/meerkat.tm'
 #telescope_conf='/home/rohit/simulations/alma/telescope.tm'
-telescope_conf='/home/rohit/simulations/meerKat/vla.c.tm'
+#telescope_conf='/home/rohit/simulations/meerKat/vla.c.tm'
+telescope_conf='/home/rohit/simulations/configuration/oskar_configurations/vla.c.tm'
 gleam_sky=0
 if(gleam_sky):
     f=fits.open('../gleam/GLEAM_EGC_v2.fits')
