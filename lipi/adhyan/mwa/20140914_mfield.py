@@ -12,6 +12,7 @@ from surya.utils import main as ut
 import pickle
 from sunpy import sun
 from dateutil import parser
+from surya.utils import Bextrap
 from reproject import reproject_interp
 from sunpy.coordinates import frames
 from astropy.wcs import WCS
@@ -23,6 +24,7 @@ from sunpy.map import make_fitswcs_header, Map
 from scipy.io import readsav
 import os
 import sunpy
+from tvtk.api import tvtk, write_data
 
 rename=0
 if(rename):
@@ -32,8 +34,8 @@ if(rename):
         os.system('mv '+l+' '+out)
         
 
-hmifile='/sdata/20140914_hmi/hmi.m_45s.2014.09.14_01_55_30_TAI.magnetogram.fits'
-hmifile='/sdata/20140914_hmi/hmi.m_45s.2014.09.14_02_45_45_TAI.magnetogram.fits'
+hmifile='/sdata/20140914_hmi/jsoc/2014-09-14/hmi.M_720s.20140914_014800_TAI.magnetogram.fits'
+#hmifile='/sdata/20140914_hmi/jsoc/2014-09-14/hmi.M_720s.20140914_022400_TAI.magnetogram.fits'
 hmimap=Map(hmifile)
 hmid=hmimap.data#[::-1,::-1]
 hmid[np.where(hmid<-5000)]=1
@@ -43,24 +45,189 @@ aiamap=Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T01_57_35
 
 blh = SkyCoord(625*u.arcsec, -425*u.arcsec, frame=hmimap.coordinate_frame)
 trh = SkyCoord(775*u.arcsec, -275*u.arcsec, frame=hmimap.coordinate_frame)
-bla = SkyCoord(625*u.arcsec, -425*u.arcsec, frame=aiamap.coordinate_frame)
-tra = SkyCoord(775*u.arcsec, -275*u.arcsec, frame=aiamap.coordinate_frame)
+bla = SkyCoord(625*u.arcsec, -350*u.arcsec, frame=aiamap.coordinate_frame)
+tra = SkyCoord(775*u.arcsec, -200*u.arcsec, frame=aiamap.coordinate_frame)
 hmisubmap=hmimap.submap(blh, top_right=trh)
 aiasubmap=aiamap.submap(bla, top_right=tra)
 ###########################
 out_hmi = hmimap.reproject_to(aiamap.wcs)
 
-fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_subplot(1, 2, 1, projection=map_aia)
+k=0 # Layer
+expolB_=readsav('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_014621.W98S17CR.CEA.NAS.sav');expolB=expolB_['box']
+#expolB_=readsav('/data/Dropbox/20120225_VLA_work/gregory_gyrosynchroton/hmi.M_720s.20120225_203413.W133N16CR.CEA.NAS.sav');expolB=expolB_['box']
+bx=expolB['bx'][0];by=expolB['by'][0];bz=expolB['bz'][0]
+babs=np.sqrt(bx**2 + by**2 + bz**2)
+ff=1
+if(ff):
+    index=expolB['index'][0];crval1=index['crval1'];crval2=index['crval2'];crpix1=index['crpix1'];crpix2=index['crpix2'];ctype1=index['ctype1']
+    ctype2=index['ctype2'];cdelt1=index['cdelt1'];cdelt2=index['cdelt2'];cunit1=index['cunit1'];cunit2=index['cunit2']
+    hdu = fits.PrimaryHDU(babs[k])
+    list_all=list(index.dtype.names);list_all.remove('COMMENT');list_all.remove('HISTORY');list_all.remove('BITPIX');list_all.remove('NAXIS');list_all.remove('DATE_D$OBS')
+    index['WCSNAME'],index['CTYPE1'],index['CUNIT1'],index['CTYPE2'],index['CUNIT2']=['Carrington-Heliographic'],['CRLN-CEA'],['deg'],['CRLT-CEA'],['deg']
+    index['DATE_OBS']=['2014-09-14T01:55:30']
+ii=0
+for idx in list_all:
+    #print idx
+    #hdu.header.append((idx,index[list_all[ii]][0],[]))
+    hdu.header.update({str(idx):index[list_all[ii]][0]})
+    ii=ii+1
+
+hdu.data=babs[0]
+hhdu=hdu.header
+hdul = fits.HDUList([hdu])
+mymap=Map(babs[k],hhdu)
+hp_coord=mymap.reference_coordinate.transform_to(frames.Helioprojective(observer="earth"))
+hp_hcc=mymap.reference_coordinate.transform_to(frames.Heliocentric(observer="earth"))
+out_shape = (334, 334)
+out_header = sunpy.map.make_fitswcs_header(mymap.data,hp_coord)
+out_wcs = WCS(out_header)
+#earth = get_body_heliographic_stonyhurst('earth', mymap.date)
+#out_wcs.heliographic_observer = earth
+output, footprint = reproject_interp(mymap, out_wcs, out_shape)
+outmap = sunpy.map.Map((output, out_header))
+outmap.plot_settings = mymap.plot_settings
+
+bsmap,bcarrmap=Bextrap.get_gxs_sav2hpp('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_014621.W98S17CR.CEA.NAS.sav','2014-09-14T01:46:21')
+hmiaia_data, footprint = reproject_interp(mymap, hmimap.wcs, shape_out=(400,400));hmiaia_map=Map(hmiaia_data,hmimap.meta)
+x0,y0,z0,bx0,by0,bz0=Bextrap.get_fieldlines('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_014621.W98S17CR.CEA.NAS.sav_0000.vtk.x-ray.csv')
+xs0,ys0,zs0,bsx0,bsy0,bsz0,bs_hp0,bs_hp_pix0,bs_carr0,bs_carr_pix0=Bextrap.transform_fieldlines(x0,y0,z0,bx0,by0,bz0,'2014/09/14T01:55:00',bsmap[0].wcs,bcarrmap[0])
+x1,y1,z1,bx1,by1,bz1=Bextrap.get_fieldlines('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_014621.W98S17CR.CEA.NAS.sav_0000.vtk.csv')
+xs1,ys1,zs1,bsx1,bsy1,bsz1,bs_hp1,bs_hp_pix1,bs_carr1,bs_carr_pix1=Bextrap.transform_fieldlines(x1,y1,z1,bx1,by1,bz1,'2014/09/14T01:55:00',bsmap[0].wcs,bcarrmap[0])
+x2,y2,z2,bx2,by2,bz2=Bextrap.get_fieldlines('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_022221.W98S17CR.CEA.NAS.sav_0001.vtk.csv')
+xs2,ys2,zs2,bsx2,bsy2,bsz2,bs_hp2,bs_hp_pix2,bs_carr2,bs_carr_pix2=Bextrap.transform_fieldlines(x2,y2,z2,bx2,by2,bz2,'2014/09/14T02:22:21',bsmap[0].wcs,bcarrmap[0])
+x2,y2,z2,bx2,by2,bz2=Bextrap.get_fieldlines('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_022221.W98S17CR.CEA.NAS.sav_0001.vtk.x-ray.csv')
+xs2,ys2,zs2,bsx2,bsy2,bsz2,bs_hp2,bs_hp_pix2,bs_carr2,bs_carr_pix2=Bextrap.transform_fieldlines(x2,y2,z2,bx2,by2,bz2,'2014/09/14T02:22:21',bsmap[0].wcs,bcarrmap[0])
+#corx=45;cory=50
+corx=0;cory=0
+bshp0x=bs_hp0.Tx.value-corx;bshp0y=bs_hp0.Ty.value-cory
+bshp1x=bs_hp1.Tx.value-corx;bshp1y=bs_hp1.Ty.value-cory
+bshp2x=bs_hp2.Tx.value-corx;bshp2y=bs_hp2.Ty.value-cory
+
+####### Radio Contours #############
+aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_187-188_sub_test.p','rb'),encoding='bytes');Tb240=np.array(aa[0]);maxX=[0]*len(Tb240);maxY=[0]*len(Tb240);xc90_240=[0]*len(Tb240);yc90_240=[0]*len(Tb240)
+aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_125-126_sub_test.p','rb'),encoding='bytes');Tb160=np.array(aa[0]);xc90_160=[0]*len(Tb160);yc90_160=[0]*len(Tb160)
+aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_084-085_sub_test.p','rb'),encoding='bytes');Tb108=np.array(aa[0]);xc90_108=[0]*len(Tb108);yc90_108=[0]*len(Tb108)
+xc90_240_,yc90_240_,xc90_160_,yc90_160_,xc90_108_,yc90_108_=0,0,0,0,0,0
+for i in range(len(Tb240)):
+    if(Tb240[i].shape[0]==200):
+        Tb240_=Tb240[i][50:-50,50:-50]
+    else:
+        Tb240_=Tb240[i]
+    y,x=np.where(Tb240_==np.max(Tb240_))
+    maxX[i]=50.*(x[0]-50.);maxY[i]=50.*(y[0]-50.)
+    if(np.nanmax(Tb240_)!=0):
+        bi=ut.get_bimage(Tb240_,0.9);xc90_240_,yc90_240_,w,l,angle=ut.fitEllipse(bi)
+    else:
+        xc90_240_,yc90_240_=0,0
+    xc90_240[i]=50.*(xc90_240_-50.);yc90_240[i]=50.*(yc90_240_-50.)
+for i in range(len(Tb160)):
+    if(Tb160[i].shape[0]==200):
+        Tb160_=Tb160[i][50:-50,50:-50]
+    else:
+        Tb160_=Tb160[i]
+    if(np.nanmax(Tb160_)!=0):
+        bi=ut.get_bimage(Tb160_,0.9);xc90_160_,yc90_160_,w,l,angle=ut.fitEllipse(bi)
+    else:
+        xc90_160_,yc90_160_=0,0
+    xc90_160[i]=50.*(xc90_160_-50.);yc90_160[i]=50.*(yc90_160_-50.)
+for i in range(len(Tb108)):
+    if(Tb108[i].shape[0]==200):
+        Tb108_=Tb108[i][50:-50,50:-50]
+    else:
+        Tb108_=Tb108[i]
+    if(np.nanmax(Tb108_)!=0):
+        bi=ut.get_bimage(Tb108_,0.9);xc90_108_,yc90_108_,w,l,angle=ut.fitEllipse(bi)
+    else:
+        xc90_108_,yc90_108_=0,0
+    xc90_108[i]=50.*(xc90_108_-50.);yc90_108[i]=50.*(yc90_108_-50.)
+maxX=np.array(maxX);maxY=np.array(maxY)
+tl=300;tr=1200
+xc90_240=np.array(xc90_240)[tl:tr];yc90_240=np.array(yc90_240)[tl:tr];xc90_160=np.array(xc90_160)[tl:tr]
+yc90_160=np.array(yc90_160)[tl:tr];xc90_108=np.array(xc90_108)[tl:tr];yc90_108=np.array(yc90_108)[tl:tr]
+
+
+plot_one=1
+if plot_one:
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111,projection=bcarrmap[0])
+    p0=bcarrmap[0].plot(axes=ax,aspect='auto')
+    hp_lon = bs_carr.lon
+    hp_lat = bs_carr.lat
+    seeds0 = SkyCoord(hp_lon.ravel(), hp_lat.ravel(),frame=bcarrmap[0].coordinate_frame)
+    ax.plot_coord(seeds0, color='tab:red', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
+    #bl=SkyCoord(-850*u.arcsec,300*u.arcsec,frame=aiamap.coordinate_frame)
+    #tr=SkyCoord(-550*u.arcsec,600*u.arcsec,frame=aiamap.coordinate_frame)
+    #blx=aiamap.world_to_pixel(bla)[0].value;bly=aiamap.world_to_pixel(bla)[1].value
+    #trx=aiamap.world_to_pixel(tra)[0].value;rty=aiamap.world_to_pixel(tra)[1].value
+    #ax.set_xlim([blx,trx]);ax.set_ylim([bly,rty])
+    plt.show()
+
+plot_one=1
+if plot_one:
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111,projection=aiamap)
+    p0=aiamap.plot(axes=ax,aspect='auto')
+    hp_lon0 =  bshp0x* u.arcsec;hp_lat0 = bshp0y* u.arcsec
+    hp_lon1 = bshp1x * u.arcsec;hp_lat1 = bshp1y* u.arcsec
+    seeds00 = SkyCoord(hp_lon0.ravel(), hp_lat0.ravel(),frame=aiamap.coordinate_frame)
+    ax.plot_coord(seeds00, color='brown', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
+    seeds01 = SkyCoord(hp_lon1.ravel(), hp_lat1.ravel(),frame=aiamap.coordinate_frame)
+    ax.plot_coord(seeds01, color='black', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
+    seeds1 = SkyCoord(xc90_240*u.arcsec, yc90_240*u.arcsec,frame=aiamap.coordinate_frame)
+    ax.plot_coord(seeds1, color='tab:red', marker='s', markersize=10.0,alpha=0.6,linestyle='None')
+    seeds2 = SkyCoord(xc90_160*u.arcsec, yc90_160*u.arcsec,frame=aiamap.coordinate_frame)
+    ax.plot_coord(seeds2, color='tab:green', marker='s', markersize=10.0,alpha=0.6,linestyle='None')
+    seeds3 = SkyCoord(xc90_108.mean()*u.arcsec, yc90_108.mean()*u.arcsec,frame=aiamap.coordinate_frame)
+    ax.plot_coord(seeds3, color='tab:blue', marker='s', markersize=10.0,alpha=1.0,linestyle='None')
+    seeds4 = SkyCoord(710*u.arcsec, -314*u.arcsec,frame=hmimap.coordinate_frame)
+    ax.plot_coord(seeds4, color='tab:cyan', marker='o', markersize=10.0,alpha=1.0,linestyle='None')
+    #bl=SkyCoord(-850*u.arcsec,300*u.arcsec,frame=aiamap.coordinate_frame)
+    #tr=SkyCoord(-550*u.arcsec,600*u.arcsec,frame=aiamap.coordinate_frame)
+    #blx=aiamap.world_to_pixel(bla)[0].value;bly=aiamap.world_to_pixel(bla)[1].value
+    #trx=aiamap.world_to_pixel(tra)[0].value;rty=aiamap.world_to_pixel(tra)[1].value
+    #ax.set_xlim([blx,trx]);ax.set_ylim([bly,rty])
+    plt.show()
+
+plot_hmi=1
+if plot_hmi:
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111,projection=hmimap)
+    p0=hmimap.plot(axes=ax,aspect='auto',vmin=-1250,vmax=1250)
+    hp_lon0 = bshp0x * u.arcsec;hp_lat0 = bshp0y * u.arcsec
+    seeds0 = SkyCoord(hp_lon0.ravel(), hp_lat0.ravel(),frame=hmimap.coordinate_frame)
+    hp_lon4 = bshp2x * u.arcsec;hp_lat4 = bshp2y * u.arcsec
+    seeds4 = SkyCoord(hp_lon4.ravel(), hp_lat4.ravel(),frame=hmimap.coordinate_frame)
+    seeds1 = SkyCoord(xc90_240.mean()*u.arcsec, yc90_240.mean()*u.arcsec,frame=hmimap.coordinate_frame)
+    seeds2 = SkyCoord(710*u.arcsec, -314*u.arcsec,frame=hmimap.coordinate_frame)
+    ax.plot_coord(seeds0, color='black', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
+    ax.plot_coord(seeds4, color='tab:brown', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
+    ax.plot_coord(seeds1, color='tab:red', marker='s', markersize=10.0,alpha=1.0,linestyle='None')
+    ax.plot_coord(seeds2, color='tab:cyan', marker='o', markersize=10.0,alpha=1.0,linestyle='None')
+    plt.show()
+
+
+tmin=np.arange(len(xc90_240))*12
+plot_xc=1
+if(plot_xc):
+    f,ax=plt.subplots(2,1,sharex=True);ax0=ax[0];ax1=ax[1]
+    ax0.plot(tmin,xc90_240,'o-',label='240 MHz');ax0.plot(tmin,xc90_160,'o-',label='160 MHz');ax0.plot(tmin,xc90_108,'o-',label='108 MHz')
+    ax1.plot(tmin,yc90_240,'o-',label='240 MHz');ax1.plot(tmin,yc90_160,'o-',label='160 MHz');ax1.plot(tmin,yc90_108,'o-',label='108 MHz')
+    ax0.set_ylabel('X-Coordinate');ax0.legend();ax0.set_ylim(700,1050)
+    ax1.set_ylabel('Y-Coordinate');ax1.legend();ax1.set_ylim(-600,-200);ax1.set_xlabel('Time (sec)')
+    plt.show()
+
+#fig = plt.figure(figsize=(12, 5))
+#ax1 = fig.add_subplot(1, 2, 1, projection=map_aia)
 
 
 #expolB_=readsav('/sdata/20140914_hmi/20140914_magnetic_extrapolation_1arcsec.sav');expolB=expolB_['box']
 #expolB_1=readsav('/sdata/20140914_hmi/20140914_magnetic_extrapolation_024450.sav');expolB1=expolB_1['box']
-listB=sorted(glob.glob('/sdata/20140914_hmi/hmi/*cube.sav'))
+listB=sorted(glob.glob('/sdata/20140914_hmi/2014-09-14/hmi*NAS.sav'))
 for i in range(len(listB)):
     ii="%04d" % i
-    expolB_=readsav(listB[i]);expolB=expolB_['bout']
-    bx,by,bz=expolB[0],expolB[1],expolB[2]
+    #expolB_=readsav(listB[i]);expolB=expolB_['bout']
+    expolB_=readsav(listB[i]);expolB=expolB_['box']
+    bx,by,bz=expolB['bx'][0],expolB['by'][0],expolB['bz'][0]
     babs=np.sqrt(bx*bx+by*by+bz*bz)
     # Generate the grid
     dim=bx.shape
@@ -88,236 +255,14 @@ for i in range(len(listB)):
     write_data(sg, listB[i]+'_'+str(ii)+'.vtk')
 
 
-sys.exit()
-
-k=0 # Layer
-expolB_=readsav('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_014621.W97S14CR.CEA.NAS.sav');expolB=expolB_['box']
-#expolB_=readsav('/data/Dropbox/20120225_VLA_work/gregory_gyrosynchroton/hmi.M_720s.20120225_203413.W133N16CR.CEA.NAS.sav');expolB=expolB_['box']
-bx=expolB['bx'][0];by=expolB['by'][0];bz=expolB['bz'][0]
-babs=np.sqrt(bx**2 + by**2 + bz**2)
-ff=0
-if(ff):
-    index=expolB['index'][0]
-    crval1=index['crval1']
-    crval2=index['crval2']
-    crpix1=index['crpix1']
-    crpix2=index['crpix2']
-    ctype1=index['ctype1']
-    ctype2=index['ctype2']
-    cdelt1=index['cdelt1']
-    cdelt2=index['cdelt2']
-    cunit1=index['cunit1']
-    cunit2=index['cunit2']
-    hdu = fits.PrimaryHDU(babs[k])
-    list_all=list(index.dtype.names)
-    list_all.remove('COMMENT')
-    list_all.remove('HISTORY')
-    list_all.remove('BITPIX')
-    list_all.remove('NAXIS')
-    list_all.remove('DATE_D$OBS')
-    index['WCSNAME'],index['CTYPE1'],index['CUNIT1'],index['CTYPE2'],index['CUNIT2']=['Carrington-Heliographic'],['CRLN-CEA'],['deg'],['CRLT-CEA'],['deg']
-    index['DATE_OBS']=['2014-09-14T01:55:30']
-ii=0
-for idx in list_all:
-    #print idx
-    #hdu.header.append((idx,index[list_all[ii]][0],[]))
-    hdu.header.update({str(idx):index[list_all[ii]][0]})
-    ii=ii+1
-
 #source_height=1400;hdu.header.update({'NAXIS':3});hdu.header.append(('CRPIX3',0));hdu.header.append(('CRVAL3',695700.0));hdu.header.append(('CTYPE3','HECH'));hdu.header.append(('CUNIT3','km'));hdu.header.append(('CDELT1',1400))
 #hdu.header.append(('RSUN_REF',source_height))
-hdu.data=babs[0]
-hhdu=hdu.header
-hdul = fits.HDUList([hdu])
-mymap=Map(babs[k],hhdu)
-hp_coord=mymap.reference_coordinate.transform_to(frames.Helioprojective(observer="earth"))
-hp_hcc=mymap.reference_coordinate.transform_to(frames.Heliocentric(observer="earth"))
 
-sys.exit()
 ############################
 
-out_shape = (334, 334)
-out_header = sunpy.map.make_fitswcs_header(mymap.data,hp_coord)
-out_wcs = WCS(out_header)
-#earth = get_body_heliographic_stonyhurst('earth', mymap.date)
-#out_wcs.heliographic_observer = earth
-output, footprint = reproject_interp(mymap, out_wcs, out_shape)
-outmap = sunpy.map.Map((output, out_header))
-outmap.plot_settings = mymap.plot_settings
 
 
 
-#file_name_fr="/media/rohit/VLA/paraview/field_radio.csv"
-file_name_fr="/media/rohit/VLA/paraview/radio_loop_new.csv"
-file_name_ls="/media/rohit/VLA/paraview/large_scale.csv"
-file_name_euv="/media/rohit/VLA/paraview/EUV_loop2.csv"
-file_name_radio='/media/rohit/VLA/paraview/EUV_loop_radio.csv'
-
-def get_fieldlines(file_name,out_wcs):
-    file_ = open(file_name)
-    with open(file_name) as f:
-        lines=f.readlines()
-    numline = len(lines)-1
-    bx=[0]*numline;by=[0]*numline;bz=[0]*numline
-    x=[0]*numline;y=[0]*numline;z=[0]*numline
-    vtkidx=[0]*numline;i=0
-    for row in lines[1:]:
-        row=row.split(',')
-        vtkidx[i]=float(row[1])
-        bx[i]=float(row[1]);by[i]=float(row[2]);bz[i]=float(row[3])
-        x[i]=float(row[5]);y[i]=float(row[6]);z[i]=float(row[7])
-        i=i+1
-    vtkidx=np.array(vtkidx)
-    x=np.array(x);y=np.array(y);z=np.array(z)
-    bx=np.array(bx);by=np.array(by);bz=np.array(bz)
-    #with open(file_name, 'r') as csvfile:
-    #    #reader = csv.reader(csvfile, skipinitialspace=True)
-    #    reader = csv.reader(csvfile)
-    #    print(reader.line_num)
-    #    bx=[0]*numline;by=[0]*numline;bz=[0]*numline
-    #    x=[0]*numline;y=[0]*numline;z=[0]*numline
-    #    vtkidx=[0]*numline
-    #    i=0
-    #    for row in reader:
-    #        if(i!=0):
-    #            vtkidx[i]=float(row[1])
-    #            bx[i]=float(row[3]);by[i]=float(row[4]);bz[i]=float(row[5])
-    #            x[i]=float(row[10]);y[i]=float(row[11]);z[i]=float(row[12])
-    #        i=i+1
-    #    vtkidx=np.array(vtkidx)
-    #    x=np.array(x);y=np.array(y);z=np.array(z)
-    #    bx=np.array(bx);by=np.array(by);bz=np.array(bz)
-    #xkm=((x[1:]-hhdu['CRPIX1'])*(1400/724.*np.cos(45.58*np.pi/180))+out_header['crval1'])*724
-    #ykm=((y[1:]-hhdu['CRPIX2'])*(1400/724.*np.cos(45.58*np.pi/180))+out_header['crval2'])*724
-    #r=np.sqrt(x[1:]**2 + y[1:]**2 + z[1:]**2);phix=np.arccos(x[1:]/r);phiy=np.arccos(y[1:]/r)
-    #xkm=(x[1:]-hhdu['CRPIX1'])*1400*np.cos(phix)+out_header['crval1']*725;ykm=(y[1:]-hhdu['CRPIX2'])*1400*np.cos(phiy)+out_header['crval2']*725
-    #zkm=695700.0+z[1:]*1400.0#;r=np.sqrt(xkm*xkm+ykm*ykm+zkm*zkm);theta=np.arccos(xkm/r);phi=np.arccos(ykm/(r*np.sin(theta)))
-    #frame_out = SkyCoord(x[1:] * u.pix, y[1:] * u.pix, obstime='2016/04/09T18:45:00', observer="earth",frame="heliographic_carrington")
-    dd1=mymap.pixel_to_world(x[1:]*u.pix,y[1:]*u.pix);dd=dd1.transform_to("heliocentric")
-    xkm=dd.cartesian.x.value;ykm=dd.cartesian.y.value;zkm=dd.cartesian.z.value
-    sc = SkyCoord(xkm*u.km, ykm*u.km, zkm*u.km,obstime="2016/04/09T18:45:00", observer="earth", frame="heliocentric")
-    b_hp=sc.transform_to(frames.Helioprojective(observer='earth'))
-    b_proj = utils.skycoord_to_pixel(b_hp, out_wcs)
-    return x,y,z,bx,by,bz,b_hp,b_proj
-
-#idxsort=sorted(range(len(vtkidx)), key=lambda k: vtkidx[k])
-#x,y,z,bx,by,bz,b_hp_fr,b_proj_fr=get_fieldlines(file_name_radio,out_wcs)
-babs_=np.sqrt(bx*bx+by*by+bz*bz)
-x,y,z,bx,by,bz,b_hp_fr,b_proj_fr=get_fieldlines(file_name_fr,out_wcs)
-#x,y,z,bx,by,bz,b_hp_ls,b_proj_ls=get_fieldlines(file_name_ls,out_wcs)
-#x,y,z,bx,by,bz,b_hp_euv,b_proj_euv=get_fieldlines(file_name_euv,out_wcs)
-tb0_pk1=tb0[:,840:910];tb0_pk2=tb0[:,930:1000];tb0_pk3=tb0[:,1040:1100];tb0_pk4=tb0[:,1130:1200];tb0_pk5=tb0[:,1270:1350];tb0_pk6=tb0[:,1400:1460]
-tb1_pk1=tb1[:,840:910];tb1_pk2=tb1[:,930:1000];tb1_pk3=tb1[:,1040:1100];tb1_pk4=tb1[:,1130:1200];tb1_pk5=tb1[:,1270:1350];tb1_pk6=tb1[:,1400:1460]
-y0_pk1=y0[:,840:910];y0_pk2=y0[:,930:1000];y0_pk3=y0[:,1040:1100];y0_pk4=y0[:,1130:1200];y0_pk5=y0[:,1270:1350];y0_pk6=y0[:,1400:1460]
-y1_pk1=y1[:,840:910];y1_pk2=y1[:,930:1000];y1_pk3=y1[:,1040:1100];y1_pk4=y1[:,1130:1200];y1_pk5=y1[:,1270:1350];y1_pk6=y1[:,1400:1460]
-x0_pk1=x0[:,840:910];x0_pk2=x0[:,930:1000];x0_pk3=x0[:,1040:1100];x0_pk4=x0[:,1130:1200];x0_pk5=x0[:,1270:1350];x0_pk6=x0[:,1400:1460]
-x1_pk1=x1[:,840:910];x1_pk2=x1[:,930:1000];x1_pk3=x1[:,1040:1100];x1_pk4=x1[:,1130:1200];x1_pk5=x1[:,1270:1350];x1_pk6=x1[:,1400:1460]
-listvla_r=sorted(glob.glob('/media/rohit/VLA/20160409/images_50ms_RR/spw_3/*spw.*0-15*.FITS'))[0:2000];mapp=Map(listvla_r[800]);dcp_data1=mapp.data;dcp_data1[np.isnan(dcp_data1)]=0;dcp_data1[np.where(dcp_data1<0)]=0
-listvla_r=sorted(glob.glob('/media/rohit/VLA/20160409/images_50ms_RR/spw_5/*spw.*0-15*.FITS'))[0:2000];mapp=Map(listvla_r[800]);dcp_data2=mapp.data;dcp_data2[np.isnan(dcp_data2)]=0;dcp_data2[np.where(dcp_data2<0)]=0
-listvla_r=sorted(glob.glob('/media/rohit/VLA/20160409/images_50ms_RR/spw_0/*spw.*0-15*.FITS'))[0:2000];mapp=Map(listvla_r[800]);dcp_data0=mapp.data;dcp_data0[np.isnan(dcp_data0)]=0;dcp_data0[np.where(dcp_data0<0)]=0
-dd0=Map(dcp_data0,mapp.meta);dd1=Map(dcp_data1,mapp.meta);dd2=Map(dcp_data2,mapp.meta);qmapp=Map(listvla_r[350]);qmapp_data=qmapp.data;qmapp_data[np.isnan(qmapp_data)]=0;qmapp0=Map(qmapp_data,qmapp.meta)
-xlvla=dd0.center.Tx.value-2.0*int(dd0.data.shape[0]/2);xrvla=dd0.center.Tx.value+2.0*int(dd0.data.shape[0]/2);ylvla=dd0.center.Ty.value-2.0*int(dd0.data.shape[1]/2);yrvla=dd0.center.Ty.value+2.0*int(dd0.data.shape[0]/2)
-xlaia1=aiamap.center.Tx.value-2.0*int(aiamap.data.shape[0]/2);xraia1=aiamap.center.Tx.value+2.0*int(aiamap.data.shape[0]/2);ylaia1=aiamap.center.Ty.value-2.0*int(aiamap.data.shape[1]/2);yraia1=aiamap.center.Ty.value+2.0*int(aiamap.data.shape[0]/2)
-b_proj_rad = utils.skycoord_to_pixel(b_hp_fr, mapp.wcs)
-
-idx1=np.where((babs_>100) & (babs_<400))[0]-1
-
-
-xlaia=-948;xraia=-648;ylaia=70;yraia=370;j=0
-plot_fields=1
-if(plot_fields):
-    f,ax0=plt.subplots(1,1)
-    p=outmap.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
-    #ax0.scatter(b_hp_fr.Tx.value[idx1],b_hp_fr.Ty.value[idx1],s=5,color='tab:olive')
-    ax0.scatter(b_hp_fr.Tx.value,b_hp_fr.Ty.value,s=5,color='tab:olive')
-    ax0.contour(dd0.data/np.nanmax(dd0.data),levels=[0.6,0.8,0.9],colors='r',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
-    ax0.contour(dd1.data/np.nanmax(dd1.data),levels=[0.6,0.8,0.9],colors='g',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
-    ax0.contour(dd2.data/np.nanmax(dd2.data),levels=[0.6,0.8,0.9],colors='b',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
-    #plt.plot(x0[j],y0[j],'o')
-    #plt.plot(x1[j],y1[j],'o')
-    ax0.set_xlim(-860,-680);ax0.set_ylim(180,360)
-    plt.show()
-
-plot_fields=1
-if(plot_fields):
-    cm = plt.cm.get_cmap('YlGnBu')
-    f,ax0=plt.subplots(1,1)
-    p=outmap.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
-    #sc=ax0.scatter(b_hp_fr.Tx.value[idx1],b_hp_fr.Ty.value[idx1],s=5,c=babs_[idx1],vmin=100,vmax=400,cmap=cm)
-    sc=ax0.scatter(b_hp_fr.Tx.value[idx1],b_hp_fr.Ty.value[idx1],s=5,c=z[idx1],vmin=100,vmax=400,cmap=cm)
-    ax0.contour(dd0.data/np.nanmax(dd0.data),levels=[0.6,0.8,0.9],colors='r',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
-    ax0.contour(dd1.data/np.nanmax(dd1.data),levels=[0.6,0.8,0.9],colors='g',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
-    ax0.contour(dd2.data/np.nanmax(dd2.data),levels=[0.6,0.8,0.9],colors='b',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
-    #plt.plot(x0[j],y0[j],'o')
-    #plt.plot(x1[j],y1[j],'o')
-    ax0.set_xlim(-860,-680);ax0.set_ylim(180,360);plt.colorbar(sc,label='|B| (G)')
-    plt.show()
-
-plot_fields=1
-if(plot_fields):
-    f,ax0=plt.subplots(1,1)
-    p=outmap.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
-    #ax0.scatter(b_hp_fr.Tx.value[idx1],b_hp_fr.Ty.value[idx1],s=5,color='tab:olive')
-    ax0.scatter(b_hp_fr.Tx.value,b_hp_fr.Ty.value,s=5,color='tab:olive')
-    #plt.plot(xcr90[15][1000:1400],ycr90[15][1000:1400],'o',alpha=0.2)
-    #plt.plot(xcr90[10][1000:1400],ycr90[10][1000:1400],'o',alpha=0.2)
-    #plt.plot(xcr90[5][1000:1400],ycr90[5][1000:1400],'o',alpha=0.2)
-    #plt.plot(xcr90[1][1000:1400],ycr90[1][1000:1400],'o',alpha=0.2)
-    plt.plot(xcr90[12][500:600],ycr90[12][500:600],'o',alpha=0.2)
-    plt.plot(xcr90[10][500:600],ycr90[10][500:600],'o',alpha=0.2)
-    plt.plot(xcr90[5][500:600],ycr90[5][500:600],'o',alpha=0.2)
-    plt.plot(xcr90[1][500:600],ycr90[1][500:600],'o',alpha=0.2)
-    ax0.set_xlim(-860,-680);ax0.set_ylim(180,360)
-    plt.show()
-
-plot_fields=1
-if(plot_fields):
-    f,ax0=plt.subplots(1,1)
-    p=aiamap.plot(axes=ax0,aspect='auto')
-    ax0.contour(qmapp0.data/np.nanmax(qmapp0.data),levels=[0.1,0.2,0.3,0.5,0.7,0.9],colors='r',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
-    #plt.plot(x0[j],y0[j],'o')
-    #plt.plot(x1[j],y1[j],'o')
-    ax0.set_xlim(-1000,-600);ax0.set_ylim(0,400)
-    plt.show()
-
-freq=np.round(np.linspace(0.994,2.006,32),3)
-plot_paper_timeseries=1
-Tball0=np.hstack((qsmaxTbr,maxTbr[0]));Tball0[2132:2170]=np.nan;Tball0[4531:4570]=np.nan;qsmaxTbr[2132:2170]=np.nan;qsmaxTbr[4531:4570]=np.nan
-if(plot_paper_timeseries):
-    f,ax=plt.subplots(1,1)
-    ax.plot(Tball0/1.e6,'o-',label=str(freq[0])+' GHz')
-    ax.set_xticks(np.arange(len(Tball0))[::1000]);ax.set_xticklabels(['18:44:00','18:44:50','18:45:40','18:46:30','18:47:20','18:48:10','18:49:00','18:49:50'])
-    ax.legend();ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS UT)')
-    plt.show()
-if(plot_paper_timeseries):
-    f,ax=plt.subplots(1,1)
-    ax.plot(np.array(qsmaxTbr)/1.e6,'o-',label=str(freq[0])+' GHz')
-    ax.set_xticks(np.arange(len(qsmaxTbr))[::1000]);ax.set_xticklabels(['18:44:00','18:44:50','18:45:40','18:46:30','18:47:20'])
-    ax.legend();ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS UT)')
-    plt.show()
-if(plot_paper_timeseries):
-    f,ax=plt.subplots(1,1)
-    ax.plot(np.array(maxTbr[0])/1.e6,'o-',label=str(freq[0])+' GHz')
-    ax.set_xticks(np.arange(len(maxTbr[0]))[::500]);ax.set_xticklabels(['18:48:00','18:48:25','18:48:50','18:49:15','18:49:45'])
-    ax.legend();ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS UT)')
-    plt.show()
-
-#np.savetxt([b_proj_fr,b_proj_ls,b_proj_euv],'/media/rohit/VLA/paraview/bproj.txt')
-#pickle.dump([[b_hp_fr.Tx.value[0],b_hp_fr.Ty.value[1]],[b_hp_ls.Tx.value[0],b_hp_ls.Ty.value[1]],[b_hp_euv.Tx.value[0],b_hp_euv.Ty.value[1]]],open('/media/rohit/VLA/paraview/bproj.p','wb'),protocol=2)
-
-b1=280;b2=170
-idxb1=np.where((babs<b1+1) & (babs>b1-1))
-idxb2=np.where((babs<b2+1) & (babs>b2-1))
-
-hh2_0=np.array([43.4,40.5,40.1,39.2,38.5,37.7,37.1,36.3,36,35.6,35,34.1,33.5,33.1,32.6,32.1,31.6,31.1,30.8,30.3,29.8,29.1,28.8,28.3,27.9,27.5,27.2,27,26.5,26.2,25.8])
-babs_h2=freq/0.0028/2;hh2=[0]*len(babs_h2)
-for i in range(len(babs_h2)):
-    hh2[i]=ut.find_nearest(babs[:,160,172],babs_h2[i])[0]*1400/1000.
-
-
-sys.exit()
-
-###########################
 
 omegap=2.8*babs[:,160,172]/1000 # in GHz
 h=np.arange(200)*1400/1.e3 # in Mm

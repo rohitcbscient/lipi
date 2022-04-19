@@ -42,7 +42,7 @@ def get_gxs_sav2carr_map(index,dat,date,num,hres):
     hhdu=hdu.header
     #hdul = fits.HDUList([hdu])
     mymap=Map(dat,hhdu);hp_coord=mymap.reference_coordinate.transform_to(frames.Helioprojective(observer="earth"))
-    out_shape = (mymap.data.shape[0],mymap.data.shape[1]);out_header = sunpy.map.make_fitswcs_header(out_shape,hp_coord)
+    out_shape = (mymap.data.shape[0],mymap.data.shape[1]);out_header = sunpy.map.make_fitswcs_header(mymap.data,hp_coord)
     out_wcs = WCS(out_header)
     output, footprint = reproject_interp(mymap, out_wcs, out_shape)
     outmap = sunpy.map.Map((output, out_header));outmap.plot_settings = mymap.plot_settings

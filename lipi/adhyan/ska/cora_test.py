@@ -14,8 +14,29 @@ assert aps2.shape == (1000, 64, 64)
 
 gpolsky=cr.getpolsky()
 gsky=cr.getsky()
-
 healpy.visufunc.mollview(gsky[0])
+plt.show()
+
+ipix=np.arange(100)
+theta, phi = hp.pix2ang(nside, ipix)
+ra = np.rad2deg(phi);dec = np.rad2deg(0.5 * np.pi - theta)
+pix=hp.ang2pix(nside,theta,phi)
+
+
+##### Select a circle
+
+ra = 45
+dec = 45
+radius = 10.1 # in degrees
+theta = 0.5 * np.pi - np.deg2rad(dec)
+phi = np.deg2rad(ra)
+radius = np.deg2rad(radius)
+xyz = hp.ang2vec(theta, phi) # Cartisian Coordinates
+ipix_disc = hp.query_disc(nside, xyz, radius)
+
+emptyhealpix=np.zeros(gsky.shape[1])
+emptyhealpix[ipix_disc]=1.0
+healpy.visufunc.mollview(emptyhealpix)
 plt.show()
 
 

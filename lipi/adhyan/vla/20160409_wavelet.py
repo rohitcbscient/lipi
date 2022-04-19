@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib as mpl
+mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 import pywt
 import sunpy
@@ -13,19 +15,20 @@ from sunpy.map import Map
 from astropy import units as u
 from matplotlib.patches import Ellipse
 from scipy.io import readsav
+from scipy.optimize import curve_fit 
 
 #allmaps=pickle.load(open('/media/rohit/VLA/20160409/20160409_submap_50ms.p','rb'))
-xcimax,ycimax,xci90,yci90,maxTbi,Tbi_r1,Tbi_r2,areai50,eTbi=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_i.p','rb'))
+xcimax,ycimax,xci90,yci90,maxTbi,Tbi_r1,Tbi_r2,areai50,eTbi=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_i.p','rb'),encoding='latin-1')
 Tbi_r1=np.array(Tbi_r1).reshape(32,2000);Tbi_r2=np.array(Tbi_r2).reshape(32,2000);max_Tbi=np.array(maxTbi).reshape(32,2000)
 xcimax=np.array(xcimax).reshape(32,2000);ycimax=np.array(ycimax).reshape(32,2000);areai50=np.array(areai50).reshape(32,2000)
-xcvmax,ycvmax,xcv90,ycv90,maxTbv,Tbv_r1,Tbv_r2,eTbv=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_v.p','rb'))
-xclmax,yclmax,xcl90,ycl90,maxTbl,Tbl_r1,Tbl_r2,eTbl=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_l.p','rb'))
-xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r.p','rb'))
-qsx_0,qsy_0,qsxcr90_0,qsycr90_0,qsmaxTbr_0,qsTbr_r1_0,qsTbr_r2_0,qsarear50_0,qstimevla_0=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs.p','rb'))
+xcvmax,ycvmax,xcv90,ycv90,maxTbv,Tbv_r1,Tbv_r2,eTbv=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_v.p','rb'),encoding='latin-1')
+xclmax,yclmax,xcl90,ycl90,maxTbl,Tbl_r1,Tbl_r2,eTbl=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_l.p','rb'),encoding='latin-1')
+xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r.p','rb'),encoding='latin-1')
+qsx_0,qsy_0,qsxcr90_0,qsycr90_0,qsmaxTbr_0,qsTbr_r1_0,qsTbr_r2_0,qsarear50_0,qstimevla_0=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs.p','rb'),encoding='latin-1')
 qsx_0,qsy_0,qsmaxTbr_0,qsTbr_r1_0,qsTbr_r2_0,qsarear50_0=np.array(qsx_0),np.array(qsy_0),np.array(qsmaxTbr_0),np.array(qsTbr_r1_0),np.array(qsTbr_r2_0),np.array(qsarear50_0)
-qsx_3,qsy_3,qsxcr90_3,qsycr90_3,qsmaxTbr_3,qsTbr_r1_3,qsTbr_r2_3,qsarear50_3,qstimevla_3=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_3.p','rb'))
+qsx_3,qsy_3,qsxcr90_3,qsycr90_3,qsmaxTbr_3,qsTbr_r1_3,qsTbr_r2_3,qsarear50_3,qstimevla_3=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_3.p','rb'),encoding='latin-1')
 qsx_3,qsy_3,qsmaxTbr_3,qsTbr_r1_3,qsTbr_r2_3,qsarear50_3=np.array(qsx_3),np.array(qsy_3),np.array(qsmaxTbr_3),np.array(qsTbr_r1_3),np.array(qsTbr_r2_3),np.array(qsarear50_3)
-qsx_5,qsy_5,qsxcr90_5,qsycr90_5,qsmaxTbr_5,qsTbr_r1_5,qsTbr_r2_5,qsarear50_5,qstimevla_5=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_5.p','rb'))
+qsx_5,qsy_5,qsxcr90_5,qsycr90_5,qsmaxTbr_5,qsTbr_r1_5,qsTbr_r2_5,qsarear50_5,qstimevla_5=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_5.p','rb'),encoding='latin-1')
 qsx_5,qsy_5,qsmaxTbr_5,qsTbr_r1_5,qsTbr_r2_5,qsarear50_5=np.array(qsx_5),np.array(qsy_5),np.array(qsmaxTbr_5),np.array(qsTbr_r1_5),np.array(qsTbr_r2_5),np.array(qsarear50_5)
 qsmaxTbr_0[2132:2170]=2.5e7;qsmaxTbr_0[4531:4569]=2.5e7;qsmaxTbr_3[2132:2170]=0.9e7;qsmaxTbr_3[4531:4569]=0.9e7;qsmaxTbr_5[2132:2170]=0.65e7;qsmaxTbr_5[4531:4569]=0.65e7
 ds_=aa=np.load('/media/rohit/VLA/20160409/sun_L_20160409.1s.ms.dspec.npz')
@@ -100,7 +103,7 @@ if(get_gauss):
     spwl=[0,1,2,3,4,5,6,7];m=len(spwlist);n=len(spwl);tt=2000
     x0=[0]*n;y0=[0]*n;sigx0=[0]*n;sigy0=[0]*n;rot0=[0]*n;tb0=[0]*n;x1=[0]*n;y1=[0]*n;sigx1=[0]*n;sigy1=[0]*n;rot1=[0]*n;tb1=[0]*n;s0=[0]*n;s1=[0]*n;s2=[0]*n;w=[0]*n
     for s in range(len(spwl)):
-        print spwl[s]
+        print(spwl[s])
         j=0;x0[s]=[0]*m;y0[s]=[0]*m;sigx0[s]=[0]*m;sigy0[s]=[0]*m;rot0[s]=[0]*m;tb0[s]=[0]*m;x1[s]=[0]*m;y1[s]=[0]*m;sigx1[s]=[0]*m;sigy1[s]=[0]*m;rot1[s]=[0]*m;tb1[s]=[0]*m;s0[s]=[0]*m;s1[s]=[0]*m;s2[s]=[0]*m;w[s]=[0]*m
         for ss in spwlist:
             x0[s][j]=np.zeros(tt);y0[s][j]=np.zeros(tt);sigx0[s][j]=np.zeros(tt);sigy0[s][j]=np.zeros(tt);rot0[s][j]=np.zeros(tt);tb0[s][j]=np.zeros(tt);w[s][j]=np.zeros(tt)
@@ -119,7 +122,7 @@ if(get_gauss):
     x1=np.array(x1).reshape(n*m,tt);y1=np.array(y1).reshape(n*m,tt);sigx1=np.array(sigx1).reshape(n*m,tt);sigy1=np.array(sigy1).reshape(n*m,tt);rot1=np.array(rot1).reshape(n*m,tt);tb1=np.array(tb1).reshape(n*m,tt)
     sys.exit()
     pickle.dump([x0,y0,sigx0,sigy0,rot0,tb0,x1,y1,sigx1,sigy1,rot1,tb1],open('/media/rohit/VLA/20160409/blob/all_params.p','wb'))
-x0,y0,sigx0,sigy0,rot0,tb0,x1,y1,sigx1,sigy1,rot1,tb1=pickle.load(open('/media/rohit/VLA/20160409/blob/all_params.p','rb'))
+x0,y0,sigx0,sigy0,rot0,tb0,x1,y1,sigx1,sigy1,rot1,tb1=pickle.load(open('/media/rohit/VLA/20160409/blob/all_params.p','rb'),encoding='latin-1')
 #[[qx0,qy0,qsigx0,qsigy0,qrot0,qtb0],[qx1,qy1,qsigx1,qsigy1,qrot1,qtb1]]=pickle.load(open('/media/rohit/VLA/20160409/blob/blob_qall.p','rb'))
 #[[x0,y0,sigx0,sigy0,rot0,tb0],[x1,y1,sigx1,sigy1,rot1,tb1]]=pickle.load(open('/media/rohit/VLA/20160409/blob/blob_all.p','rb'))
 
@@ -227,6 +230,91 @@ for i in range(x0.shape[0]):
 
 s_power=np.array(s_power);n_power=np.array(n_power);glbl_spower=np.mean(s_power,axis=2);glbl_npower=np.mean(n_power,axis=2);glbl_maxpower=np.mean(max_power,axis=2)
 ns_power=np.array(ns_power);nn_power=np.array(nn_power);nglbl_spower=np.mean(ns_power,axis=2);nglbl_npower=np.mean(nn_power,axis=2)
+#------------ Plot Wavelet Paper
+
+f,ax=plt.subplots(1,1)
+ax.imshow(max_power[0],aspect='auto',origin='lower')
+ax.set_ylabel('Wavelet Scales (sec)')
+ax.set_xlabel('Time (sec)')
+plt.show()
+
+i=0
+plt.ioff();label='T$_B$';units='MK'
+figprops = dict(figsize=(20, 20), dpi=72)
+fig = plt.figure(**figprops)
+ax = plt.axes([0.1, 0.68, 0.61, 0.2])
+ax.plot(t,Tbmax_wave[i], 'k', linewidth=1.5)
+ax.grid(True)
+ax.set_ylabel(r'{} [{}]'.format(label, units))
+bx = plt.axes([0.1, 0.17, 0.61, 0.48], sharex=ax);levels = np.linspace(1,100,90)
+bx.contourf(t, period, np.log2(max_power[0]),np.log2(levels),extend='both', cmap=plt.cm.YlOrRd)
+extent = [t.min(), t.max(), 0, max(period)]
+bx.fill(np.concatenate([t, t[-1:] + dt, t[-1:] + dt, t[:1] - dt, t[:1] - dt]),np.concatenate([max_coi[i], [1e-9], period[-1:],period[-1:], [1e-9]]),'k', alpha=0.3, hatch='x')
+#bx.set_title('b) Wavelet Power Spectrum: Freq:'+str(freq[i])+' GHz({})'.format(label, 'MORLET'))
+bx.set_ylabel('Period (sec)');bx.set_xlabel('Time (sec)');bx.set_yscale('log')
+bx.grid(True);bx.set_ylim(0.1,27);bx.set_xlim(0,80)
+cx = plt.axes([0.75, 0.17, 0.15, 0.48], sharey=bx)
+cx.plot(max_power[i].mean(axis=1), period, 'k-', linewidth=1.5)
+cx.set_title('Global Wavelet Spectrum');cx.set_xlabel(r'Power (${}^2$)'.format(units))
+cx.grid(True);cx.set_xscale('log');plt.title('Frequency: '+str(freq[i])+' GHz')
+plt.show()
+
+plt.ioff();label='T$_B$';units='MK'
+figprops = dict(figsize=(20, 20), dpi=72)
+fig = plt.figure(**figprops)
+ax = plt.axes([0.1, 0.68, 0.61, 0.2])
+ax.plot(tq,qTbmax_wave0, 'k', linewidth=1.5)
+ax.grid(True)
+ax.set_ylabel(r'{} [{}]'.format(label, units))
+bx = plt.axes([0.1, 0.17, 0.61, 0.48], sharex=ax);levels = np.linspace(1,100,90)
+bx.contourf(tq, period, np.log2(s_power0),np.log2(levels),extend='both', cmap=plt.cm.YlOrRd)
+extent = [tq.min(), tq.max(), 0, max(period)]
+bx.fill(np.concatenate([tq, tq[-1:] + dt, tq[-1:] + dt, tq[:1] - dt, tq[:1] - dt]),np.concatenate([s_coi10, [1e-9], period[-1:],period[-1:], [1e-9]]),'k', alpha=0.3, hatch='x')
+bx.set_ylabel('Period (sec)');bx.set_xlabel('Time (sec)');bx.set_yscale('log')
+bx.grid(True);bx.set_ylim(0.1,27);bx.set_xlim(0,220)
+cx = plt.axes([0.75, 0.17, 0.15, 0.48], sharey=bx)
+cx.plot(s_power0.mean(axis=1), period, 'k-', linewidth=1.5)
+cx.set_title('Global Wavelet Spectrum');cx.set_xlabel(r'Power (${}^2$)'.format(units))
+cx.grid(True);cx.set_xscale('linear');plt.title('Frequency: '+str(freq[i])+' GHz')
+plt.show()
+
+#------------ Wait-time distribution
+def fit_poisson(x,lam):
+    return lam*np.exp(-lam*x)
+
+def fit_linear(x,m,c):
+    return m*x+c
+
+Pwtime=[0]*3;ts1=[0]*3;numf=[0]*3;wtime=[0]*3;Pwtime_fit=[0]*3;popt=[0]*3;wtime_int=[0]*3
+qTbmax_wave=[qTbmax_wave0,qTbmax_wave3,qTbmax_wave5]
+for j in range(3):
+    lin=np.concatenate((qTbmax_wave[j],Tbmax_wave[j*15]*10))
+    twt=np.arange(len(lin))*0.05
+    idx=np.where(lin>0*np.std(lin[0:1000]));lin_=lin[idx];Pwtime[j]=[0]*len(lin_);tw=twt[idx]
+    diffs = np.diff(idx)[0] != 1;indexes = np.nonzero(diffs)[0] + 1;ts1[j] = np.split(idx[0], indexes);numf[j]=len(ts1[j])
+    wtime[j]=[0]*numf[j];wtime[j][0]=0
+    for i in range(1,numf[j]):
+        wtime[j][i]=(ts1[j][i][0]-ts1[j][i-1][-1])*0.05
+    Pwtime[j]=np.histogram(wtime[j],bins=10)[0];wtime_int[j]=np.histogram(wtime[j],bins=10)[1]
+    #Pwtime[j]=[0]*numf[j]
+    #for i in range(numf[j]):
+    #    Pwtime[j][i]=np.exp(-wtime[j][i]/np.mean(wtime[j][0:i]))/np.mean(wtime[j][0:i])
+    #popt[j], _ = curve_fit(fit_function,np.array(wtime[j])[2:], np.array(Pwtime[j])[2:]);popt[j]=popt[j][0]
+    #Pwtime_fit[j]=fit_function(np.array(wtime[j])[2:], popt[j])
+    popt[j], _ = curve_fit(fit_linear,np.log10(wtime_int[j][1:]),np.log10(Pwtime[j]+1));popt[j]=popt[j][0]
+    Pwtime_fit[j]=fit_function(wtime_int[j][1:], popt[j])
+
+plt.plot(np.array(wtime_int[0])[1:],Pwtime[0],'o',label='1 GHz',color='r')
+plt.plot(np.array(wtime_int[0])[1:],Pwtime_fit[0],'-',color='r',label='$\lambda$='+str(np.round(popt[0],2)))
+plt.plot(np.array(wtime_int[1])[1:],Pwtime[1],'o',label='1.5 GHz',color='g')
+plt.plot(np.array(wtime_int[1])[1:],Pwtime_fit[1],'-',color='g',label='$\lambda$='+str(np.round(popt[1],2)))
+plt.plot(np.array(wtime_int[2])[1:],Pwtime[2],'o',label='2 GHz',color='b')
+plt.plot(np.array(wtime_int[2])[1:],Pwtime_fit[2],'-',color='b',label='$\lambda$='+str(np.round(popt[2],2)))
+plt.legend();plt.xlabel('Wait Time (sec)');plt.ylabel('Occupancy (arbitrary)')
+plt.show()
+
+
+
 #------------ Spectral density
 from scipy.signal import periodogram as ped
 sd_ped=[0]*32;sdfit=[0]*32;yfit=[0]*32;errfit=[0]*32
@@ -248,9 +336,9 @@ plt.plot(freq,sdfit*-1,'o');plt.errorbar(freq,sdfit*-1,yerr=errfit,color='b',lab
 plt.plot([freq[0],freq[12],freq[22]],[qsdfit0*-1,qsdfit3*-1,qsdfit5*-1],'o',color='r');plt.errorbar([freq[0],freq[12],freq[22]],[qsdfit0*-1,qsdfit3*-1,qsdfit5*-1],yerr=[qerrfit0,qerrfit3,qerrfit5],color='r',label='pre-bursts')
 plt.legend(loc=3);plt.ylim(-1,3);plt.ylabel('PSD index');plt.show()
 
-print 'Frequency (GHz) & B (G) & $n_e$ ($\\times 10$^{8}$ cm^{-3}$) & v$_A$ (Mm/s) \\\\ \\hline'
+print('Frequency (GHz) & B (G) & $n_e$ ($\\times 10$^{8}$ cm^{-3}$) & v$_A$ (Mm/s) \\\\ \\hline')
 for i in range(8):
-    print np.round(freq[i*4+1],3),'&',np.round(babs_h2[i*4+1],1),'&',np.round(ne2[i*4+1]/1.e8,1),'&',np.round(vA[i*4+1],1),'\\\\'
+    print(np.round(freq[i*4+1],3),'&',np.round(babs_h2[i*4+1],1),'&',np.round(ne2[i*4+1]/1.e8,1),'&',np.round(vA[i*4+1],1),'\\\\')
 #------------ test correlate
 xx=np.linspace(0,10,100);x=np.linspace(-5,5,100);y1=np.exp(-x**2)*np.sin(x);y2=np.exp((-(x-0)**2))*np.sin(x-0)+np.exp((-(x-2)**2)/2.0)*np.sin(x-2)*0.5
 co=np.correlate(y2,y1, "same")
@@ -452,35 +540,37 @@ plt.plot((np.arange(1601)-800)*0.05,cc0_s[14],'o-',label=str(freq[14])+' GHz')
 plt.legend();plt.ylabel('Cross Correlation');plt.xlabel('Time (sec)');plt.show()
 
 f,ax=plt.subplots(3,1);ax0=ax[0];ax1=ax[1];ax3=ax[2]
-im0=ax0.imshow(glbl_npower/np.nanmax(glbl_npower),aspect='auto',origin=0,cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
+im0=ax0.imshow(glbl_npower/np.nanmax(glbl_npower),aspect='auto',origin='lower',cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
 ax0.set_xscale('log');ax0.set_ylabel('Frequency (GHz)');ax0.set_title('North Source')
-im1=ax1.imshow(glbl_spower/np.nanmax(glbl_npower),aspect='auto',origin=0,cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
+im1=ax1.imshow(glbl_spower/np.nanmax(glbl_npower),aspect='auto',origin='lower',cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
 #ax0.plot(periodqs,0.9+glbl_powerqs/np.max(glbl_powerqs)*0.5,'-',color='k',linewidth=4);ax0.set_xlim(period[0],period[-1]);ax0.set_ylim(freq[0],freq[-1])
 ax1.set_xscale('log');ax1.set_xlabel('Period (s)');ax1.set_ylabel('Frequency (GHz)');ax1.set_title('South Source')
 divider = make_axes_locatable(ax0);cax = divider.append_axes('right', size='5%', pad=0.05);f.colorbar(im0, cax=cax, orientation='vertical')
 divider = make_axes_locatable(ax1);cax = divider.append_axes('right', size='5%', pad=0.05);f.colorbar(im1, cax=cax, orientation='vertical')
-im3=ax3.imshow(tb0,aspect='auto',origin=0,cmap='jet',interpolation='None',extent=[0,100,freq[0],freq[-1]],norm=matplotlib.colors.LogNorm())
+im3=ax3.imshow(tb0,aspect='auto',origin='lower',cmap='jet',interpolation='None',extent=[0,100,freq[0],freq[-1]],norm=matplotlib.colors.LogNorm())
 ax3.set_xlabel('Time (s)');ax3.set_ylabel('Frequency (GHz)');ax3.set_title('Maximum $T_B$')
 divider = make_axes_locatable(ax3);cax = divider.append_axes('right', size='5%', pad=0.05);cax.set_title('(K)');f.colorbar(im3, cax=cax, orientation='vertical')
 plt.show()
 
 f,ax0=plt.subplots(1,1)
-im0=ax0.imshow(glbl_maxpower/np.nanmax(glbl_maxpower),aspect='auto',origin=0,cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
+im0=ax0.imshow(glbl_maxpower/np.nanmax(glbl_maxpower),aspect='auto',origin='lower',cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
 ax0.set_xscale('log');ax0.set_ylabel('Frequency (GHz)');ax0.set_title('Maximum $T_B$')
 ax0.axhline(y=1.48,color='k')
 divider = make_axes_locatable(ax0);cax = divider.append_axes('right', size='5%', pad=0.05);f.colorbar(im0, cax=cax, orientation='vertical')
 plt.show()
 
 f,ax0=plt.subplots(1,1)
-im0=ax0.imshow(maxTbr/1.e6,aspect='auto',origin=0,cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
+im0=ax0.imshow(maxTbr/1.e6,aspect='auto',origin='lower',cmap='jet',interpolation='None',extent=[period[0],period[-1],freq[0],freq[-1]])
 ax0.set_xscale('log');ax0.set_ylabel('Frequency (GHz)');ax0.set_title('Maximum $T_B$')
 divider = make_axes_locatable(ax0);cax = divider.append_axes('right', size='5%', pad=0.05);f.colorbar(im0, cax=cax, orientation='vertical')
 plt.show()
 
+fs = 10.,noisegen = pyplnoise.RedNoise(fs, 1e-3, fs/2.)
+
 from scipy import fft,ifft
 whitenoise = np.random.uniform(0,1,2000)
 timewavewn=np.arange(2000)*0.05;mother=wavelet.Morlet(6)
-fouriertransformed = np.fft.fftshift(fft(whitenoise))
+fouriertransformed = np.fft.fftshift(fft.fft(whitenoise))
 pinktransformed = np.reciprocal(fouriertransformed)
 pinknoise = ifft(np.fft.ifftshift(pinktransformed)).real
 std=np.std(whitenoise);data_stdwn=whitenoise/std
@@ -506,12 +596,12 @@ ax0.plot(period,glbl_maxpower[0],'-',label=str(freq[0])+' GHz',color='orange')
 ax0.plot(period,glbl_maxpower[4],'-',label=str(freq[4])+' GHz',color='brown')
 ax0.plot(period,glbl_maxpower[10],'-',label=str(freq[10])+' GHz',color='cyan')
 ax0.plot(period,glbl_maxpower[14],'-',label=str(freq[14])+' GHz',color='y')
-ax0.plot(period,s_power0.mean(axis=1),'s-',label=str(freq[0])+' GHz (Pre-burst)',color='r')
-ax0.plot(period,s_power3.mean(axis=1),'s-',label=str(freq[10])+' GHz (Pre-burst)',color='g')
-ax0.plot(period,s_power5.mean(axis=1),'s-',label=str(freq[20])+' GHz (Pre-burst)',color='b')
+ax0.plot(period,s_power0.mean(axis=1),'o-',label=str(freq[0])+' GHz (Pre-burst)',color='r')
+ax0.plot(period,s_power3.mean(axis=1),'o-',label=str(freq[10])+' GHz (Pre-burst)',color='g')
+ax0.plot(period,s_power5.mean(axis=1),'o-',label=str(freq[20])+' GHz (Pre-burst)',color='b')
 ax0.plot(periodwn,glbl_powerwn,'-',label='White Noise',color='gray')
-ax0.plot(periodpn,glbl_powerpn,'-',label='Pink Noise',color='m')
-ax0.legend();ax0.set_xscale('log');ax0.set_xlabel('Period (sec)');ax0.set_ylabel('Wavelet Power')
+#ax0.plot(periodpn,glbl_powerpn,'-',label='Pink Noise',color='m')
+ax0.legend(loc=1, prop={'size': 11});ax0.set_xscale('log');ax0.set_xlabel('Period (sec)');ax0.set_ylabel('Wavelet Power')
 plt.show()
 
 sys.exit()

@@ -19,6 +19,7 @@ import sunpy.map as smap
 from sunpy import sun
 from dateutil import parser
 from scipy import stats
+import numpy as np
 
 def idl2sunpy_hmi(mapsav):
     mapstruc = readsav(mapsav)
@@ -580,10 +581,10 @@ if(get_qs):
         qsxcr90[k]=hl.reference_coordinate.Tx.value+(xcf-(hl.reference_pixel.x.value-1))*hl.scale.axis1.value
         qsycr90[k]=hl.reference_coordinate.Ty.value+(ycf-(hl.reference_pixel.y.value-1))*hl.scale.axis2.value
     pickle.dump([xcrmax,ycrmax,qsxcr90,qsycr90,maxTbr,Tbr_r1,Tbr_r2,arear50,qstimevla],open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_5.p','wb'))
-qsx,qsy,qsxcr90,qsycr90,qsmaxTbr,qsTbr_r1,qsTbr_r2,qsarear50,qstimevla=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_3.p','rb'))
-qsx,qsy,qsxcr90,qsycr90,qsmaxTbr,qsTbr_r1,qsTbr_r2,qsarear50,qstimevla=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_5.p','rb'))
-qsx,qsy,qsxcr90,qsycr90,qsmaxTbr,qsTbr_r1,qsTbr_r2,qsarear50,qstimevla=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs.p','rb'))
-TbLLr1,TbLLr2,TbLLr3,TbLLr4,TbLLr5,xcLLmax,ycLLmax,xcLL90,ycLL90,timevla_all=pickle.load(open('/media/rohit/VLA/20160409/MaxLL.p','rb'))
+qsx,qsy,qsxcr90,qsycr90,qsmaxTbr,qsTbr_r1,qsTbr_r2,qsarear50,qstimevla=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_3.p','rb'),encoding='latin1')
+qsx,qsy,qsxcr90,qsycr90,qsmaxTbr,qsTbr_r1,qsTbr_r2,qsarear50,qstimevla=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs_5.p','rb'),encoding='latin1')
+qsx,qsy,qsxcr90,qsycr90,qsmaxTbr,qsTbr_r1,qsTbr_r2,qsarear50,qstimevla=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r_qs.p','rb'),encoding='latin1')
+TbLLr1,TbLLr2,TbLLr3,TbLLr4,TbLLr5,xcLLmax,ycLLmax,xcLL90,ycLL90,timevla_all=pickle.load(open('/media/rohit/VLA/20160409/MaxLL.p','rb'),encoding='latin1')
 timevla_all1=np.hstack((np.array(qstimevla)[:,0],timevla_all)) 
 timevla_all1=np.hstack((np.array(qstimevla)[:,0],timevla_all[0:2000])) 
 Tbr1_rall=np.hstack((np.array(qsTbr_r1),Tbr_r1[1]))
@@ -1382,7 +1383,7 @@ for i in range(len(list171)):
 
 
 ################ Read submaps ##############
-allmaps=pickle.load(open('/media/rohit/VLA/20160409/20160409_submap_aia_50ms.p','rb'))
+allmaps=pickle.load(open('/media/rohit/VLA/20160409/20160409_submap_aia_50ms.p','rb'),encoding='latin-1')
 vla0=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_0_50ms.p','rb'))
 #vla1=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_1_50ms.p','rb'))
 #vla2=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_2_50ms.p','rb'))
@@ -1496,11 +1497,11 @@ for i in range(2000):
 
 
 ################ FERMI & GOES & VLA DS #######################
-goes=readsav('/home/i4ds1807205/Dropbox/20160409/fermi/idlsave_goes.sav')
+goes=readsav('/data/Dropbox/20160409/fermi/idlsave_goes.sav')
 gf0540=goes['lx'][1];gf1080=goes['lx'][0];gtime=goes['tarray']
 
 
-fm=fits.open('/home/i4ds1807205/Dropbox/20160409/fermi/glg_cspec_n5_160409_v00_data.fits')
+fm=fits.open('/data/Dropbox/20160409/fermi/glg_cspec_n5_160409_v00_data.fits')
 fm0=fm[0];fm1=fm[1]
 fmrate=fm1.data['RATE'];fmtime=fm1.data['TIME']
 fmtime=fmtime-fmtime[0]
@@ -1542,7 +1543,7 @@ sys.exit()
 plot_euv_time=1
 if(plot_euv_time):
     f,ax=plt.subplots(3,1,sharex=True)
-    ax[0].imshow(ds_LL1,aspect='auto',origin=0,cmap='YlGnBu',vmin=10,vmax=80,extent=[67200.0,67560.,freq[0],freq[-1]])
+    ax[0].imshow(ds_LL1,aspect='auto',origin='lower',cmap='YlGnBu',vmin=10,vmax=80,extent=[67200.0,67560.,freq[0],freq[-1]])
     ax[0].set_ylabel('Frequency (GHz)')
     ax[1].plot(time94,ts94-ts94[1],'o-',label='AIA 94 $\AA$')
     ax[1].plot(time131,ts131-ts131[1],'o-',label='AIA 131 $\AA$')
@@ -2140,8 +2141,8 @@ plt.show()
 
 sys.exit()
 # Time from 17:59:56-22:57:52
-plt.style.use('/home/i4ds1807205/scripts/general/plt_style.py')
-data=np.load('sun_L_20160409.1s.ms.dspec.npz')
+plt.style.use('/home/rohit/my_git/lipi/plt_style.py')
+data=np.load('/media/rohit/VLA/20160409/sun_L_20160409.1s.ms.dspec.npz')
 ds=data['spec']
 freq=data['freq']/1.e9
 time=data['tim']-data['tim'][0]
