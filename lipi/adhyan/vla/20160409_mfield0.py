@@ -1,4 +1,6 @@
 import sys
+import matplotlib as mpl
+mpl.use('TkAgg')
 import glob
 from sunpy.map import Map
 from astropy.coordinates import SkyCoord
@@ -244,8 +246,9 @@ plot_paper_timeseries=1
 Tball0=np.hstack((qsmaxTbr,maxTbr[0]));Tball0[2132:2170]=np.nan;Tball0[4531:4570]=np.nan;qsmaxTbr[2132:2170]=np.nan;qsmaxTbr[4531:4570]=np.nan
 if(plot_paper_timeseries):
     f,ax=plt.subplots(1,1)
-    ax.plot(Tball0/1.e6,'o-',label=str(freq[0])+' GHz')
-    ax.set_xticks(np.arange(len(Tball0))[::1000]);ax.set_xticklabels(['18:44:00','18:44:50','18:45:40','18:46:30','18:47:20','18:48:10','18:49:00','18:49:50'])
+    ax.plot(Tball0/1.e6,'o-',label=str(freq[0])+' GHz',markersize=2.0)
+    ax.axvline(x=0,color='k');ax.axvline(x=6799,color='k');ax.axvline(x=4800,color='k');ax.axvspan(-1,4800,color='yellow',alpha=0.2);ax.axvspan(4800,6800,color='gray',alpha=0.2)
+    ax.set_xticks(np.arange(len(Tball0))[::900]);ax.set_xticklabels(['18:40:00','18:40:45','18:41:30','18:42:15','18:43:00','18:43:45','18:44:30','18:45:15'])
     ax.legend();ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS UT)')
     plt.show()
 if(plot_paper_timeseries):

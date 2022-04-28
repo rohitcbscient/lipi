@@ -137,6 +137,13 @@ if(plot_tb_line):
     ax[0].set_title('Source Source');ax[1].set_title('North Source')
     plt.show()
 
+plot_area=1
+if(plot_area):
+    plt.plot(freq[0:18],np.sqrt(areai50[:,858][0:18]/np.pi),'o-',label='Source Area (50%)')
+    plt.plot(freq[0:18],np.sqrt(bmaj[0:18]*bmin[0:18]/4.),'-',label='PSF')
+    plt.xlabel('Frequency (GHz)');plt.ylabel('Effective Radius (arcsec)');plt.legend();plt.ylim(5,20)
+    plt.show()
+
 plot_tb_ns=1
 if(plot_tb_ns):
     f,ax=plt.subplots(2,1);n1=0;n2=4
@@ -285,7 +292,7 @@ def fit_poisson(x,lam):
 def fit_linear(x,m,c):
     return m*x+c
 
-Pwtime=[0]*3;ts1=[0]*3;numf=[0]*3;wtime=[0]*3;Pwtime_fit=[0]*3;popt=[0]*3;wtime_int=[0]*3
+Pwtime=[0]*3;ts1=[0]*3;numf=[0]*3;wtime=[0]*3;Pwtime_fit=[0]*3;popt=[0]*3;wtime_int=[0]*3;epopt=[0]*3
 qTbmax_wave=[qTbmax_wave0,qTbmax_wave3,qTbmax_wave5]
 for j in range(3):
     lin=np.concatenate((qTbmax_wave[j],Tbmax_wave[j*15]*10))
@@ -301,15 +308,15 @@ for j in range(3):
     #    Pwtime[j][i]=np.exp(-wtime[j][i]/np.mean(wtime[j][0:i]))/np.mean(wtime[j][0:i])
     #popt[j], _ = curve_fit(fit_function,np.array(wtime[j])[2:], np.array(Pwtime[j])[2:]);popt[j]=popt[j][0]
     #Pwtime_fit[j]=fit_function(np.array(wtime[j])[2:], popt[j])
-    popt[j], _ = curve_fit(fit_linear,np.log10(wtime_int[j][1:]),np.log10(Pwtime[j]+1));popt[j]=popt[j][0]
-    Pwtime_fit[j]=fit_function(wtime_int[j][1:], popt[j])
+    popt[j], cov = curve_fit(fit_linear,np.log10(wtime_int[j][1:]),np.log10(Pwtime[j]+1));epopt[j]=np.sqrt(cov[0][0])
+    Pwtime_fit[j]=10**fit_linear(np.log10(np.linspace(0.1,10,100)), popt[j][0],popt[j][1])
 
 plt.plot(np.array(wtime_int[0])[1:],Pwtime[0],'o',label='1 GHz',color='r')
-plt.plot(np.array(wtime_int[0])[1:],Pwtime_fit[0],'-',color='r',label='$\lambda$='+str(np.round(popt[0],2)))
+plt.plot(np.linspace(0.1,10,100),Pwtime_fit[0],'-',color='r',label='$\lambda$='+str(np.round(popt[0][0],2))+'$\pm$'+str(np.round(epopt[0],2)))
 plt.plot(np.array(wtime_int[1])[1:],Pwtime[1],'o',label='1.5 GHz',color='g')
-plt.plot(np.array(wtime_int[1])[1:],Pwtime_fit[1],'-',color='g',label='$\lambda$='+str(np.round(popt[1],2)))
+plt.plot(np.linspace(0.1,10,100),Pwtime_fit[1],'-',color='g',label='$\lambda$='+str(np.round(popt[1][0],2))+'$\pm$'+str(np.round(epopt[1],2)))
 plt.plot(np.array(wtime_int[2])[1:],Pwtime[2],'o',label='2 GHz',color='b')
-plt.plot(np.array(wtime_int[2])[1:],Pwtime_fit[2],'-',color='b',label='$\lambda$='+str(np.round(popt[2],2)))
+plt.plot(np.linspace(0.1,10,100),Pwtime_fit[2],'-',color='b',label='$\lambda$='+str(np.round(popt[2][0],2))+'$\pm$'+str(np.round(epopt[2],2)))
 plt.legend();plt.xlabel('Wait Time (sec)');plt.ylabel('Occupancy (arbitrary)')
 plt.show()
 

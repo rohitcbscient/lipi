@@ -139,5 +139,16 @@ ax10.plot(uvdistlam/1.e3,amp,'o');ax10.set_ylabel('Amplitude (Jy)');ax10.set_xla
 ax11.plot(uvdistlam/1.e3,phase,'o');ax11.set_ylabel('Phase');ax11.set_xlabel('UV distance ($k\lambda$)')
 ax01.plot(telconfig[:,0],telconfig[:,1],'o');ax01.set_xlabel('X (m)');ax01.set_ylabel('Y (m)')
 plt.show()
+####
+
+f1=fits.open('/home/rohit/simulations/meerKat/meerkat_visibilities_test1_I.fits');fd=f[0].data
+fd=f1[0].data
+
+f,ax=plt.subplots(2,1);ax0=ax[0];ax1=ax[1]
+im0=ax0.imshow(fd[0],aspect='auto',vmin=0.01,vmax=1,cmap='jet')
+ax1.plot(fd[0][256])
+plt.colorbar(im0)
+plt.title('MeerKat Test Benchmark Image')
+plt.show()
 
 
