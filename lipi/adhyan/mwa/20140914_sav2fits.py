@@ -191,7 +191,7 @@ def change_pointing(f,xc,yc):
 def reduce_size(d,n):
     return d.reshape(int(d.shape[0]/n),n,int(d.shape[0]/n),n).mean(axis=(1,3))
 
-dump_submaps=0
+dump_submaps=1
 if(dump_submaps):
     list193=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/*193*rot.sav'))[0:5]
     list171=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/*171*rot.sav'))[0:5]

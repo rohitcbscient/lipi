@@ -26,8 +26,8 @@ tel = oskar.Telescope(precision)
 tel.set_channel_bandwidth(1.0e3)
 tel.set_time_average(10.0)
 tel.set_pol_mode('Scalar')
-tel.set_station_coords_enu(longitude_deg=0, latitude_deg=60, altitude_m=0,
-                           x=x, y=y)
+tel.load('/home/rohit/simulations/meerKat/vla.c.tm')
+#tel.set_station_coords_enu(longitude_deg=0, latitude_deg=60, altitude_m=0,x=x, y=y)
 # Set station properties after stations have been defined.
 tel.set_phase_centre(phase_centre_ra_deg, phase_centre_dec_deg)
 tel.set_station_type('Gaussian beam')

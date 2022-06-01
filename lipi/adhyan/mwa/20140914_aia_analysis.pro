@@ -14,8 +14,8 @@ t1='2014/09/14 06:00:00'
 
 ;make a full sun IDL map structure
 
-;fitsfiles=findfile("/media/rohit/MWA/20140914/EUV/fits/*171*.fits")
-fitsfiles=findfile("/sdata/20140914_hmi/hmi/hmi_20140914_*_magnetogram.fits")
+fitsfiles=findfile("/sdata/fits/*.193*.fits")
+;fitsfiles=findfile("/sdata/20140914_hmi/hmi/hmi_20140914_*_magnetogram.fits")
 ;fitsfiles=findfile("/media/rohit/MWA/20140914/mwa_maps/*_240_*.fits")
 reffile=fitsfiles(0)
 ;ref_time=02_32_18.84;300
@@ -26,6 +26,7 @@ yrange=[-400,-200]
 ;xrange=[705,855]
 ;yrange=[-77,-277]
 n=n_elements(fitsfiles)
+;for i=10,n do begin 
 for i=0,n do begin 
 	print,fitsfiles(i)
 	read_sdo,fitsfiles(i),index,data
@@ -34,6 +35,7 @@ for i=0,n do begin
 	;final_data=reverse(final_data,2) ; For HMI
 	print,max(final_data)
 	index2map,final_index,final_data,fullsunmap
+	;----------------------------------------------------------------
 	read_sdo,reffile,refindex,refdata
 	aia_prep,refindex,refdata,ref_final_index,ref_final_data,/normalize
 	;ref_final_data=reverse(ref_final_data) ; For HMI)
@@ -41,10 +43,23 @@ for i=0,n do begin
 	index2map,ref_final_index,ref_final_data,ref_fullsunmap
 	;sub_map,fullsunmap,submap,xrange=xrange,yrange=yrange
 	;sub_map,ref_fullsunmap,ref_submap,xrange=xrange,yrange=yrange
-	drot_map_=drot_map(fullsunmap,ref_map=ref_fullsunmap,/KEEP_LIMB)
-	sub_map,drot_map_,submap,xrange=xrange,yrange=yrange
-	SAVE, drot_map_, FILENAME = fitsfiles(i)+'rot.sav'
-	SAVE, submap, FILENAME = fitsfiles(i)+'submap.sav'
+	;---------------------------------------------------------------
+	drot_map_=drot_map(ref_fullsunmap,ref_map=fullsunmap);,/KEEP_LIMB)
+	dd1=drot_map_.data-final_data
+	;index2map,ref_final_index,dd1,bdiff_map
+	;---------------------------------------------------------------
+	read_sdo,fitsfiles(i-10),indexd,datad
+	aia_prep,indexd,datad,final_indexd,final_datad,/normalize
+	index2map,final_indexd,final_datad,ref_fullsunmapd
+	drot_map_=drot_map(ref_fullsunmapd,ref_map=fullsunmap);,/KEEP_LIMB)
+	dd2=drot_map_.data-final_data
+	;index2map,ref_final_index,dd2,ddiff_map
+	;sub_map,drot_map_,submap,xrange=xrange,yrange=yrange
+	;SAVE, bdiff_map.data, FILENAME = fitsfiles(i)+'_bdiff.sav'
+	;SAVE, ddiff_map.data, FILENAME = fitsfiles(i)+'_ddiff.sav'
+	SAVE, dd1, FILENAME = fitsfiles(i)+'_bdiff.sav'
+	SAVE, dd2, FILENAME = fitsfiles(i)+'_ddiff.sav'
+	;SAVE, submap, FILENAME = fitsfiles(i)+'submap.sav'
 	endfor
 
 ;RESTORE, '/media/rohit/MWA/20140914/mwa_maps/mwa_240_2:48:34.0.fitsrot.sav'
