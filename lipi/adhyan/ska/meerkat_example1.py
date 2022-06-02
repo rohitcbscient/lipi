@@ -90,7 +90,7 @@ params = {
     },
     "beam_pattern":{
         "all_stations":True,
-        "beam_pattern/output/separate_time_and_channel":True,
+        "output/separate_time_and_channel":True,
         }
         
 }
