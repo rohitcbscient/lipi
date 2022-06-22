@@ -109,6 +109,18 @@ bshp2x=bs_hp2.Tx.value-corx;bshp2y=bs_hp2.Ty.value-cory
 bsabs1=np.sqrt(bsx1**2 +bsy1**2+bsz1**2)
 rs1=np.sqrt(xs1**2 +ys1**2)
 
+
+beam=np.array(([6.79143269857,7.19919993083],
+[6.18038431804,6.55234578451],
+[4.25709788005,7.0822555542],
+[5.03817596436,5.4289469401],
+[3.94947509766,4.26192092895],
+[4.18227513631,4.35891418457],
+[3.68575286865,3.90556131999],
+[3.34071350098,3.54748077393],
+[3.1191889445,3.2729019165]))
+
+
 ####### Radio Contours #############
 aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_187-188_sub_test.p','rb'),encoding='bytes');Tb240=np.array(aa[0]);maxX=[0]*len(Tb240);maxY=[0]*len(Tb240);xc90_240=[0]*len(Tb240);yc90_240=[0]*len(Tb240)
 aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_125-126_sub_test.p','rb'),encoding='bytes');Tb160=np.array(aa[0]);xc90_160=[0]*len(Tb160);yc90_160=[0]*len(Tb160)
@@ -116,7 +128,7 @@ aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_084-085_sub_test.p','
 xc90_240_,yc90_240_,xc90_160_,yc90_160_,xc90_108_,yc90_108_=0,0,0,0,0,0
 freq=np.array([108, 120, 133, 145, 160, 179, 197, 217, 240])
 flist=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
-Tball=[0]*9;xc90=[0]*9;yc90=[0]*9;maxX=[0]*9;maxY=[0]*9;Tbmax=[0]*9
+Tball=[0]*9;xc90=[0]*9;yc90=[0]*9;maxX=[0]*9;maxY=[0]*9;Tbmax=[0]*9;xbsub50=[0]*9;ybsub50=[0]*9
 Tbsuball=[0]*9;xcsub90=[0]*9;ycsub90=[0]*9;maxsubX=[0]*9;maxsubY=[0]*9
 for j in range(9):
     bb=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_'+flist[j]+'_sub_test.p','rb'),encoding='bytes')
@@ -135,7 +147,7 @@ for j in range(9):
             xc90_,yc90_=0,0
         xc90[j][i]=50.*(xc90_-50.);yc90[j][i]=50.*(yc90_-50.)
     #---- Sub-----------#########
-    Tbsuball[j]=np.array(bb[0]);xcsub90[j]=[0]*len(Tbsuball[j]);ycsub90[j]=[0]*len(Tbsuball[j]);maxsubX[j]=[0]*len(Tbsuball[j]);maxsubY[j]=[0]*len(Tbsuball[j])
+    Tbsuball[j]=np.array(bb[0]);xcsub90[j]=[0]*len(Tbsuball[j]);ycsub90[j]=[0]*len(Tbsuball[j]);maxsubX[j]=[0]*len(Tbsuball[j]);maxsubY[j]=[0]*len(Tbsuball[j]);xbsub50[j]=[0]*len(Tbsuball[j]);ybsub50[j]=[0]*len(Tbsuball[j])
     for i in range(len(Tbsuball[j])):
         if(Tbsuball[j][i].shape[0]==200):
             Tb_=Tbsuball[j][i][50:-50,50:-50]
@@ -145,13 +157,15 @@ for j in range(9):
         maxsubX[j][i]=50.*(x[0]-50.);maxsubY[j][i]=50.*(y[0]-50.)
         if(np.nanmax(Tb_)!=0):
             bi=ut.get_bimage(Tb_,0.9);xc90_,yc90_,w,l,angle=ut.fitEllipse(bi)
+            bi50=ut.get_bimage(Tb_,0.6);xc50_,yc50_,w50,l50,angle=ut.fitEllipse(bi50)
         else:
-            xc90_,yc90_=0,0
+            xc90_,yc90_=0,0;w50,l50=0,0
         xcsub90[j][i]=50.*(xc90_-50.);ycsub90[j][i]=50.*(yc90_-50.)
+        xbsub50[j][i]=l50;ybsub50[j][i]=w50
     Tbmax[j]=Tball[j][0:1323].max(axis=(1,2))
     xc90[j]=xc90[j][0:1323];yc90[j]=yc90[j][0:1323]
 pa_angle=np.arctan((np.array(ycsub90[7])-np.array(ycsub90[1]))/(np.array(xcsub90[7])-np.array(xcsub90[1])))*180/np.pi
-Tball=np.array(Tball);xc90=np.array(xc90);yc90=np.array(yc90);maxX=np.array(maxX);maxY=np.array(maxY)
+Tball=np.array(Tball);xc90=np.array(xc90);yc90=np.array(yc90);xbsub50=np.array(xbsub50);ybsub50=np.array(ybsub50);maxX=np.array(maxX);maxY=np.array(maxY)
 Tbsuball=np.array(Tbsuball);xcsub90=np.array(xcsub90);ycsub90=np.array(ycsub90);maxsubX=np.array(maxsubX);maxsubY=np.array(maxsubY)
 Tbsuball[Tbsuball>5.e8]=np.nan
 tmwa=np.array(aa[10]);tsubmwa=np.array(bb[5]);pa_angle=np.array(pa_angle);Tbmax=np.array(Tbmax);Tbsubmax=np.nanmax(Tbsuball,axis=(2,3))
@@ -183,6 +197,13 @@ for i in range(len(Tbsubmax[0])):
     ealpha[i]=3*np.sqrt(coef[1][0][0])
     #coef = np.polyfit(freqfit,np.log10(Tbsubmax[:,i]*2*1.38e-23*freqfit*freqfit*1.e12/(9.e16)*1.e-4),1);poly1d_fn = np.poly1d(coef);alpha[i]=coef[0]
     Tbmaxfit[i]=10**poly1d_fn(freqfit)
+
+xbsub50_psf=xbsub50*0;ybsub50_psf=ybsub50*0;beam_psf=ybsub50*0
+for i in range(899):
+    xbsub50_psf[:,i]=xbsub50[:,i]/(beam[:,1]*60./50.)
+    ybsub50_psf[:,i]=ybsub50[:,i]/(beam[:,0]*60./50.)
+    beam_psf[:,i]=xbsub50_psf[:,i]*ybsub50_psf[:,i]
+
 
 
 sys.exit()
