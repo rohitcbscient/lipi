@@ -33,7 +33,6 @@ adhyan/mwa/.20151203_pfss.py.swo
 adhyan/mwa/.20151203_pfss.py.swp
 adhyan/mwa/.20151203_time.py.swo
 adhyan/mwa/.20151203_time.py.swp
-adhyan/mwa/.20151203_xray.py.swp
 adhyan/mwa/.20160409_wavelet.py.swm
 adhyan/mwa/.20160409_wavelet.py.swn
 adhyan/mwa/.20160409_wavelet.py.swo
@@ -138,9 +137,7 @@ adhyan/ska/.make_tel_conf.py.swn
 adhyan/ska/.make_tel_conf.py.swo
 adhyan/ska/.make_tel_conf.py.swp
 adhyan/ska/.make_visibilities.py.swo
-adhyan/ska/.meerkat_example.py.swp
 adhyan/ska/.meerkat_example1.py.swo
-adhyan/ska/.meerkat_example1.py.swp
 adhyan/ska/.sky_model.py.swj
 adhyan/ska/.sky_model.py.swk
 adhyan/ska/.sky_model.py.swl
