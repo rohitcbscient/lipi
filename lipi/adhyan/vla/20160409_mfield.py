@@ -6,6 +6,19 @@ import matplotlib.pyplot as plt
 import pickle
 from astropy.coordinates import SkyCoord
 
+h=np.arange(200)*1400/1.e3 # in Mm
+h1=np.arange(200)*500/1.e3 # in Mm
+sh=np.linspace(10,500,100)
+ux=np.linspace(0,50,50)
+dem_arr=[0]*100;ne=[0]*100;ne_dem=[0]*100;wpe_dem=[0]*100;omegap_dem=[0]*100
+tem=2.6e27
+
+for i in range(100):
+        dem_arr[i]=[0]*200;ne[i]=[0]*200
+        ne[i]=1.16e17*(np.exp(-1*h1*1000/sh[i]))+9.5e8*np.exp(-1*h1*1000/31.e3)#+4.2e4 *10**(4.32/((695700.+h*1000)/695700.))
+
+
+#####################333
 file_name_fr="/media/rohit/VLA/paraview/radio_loop_new.csv"
 file_name_ls="/media/rohit/VLA/paraview/large_scale.csv"
 file_name_euv="/media/rohit/VLA/paraview/EUV_loop2.csv"
@@ -27,7 +40,8 @@ fermi_energy=15 # keV
 omegapbygyro=0.3
 R=z_1000-z_1500
 v=np.sqrt(fermi_energy/(0.5*9.1e-31)*(1.e3*1.6e-19))/1.e6 # Mm/s
-B_low=200;B_top=40;pitch_angle=np.logspace(0,2,10000);htop=80; s_cl=z_1000 # Mm/s
+T=fermi_energy*1.16e7
+B_low=200;B_top=40;pitch_angle=np.logspace(0,np.log10(90),10000);htop=80; s_cl=z_1000 # Mm/s
 loop_length = np.pi*htop; B_scale_height=loop_length*0.5/np.e # Mm
 alpha0=np.arcsin(np.sqrt(B_top/B_low))*180/np.pi
 alphac=np.arcsin(np.sqrt(B_top/B1000))*180/np.pi
@@ -36,8 +50,7 @@ mirror_ratio=B_low/B_top
 bounce_time = 2*np.pi*B_scale_height/(v*np.sin(pitch_angle*np.pi/180))
 tcc=bounce_time/np.pi*np.arccos((htop-s_cl)/(htop-mirror_point))
 epsilonD = 1/((np.pi*loop_length*1000)/(2*726*18)) # 18" radius
-alpha_c=np.arcsin(np.sqrt(B_top/B1000))*180/np.pi
-lambda_ei=1.e4*5.e6**2/5.e8/1.e8 # in Mm/sec
+Tt=2.e6;lambda_ei=5210*Tt**2/(ne[28][72])/1.e8 #(CGS) in Mm ne[28][72] is ne for the 1.5 GHz 
 t_collision=lambda_ei/v # in sec
 w=tcc/t_collision
 t_loss=0.5*bounce_time
@@ -49,10 +62,16 @@ tau_diff_eff=(taup/(2*np.pi))**2 /tau_growth
 tau_diff=tau_diff_eff*epsilonD
 I_ratio=np.sqrt(tau_growth/tau_diff_eff) # Ampltitude of perturbations in the number distribution to density
 
+#CGS
+me=9.1e-28;kb=1.23e-16;v0=3.e9;n0=1.e9;omega=1.e9;alpha0=85;Tb=2.e7;c=3.e10
+incoh_Tb=me/kb*v0*v0/2/np.pi
+del_alpha=alpha0*np.sqrt(incoh_Tb*n0*2*np.pi*c*c/omega/v0/Tb)
 
 plt.plot(pitch_angle,t_loss,color='b',label='$\\tau_{loss}$')
-plt.axvline(x=alpha_c,color='r',label='$\\alpha_C$')
+plt.axvline(x=alpha0,color='r',linestyle='-',label='$\\alpha_0$')
+plt.axvline(x=alphac,color='r',linestyle='--',label='$\\alpha_C$')
 plt.axhline(y=t_collision,color='green',linestyle='-',label='$\\tau_{coll}$')
+plt.plot(pitch_angle,tcc,color='black',linestyle='-',label='$t_{cc}$')
 plt.ylabel('Time (sec)');plt.xlabel('$\\alpha_0$ (degrees)');plt.legend()#;plt.ylim(0.01,1)
 plt.yscale('log');plt.show()
 

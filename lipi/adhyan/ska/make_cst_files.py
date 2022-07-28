@@ -2,8 +2,7 @@
 import numpy as np
 from katbeam import JimBeam
 import matplotlib.pylab as plt
-
-
+from astropy.io import fits
 
 
 def get_meerkat_uhfbeam(f,pol,beamextent):
@@ -39,7 +38,10 @@ params_ah, freqs = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres) #
 ch=0
 B_em = recon_par(params_em[ch,:])
 B_ah = recon_par(params_ah[ch,:])
-thphi_arr_eidos = np.meshgrid(np.linspace(0,10,npix),np.linspace(0,10,npix))
+thphi_arr_eidos = np.meshgrid(np.linspace(-5,5,npix),np.linspace(-5,5,npix))
+B_em[:,:,0:2,:]=0+0j;B_em[:,:,-2:,:]=0+0j;B_em[:,:,:,-2:]=0+0j;B_em[:,:,:,0:2]=0+0j
+B_ah[:,:,0:2,:]=0+0j;B_ah[:,:,-2:,:]=0+0j;B_ah[:,:,:,-2:]=0+0j;B_ah[:,:,:,0:2]=0+0j
+
 
 ###################################
 f,ax=plt.subplots(2,2);ax00=ax[0,0];ax01=ax[0,1];ax10=ax[1,0];ax11=ax[1,1]
@@ -60,28 +62,30 @@ ax1.set_xlabel('Distance from center (deg)');ax0.set_ylabel('Power (dB)');ax0.le
 plt.show()
 
 
+B=B_ah
 if len(B.shape)==4: B = np.expand_dims(B, axis=0)
 data_M = jones_to_mueller_all(B)
 data = np.zeros((B.shape[0],1,1,B.shape[3],B.shape[4]), dtype=np.complex)
 eidos.create_beam.main(['-p', '500','-d','10','-f', '1.e9'])
-re_=fits.open('primary_beam_mh_1000000000MHz_10deg_re.fits');re_beam=re_[0].data[0][0][0]
-im_=fits.open('primary_beam_mh_1000000000MHz_10deg_im.fits');im_beam=im_[0].data[0][0][0]
+re_=fits.open('primary_beam_mh_1000000000MHz_10deg_re.fits');re_beam=re_[0].data[0]
+im_=fits.open('primary_beam_mh_1000000000MHz_10deg_im.fits');im_beam=im_[0].data[0]
 abs_beam=np.sqrt(re_beam*re_beam+im_beam*im_beam)
 
 bb=np.load('/home/rohit/eidos/eidos/data/meerkat_beam_coeffs_ah_zp_dct.npy',encoding='latin1',allow_pickle=True).item()
 #dict_keys(['nu', 'dctc', 'dcti', 'zi'])
 
 ######################################################
-f,ax=plt.subplots(4,4)
-ax00=ax[0,0];ax01=ax[0,1];ax02=ax[0,2];ax03=ax[0,3]
-ax10=ax[0,0];ax11=ax[0,1];ax12=ax[1,2];ax13=ax[1,3]
-
-plt.imshow(abs_beam,aspect='auto',origin='lower')
-plt.show()
+#f,ax=plt.subplots(4,4)
+#ax00=ax[0,0];ax01=ax[0,1];ax02=ax[0,2];ax03=ax[0,3]
+#ax10=ax[0,0];ax11=ax[0,1];ax12=ax[1,2];ax13=ax[1,3]
+#plt.imshow(abs_beam,aspect='auto',origin='lower')
+#plt.show()
 
 
 line1='Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Abs(Theta)[dBi   ]  Phase(Theta)[deg.]  Abs(Phi  )[dBi   ]  Phase(Phi  )[deg.]  Ax.Ratio[dB    ]    '
 line2='------------------------------------------------------------------------------------------------------------------------------------------------------'
+line3='Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Abs(Horiz)[dBi   ]  Phase(Horiz)[deg.]  Abs(Vert  )[dBi   ]  Phase(Vert  )[deg.]  Ax.Ratio[dB    ]  '
+line3='Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Horiz(Abs)[dBi   ]  Horiz(Phase)[deg.]  Vert(Abs)[dBi   ]  Vert(Phase )[deg. ]  Ax.Ratio[dB    ]  '
 aa=np.loadtxt('run5.cst',skiprows=2)
 np.savetxt('run6.cst',aa, delimiter=" ", header=line1+"\n"+line2,comments='')
 theta=aa[:,0].reshape(360,181);phi=aa[:,1].reshape(360,181);absdir=aa[:,2].reshape(360,181)
@@ -97,10 +101,10 @@ for i in range(360):
     th_abs[i]=[0]*181;phi_abs[i]=[0]*181;th_ph[i]=[0]*181;phi_ph[i]=[0]*181;ax_ratio_meerkat[i]=[0]*181
     for j in range(181):
         t0=np.abs(thphi_arr_eidos[0][0] - thphi_arr[0][i][j]).argmin();t1=np.abs(thphi_arr_eidos[1][:,0] - thphi_arr[1][i][j]).argmin()
-        th_abs[i][j] = np.abs(B_em[0][0][t0][t1])
-        th_ph[i][j]= np.rad2deg(np.angle(B_em[0][0][t0][t1]))
-        phi_abs[i][j]=np.abs(B_em[1][1][t0][t1])
-        phi_ph[i][j]= np.rad2deg(np.angle(B_em[1][1][t0][t1]))
+        th_abs[i][j] = np.abs(B_ah[0][0][t0][t1])
+        th_ph[i][j]= np.rad2deg(np.angle(B_ah[0][0][t0][t1]))
+        phi_abs[i][j]=np.abs(B_ah[0][1][t0][t1])
+        phi_ph[i][j]= np.rad2deg(np.angle(B_ah[0][1][t0][t1]))
         ax_ratio_meerkat[i][j]= 0.0
 th_abs=np.array(th_abs)
 phi_abs=np.array(phi_abs)
@@ -111,8 +115,20 @@ beam=np.zeros((360*181,8))
 beam[:,1]=thphi_arr[1].flatten()+180;beam[:,0]=thphi_arr[0].flatten()+90;beam[:,3]=th_abs.flatten();beam[:,4]=th_ph.flatten();beam[:,5]=phi_abs.flatten();beam[:,6]=phi_ph.flatten()
 beam[:,7]=ax_ratio_meerkat.flatten()
 beam[np.where(beam==0)]=1.e-7
-np.savetxt('run8.cst',beam, delimiter=" ", header=line1+"\n"+line2,comments='')
+np.savetxt('run9.cst',beam, delimiter=" ", header=line1+"\n"+line2,comments='')
 
+write_eidos_beam=1
+if(write_eidos_beam):
+    B=B_ah;cc=1;B[np.where(B==0)]=1.e-10
+    beam=np.zeros((250000,8))
+    r_arr_eidos=np.sqrt(thphi_arr_eidos[1].flatten()**2 + thphi_arr_eidos[0].flatten()**2)
+    ang_arr_eidos=np.rad2deg(np.arctan2(thphi_arr_eidos[1].flatten(),thphi_arr_eidos[0].flatten()))
+    beam[:,1]=ang_arr_eidos;beam[:,0]=r_arr_eidos;beam[:,3]=np.abs(B[0][0]).flatten();beam[:,4]=np.rad2deg(np.angle(B[0][0])).flatten();beam[:,5]=np.abs(B[0][1]).flatten();beam[:,6]=np.rad2deg(np.angle(B[0][1])).flatten()
+    beam[:,7]=np.zeros(len(thphi_arr_eidos[1].flatten()))
+    #beam[np.where(beam==0)]=1.e-8
+    np.savetxt('run8.cst',beam, delimiter=" ", header=line3+"\n"+line2,comments='')
+
+sys.exit()
 beam=np.zeros((360*181,8))
 beam[:,0]=thphi_arr[1].flatten();beam[:,1]=thphi_arr[0].flatten()
 #ab=(np.cos(1.189*np.pi*((thphi_arr[0].flatten()-90)/(theta_pb/60.)))/(1-4*(1.189*(thphi_arr[0].flatten()-90)/(theta_pb/60.))**2))**2;beam[:,2]=ab
