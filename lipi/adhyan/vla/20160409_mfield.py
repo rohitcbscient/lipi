@@ -45,8 +45,8 @@ B_low=200;B_top=40;pitch_angle=np.logspace(0,np.log10(90),10000);htop=80; s_cl=z
 loop_length = np.pi*htop; B_scale_height=loop_length*0.5/np.e # Mm
 alpha0=np.arcsin(np.sqrt(B_top/B_low))*180/np.pi
 alphac=np.arcsin(np.sqrt(B_top/B1000))*180/np.pi
-mirror_point = B_top-B_scale_height/np.tan(pitch_angle*3.14159/180);mirror_point[mirror_point<0] = 0
-mirror_ratio=B_low/B_top
+mirror_point = loop_length*0.5-B_scale_height/np.tan(pitch_angle*3.14159/180);mirror_point[mirror_point<0] = 0
+mirror_ratio=B_low/B_top;idx=np.where(mirror_point>20)
 bounce_time = 2*np.pi*B_scale_height/(v*np.sin(pitch_angle*np.pi/180))
 tcc=bounce_time/np.pi*np.arccos((htop-s_cl)/(htop-mirror_point))
 epsilonD = 1/((np.pi*loop_length*1000)/(2*726*18)) # 18" radius
@@ -56,11 +56,38 @@ w=tcc/t_collision
 t_loss=0.5*bounce_time
 t_loss = t_collision*(0.5*np.pi/np.arccos((htop-s_cl)/(htop-mirror_point)))
 
+tcc=(Talpha0*np.arccos(scl/s1))
+
+# In CGS
+fraction_flare=A/(4*np.pi*L**2)
+nnth=fraction_flare*3.e9
+v0=3.e9;S=120;m0=9.1e-28;n0=3.e8
+L=1.2e10;Gamma=1.e17;alp0=0.4;masing_length=6.e9
+Gamma=(2*np.pi*0.005*1.e9)
+facc=(v0/(L*Gamma))
+W = facc*n0*m0*v0*v0*alp0**3
+A=np.pi*(18*726)**2*1.e10;V=A*masing_length
+rad_energy=S*1.e-19*A*1.e9*2.5
+a=8;eta1=0.5*(a-3)*np.pi/alp0*np.sin(alp0)*np.sin(alp0)*np.cos(alp0)*np.cos(alp0)*alp0*alp0
+print('W (ergs/cm^3):',W,'facc:',facc,'W (ergs):',W*V,'Rad Ener:',rad_energy)
+print('Number of masing cells:',A/(rad_energy/W/masing_length),'Gamma:',Gamma/1.e5)
+print('Ratio:',W*V/rad_energy)
+del_alph=(rad_energy/V/facc/n0/m0/v0/v0)**(1./3)
 
 taup=5.1;tau_growth=6.3e-4
 tau_diff_eff=(taup/(2*np.pi))**2 /tau_growth
 tau_diff=tau_diff_eff*epsilonD
 I_ratio=np.sqrt(tau_growth/tau_diff_eff) # Ampltitude of perturbations in the number distribution to density
+
+tof0=100 # sec
+alpha_trap0 = np.rad2deg(np.arcsin(2.e9/tof0/v0))
+
+plt.plot(pitch_angle[idx],mirror_point[idx],'o-')
+plt.axvline(x=alpha0,color='k',label='$\\alpha_0$')
+plt.axhline(y=z_1500,color='r',label='1.5 GHz')
+plt.axhline(y=z_1000,color='b',label='1.0 GHz')
+plt.legend();plt.xlabel('$\\alpha$ (degrees)');plt.ylabel('Coronal Height (Mm)')
+plt.show()
 
 #CGS
 me=9.1e-28;kb=1.23e-16;v0=3.e9;n0=1.e9;omega=1.e9;alpha0=85;Tb=2.e7;c=3.e10
@@ -75,12 +102,14 @@ plt.plot(pitch_angle,tcc,color='black',linestyle='-',label='$t_{cc}$')
 plt.ylabel('Time (sec)');plt.xlabel('$\\alpha_0$ (degrees)');plt.legend()#;plt.ylim(0.01,1)
 plt.yscale('log');plt.show()
 
-cm = plt.cm.get_cmap('RdYlBu');sc = plt.scatter(x*1.4-200,z*1.4, c=babs, vmin=0, vmax=400, s=35, cmap=cm);plt.colorbar(sc,label='|B| (G)')
+cm = plt.cm.get_cmap('nipy_spectral');sc = plt.scatter(x*1.4-200,z*1.4, c=babs, vmin=0, vmax=500, s=35, cmap=cm,alpha=0.2)
+cb=plt.colorbar(sc,label='|B| (G)');cb.set_alpha(1);cb.draw_all()
+#idx1=np.where((babs<201)&(babs>199));plt.scatter(x[idx1]*1.4-200,z[idx1]*1.4, c='k')
 plt.plot(np.linspace(20,55,10),np.ones(10)*z_1000,'-',color='k',label='Gyrofrequency layer (s=2)')
 plt.plot(np.linspace(20,55,10),np.ones(10)*z_1500,'-',color='k')
-plt.plot(np.linspace(20,55,10),np.ones(10)*mirror_point.min(),'--',color='b',label = 'Mirror point')
-#plt.plot(np.linspace(220,255,10),np.ones(10)*mirror_point.max(),'--',color='b')
-plt.xlabel('Distance (Mm)');plt.ylabel('Height (Mm)');plt.legend(loc=2)
+plt.plot(np.linspace(20,55,10),np.ones(10)*35,'--',color='k',label = 'Mirror height')
+plt.plot(np.linspace(-95,-50,10),np.ones(10)*20,'--',color='k')
+plt.xlabel('Distance (Mm)');plt.ylabel('Height (Mm)');plt.legend(loc=2);plt.ylim(0,200)
 plt.show()
 
 #####

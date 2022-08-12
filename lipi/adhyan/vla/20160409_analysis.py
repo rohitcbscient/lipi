@@ -540,6 +540,29 @@ xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr=pickle.load(open('/media/roh
 #Tbmayn=maxTbi*1.0;Tbmays=maxTbi*1.0
 #Tbmayn[np.where(ycmax<255)]=np.nan;Tbmays[np.where(ycmax>255)]=np.nan
 
+plot_polarisation=1
+if(plot_polarisation):
+    plt.plot(freq,maxTbv[:,10]/maxTbi[:,10]*100,'o',color='blue')
+    plt.errorbar(freq,maxTbv[:,10]/maxTbi[:,10]*100,yerr=eTbv[:,10]/maxTbv[:,10]*100,color='blue',label='Continuum (18:44:00.5-18:44:00.55 UT)')
+    plt.plot(freq,maxTbv[:,858]/maxTbi[:,858]*100,'o',color='red')
+    plt.errorbar(freq,maxTbv[:,858]/maxTbi[:,858]*100,yerr=eTbv[:,858]/maxTbv[:,858]*100,color='red',label='Bursts (18:44:42.9-18:44:42.95 UT)')
+    plt.legend();plt.xlabel('Frequency (GHz)');plt.ylabel("Degree of Polarisation (V/I %)");plt.ylim(0,100)
+    plt.show()
+
+xx=np.log10(freq*1.e9);ycn=np.log10(maxTbv[:,10]);ybs=np.log10(maxTbv[:,858])
+zc=np.polyfit(xx,ycn, 1, cov=True);zb=np.polyfit(xx,ybs, 1, cov=True);pc=np.poly1d(zc[0]);pb=np.poly1d(zb[0]);ycn_fit=10**pc(xx);ybs_fit=10**pb(xx)
+ezc=np.sqrt(zc[1][0][0]);ezb=np.sqrt(zb[1][0][0])
+plot_Tb=1
+if(plot_polarisation):
+    plt.plot(freq,maxTbv[:,10],'o',color='blue')
+    plt.errorbar(freq,maxTbv[:,10],yerr=eTbv[:,10],color='blue',label='Continuum (18:44:00.5-18:44:00.55 UT)')
+    plt.plot(freq,maxTbv[:,858],'o',color='red')
+    plt.errorbar(freq,maxTbv[:,858],yerr=eTbv[:,858],color='red',label='Bursts (18:44:42.9-18:44:42.95 UT)')
+    plt.plot(freq,ycn_fit,'--',color='blue',label='$\\beta$='+str(np.round(zc[0][0],2))+'$\\pm$'+str(np.round(ezc,2)))
+    plt.plot(freq,ybs_fit,'--',color='red',label='$\\beta$='+str(np.round(zb[0][0],2))+'$\\pm$'+str(np.round(ezb,2)))
+    plt.legend();plt.xlabel('Frequency (GHz)');plt.ylabel("$T_B$ (K)");plt.xscale('log');plt.yscale('log')#;plt.ylim(0,100)
+    plt.show()
+
 do_pearson=1
 if(do_pearson):
     pr=[0]*32;pv=[0]*32
