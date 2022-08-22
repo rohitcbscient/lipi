@@ -297,7 +297,7 @@ qTbmax_wave=[qTbmax_wave0,qTbmax_wave3,qTbmax_wave5]
 for j in range(3):
     lin=np.concatenate((qTbmax_wave[j],Tbmax_wave[j*15]*10))
     twt=np.arange(len(lin))*0.05
-    idx=np.where(lin>0*np.std(lin[0:1000]));lin_=lin[idx];Pwtime[j]=[0]*len(lin_);tw=twt[idx]
+    idx=np.where(lin>1*np.std(lin[0:1000]));lin_=lin[idx];Pwtime[j]=[0]*len(lin_);tw=twt[idx]
     diffs = np.diff(idx)[0] != 1;indexes = np.nonzero(diffs)[0] + 1;ts1[j] = np.split(idx[0], indexes);numf[j]=len(ts1[j])
     wtime[j]=[0]*numf[j];wtime[j][0]=0
     for i in range(1,numf[j]):
@@ -309,14 +309,14 @@ for j in range(3):
     #popt[j], _ = curve_fit(fit_function,np.array(wtime[j])[2:], np.array(Pwtime[j])[2:]);popt[j]=popt[j][0]
     #Pwtime_fit[j]=fit_function(np.array(wtime[j])[2:], popt[j])
     popt[j], cov = curve_fit(fit_linear,np.log10(wtime_int[j][1:]),np.log10(Pwtime[j]+1));epopt[j]=np.sqrt(cov[0][0])
-    Pwtime_fit[j]=10**fit_linear(np.log10(np.linspace(0.1,10,100)), popt[j][0],popt[j][1])
+    Pwtime_fit[j]=10**fit_linear(np.log10(np.linspace(0.1,30,100)), popt[j][0],popt[j][1])
 
 plt.plot(np.array(wtime_int[0])[1:],Pwtime[0],'o',label='1 GHz',color='r')
-plt.plot(np.linspace(0.1,10,100),Pwtime_fit[0],'-',color='r',label='$\lambda$='+str(np.round(popt[0][0],2))+'$\pm$'+str(np.round(epopt[0],2)))
+plt.plot(np.linspace(0.1,30,100),Pwtime_fit[0],'-',color='r',label='$\lambda$='+str(np.round(popt[0][0],2))+'$\pm$'+str(np.round(epopt[0],2)))
 plt.plot(np.array(wtime_int[1])[1:],Pwtime[1],'o',label='1.5 GHz',color='g')
-plt.plot(np.linspace(0.1,10,100),Pwtime_fit[1],'-',color='g',label='$\lambda$='+str(np.round(popt[1][0],2))+'$\pm$'+str(np.round(epopt[1],2)))
+plt.plot(np.linspace(0.1,30,100),Pwtime_fit[1],'-',color='g',label='$\lambda$='+str(np.round(popt[1][0],2))+'$\pm$'+str(np.round(epopt[1],2)))
 plt.plot(np.array(wtime_int[2])[1:],Pwtime[2],'o',label='2 GHz',color='b')
-plt.plot(np.linspace(0.1,10,100),Pwtime_fit[2],'-',color='b',label='$\lambda$='+str(np.round(popt[2][0],2))+'$\pm$'+str(np.round(epopt[2],2)))
+plt.plot(np.linspace(0.1,30,100),Pwtime_fit[2],'-',color='b',label='$\lambda$='+str(np.round(popt[2][0],2))+'$\pm$'+str(np.round(epopt[2],2)))
 plt.legend();plt.xlabel('Wait Time (sec)');plt.ylabel('Occupancy (arbitrary)')
 plt.show()
 
@@ -572,7 +572,7 @@ ax0.set_xscale('log');ax0.set_ylabel('Frequency (GHz)');ax0.set_title('Maximum $
 divider = make_axes_locatable(ax0);cax = divider.append_axes('right', size='5%', pad=0.05);f.colorbar(im0, cax=cax, orientation='vertical')
 plt.show()
 
-fs = 10.,noisegen = pyplnoise.RedNoise(fs, 1e-3, fs/2.)
+fs = 10.;noisegen = pyplnoise.RedNoise(fs, 1e-3, fs/2.)
 
 from scipy import fft,ifft
 whitenoise = np.random.uniform(0,1,2000)
