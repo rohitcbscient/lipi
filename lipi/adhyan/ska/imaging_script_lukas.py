@@ -47,14 +47,22 @@ params = {
         "length": "12:00:00.000"
     },
     "telescope": {
-        #"input_directory": "../alma/telescope.tm"
-        "input_directory": "meerkat.tm"
+        "input_directory": "../alma/telescope.tm"
+        #"input_directory": "meerkat.tm"
     },
     "interferometer": {
         "ms_filename": "visibilities_gleam_meerkat.ms",
         "oskar_vis_filename": "visibilities_gleam.vis",
         "channel_bandwidth_hz": 1e6,
-        "time_average_sec": 10
+        "time_average_sec": 10,
+        "noise/enable":True,
+        "noise/seed":'time',
+        "noise/freq/start":1.e9,
+        "noise/freq/inc":1.e8,
+        "noise/freq/number":10,
+        "noise/rms":"Range",
+        "noise/rms/start":500,
+        "noise/rms/end":1000
     }
 }
 settings = oskar.SettingsTree("oskar_sim_interferometer")
@@ -69,6 +77,7 @@ sim = oskar.Interferometer(settings=settings)
 sim.set_sky_model(sky)
 sim.run()
 
+sys.exit()
 (header, handle) = oskar.VisHeader.read('visibilities_gleam.vis')
 block = oskar.VisBlock.create_from_header(header)
 tasks_read = []
