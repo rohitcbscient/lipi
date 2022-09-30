@@ -532,11 +532,11 @@ if(get_max):
 
 
 xcvmax,ycvmax,xcv90,ycv90,maxTbv,Tbv_r1,Tbv_r2,eTbv=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_v.p','rb'),encoding='latin1')
-Tbmayn=maxTbv*1.0;Tbmays=maxTbv*1.0
 #Tbmayn[np.where(ycmax<255)]=np.nan;Tbmays[np.where(ycmax>255)]=np.nan
 xcimax,ycimax,xci90,yci90,maxTbi,Tbi_r1,Tbi_r2,areai50,eTbi=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_i.p','rb'),encoding='latin1')
 xclmax,yclmax,xcl90,ycl90,maxTbl,Tbl_r1,Tbl_r2,eTbl=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_l.p','rb'),encoding='latin1')
 xcrmax,ycrmax,xcr90,ycr90,maxTbr,Tbr_r1,Tbr_r2,eTbr=pickle.load(open('/media/rohit/VLA/20160409/vlamax_loc_r.p','rb'),encoding='latin1')
+Tbmayn=maxTbr*1.0;Tbmays=maxTbr*1.0
 #Tbmayn=maxTbi*1.0;Tbmays=maxTbi*1.0
 #Tbmayn[np.where(ycmax<255)]=np.nan;Tbmays[np.where(ycmax>255)]=np.nan
 
