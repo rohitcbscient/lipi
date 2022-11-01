@@ -43,10 +43,11 @@ def idl2sunpy_hmi(mapsav):
     header['NAXIS'] = 2
     header['NAXIS2'], header['NAXIS1'] = dat.shape
     header['HGLN_OBS'] = 0.
-    header['HGLT_OBS'] = sunpy.coordinates.get_sun_B0(header['DATE-OBS']).value
+    #header['HGLT_OBS'] = sunpy.coordinates.get_sun_B0(header['DATE-OBS']).value
+    header['HGLT_OBS'] = sunpy.coordinates.sun.B0(header['DATE-OBS']).value
     header['RSUN_REF'] = sunpy.sun.constants.radius.value
     header['RSUN_OBS'] = 958.11#sunpy.coordinates.sun.angular_radius(header['DATE-OBS']).value
-    header['DSUN_OBS'] = sunpy.coordinates.get_sunearth_distance(header['DATE-OBS']).to(u.meter).value
+    header['DSUN_OBS'] = sunpy.coordinates.sun.earth_distance(header['DATE-OBS']).to(u.meter).value
     smp = smap.Map(dat, header)
     return smp
 
@@ -76,10 +77,11 @@ def idl2sunpy_sdo(mapsav,wave,inst):
     header['NAXIS'] = 2
     header['NAXIS2'], header['NAXIS1'] = dat.shape
     header['HGLN_OBS'] = 0.
-    header['HGLT_OBS'] = sunpy.coordinates.get_sun_B0(header['DATE-OBS']).value
+    #header['HGLT_OBS'] = sunpy.coordinates.get_sun_B0(header['DATE-OBS']).value
+    header['HGLT_OBS'] = sunpy.coordinates.sun.B0(header['DATE-OBS']).value
     header['RSUN_REF'] = sunpy.sun.constants.radius.value
     header['RSUN_OBS'] = 958.11#sunpy.coordinates.sun.angular_radius(header['DATE-OBS']).value
-    header['DSUN_OBS'] = sunpy.coordinates.get_sunearth_distance(header['DATE-OBS']).to(u.meter).value
+    header['DSUN_OBS'] = sunpy.coordinates.sun.earth_distance(header['DATE-OBS']).to(u.meter).value
     smp = smap.Map(dat, header)
     return smp
 
@@ -213,7 +215,7 @@ def get_hmi_submap(f,xbl,ybl,xtr,ytr):
     #xcen=(xbl+xtr)*0.5;ycen=(ybl+ytr)*0.5
     n=len(f);maplist=[0]*n;datalist=[0]*n;time=[0]*n
     for i in range(n):
-        g=fits.open(f[i])
+        g=fits.open(f[i],ignore_missing_simple=True)
         map_1=Map(f[i])
         map_=Map(map_1.data[::-1,::-1],map_1.meta)
         #cent_pix=map_.world_to_pixel(SkyCoord(xcen*u.arcsec, ycen*u.arcsec, frame=map_.coordinate_frame)) 
@@ -540,24 +542,25 @@ Tbmayn=maxTbr*1.0;Tbmays=maxTbr*1.0
 #Tbmayn=maxTbi*1.0;Tbmays=maxTbi*1.0
 #Tbmayn[np.where(ycmax<255)]=np.nan;Tbmays[np.where(ycmax>255)]=np.nan
 
+qtime=146
 plot_polarisation=1
 if(plot_polarisation):
-    plt.plot(freq,maxTbv[:,10]/maxTbi[:,10]*100,'o',color='blue')
-    plt.errorbar(freq,maxTbv[:,10]/maxTbi[:,10]*100,yerr=eTbv[:,10]/maxTbv[:,10]*100,color='blue',label='Continuum (18:44:00.5-18:44:00.55 UT)')
+    plt.plot(freq,maxTbv[:,qtime]/maxTbi[:,qtime]*100,'o',color='blue')
+    plt.errorbar(freq,maxTbv[:,qtime]/maxTbi[:,qtime]*100,yerr=eTbv[:,qtime]/maxTbv[:,qtime]*100,color='blue',label='Continuum (18:44:07.5-18:44:07.55 UT)')
     plt.plot(freq,maxTbv[:,858]/maxTbi[:,858]*100,'o',color='red')
     plt.errorbar(freq,maxTbv[:,858]/maxTbi[:,858]*100,yerr=eTbv[:,858]/maxTbv[:,858]*100,color='red',label='Bursts (18:44:42.9-18:44:42.95 UT)')
     plt.legend();plt.xlabel('Frequency (GHz)');plt.ylabel("Degree of Polarisation (V/I %)");plt.ylim(0,100)
     plt.show()
 
-xx=np.log10(freq*1.e9);ycn=np.log10(maxTbv[:,10]);ybs=np.log10(maxTbv[:,858])
+xx=np.log10(freq*1.e9);ycn=np.log10(maxTbr[:,qtime]);ybs=np.log10(maxTbr[:,858])
 zc=np.polyfit(xx,ycn, 1, cov=True);zb=np.polyfit(xx,ybs, 1, cov=True);pc=np.poly1d(zc[0]);pb=np.poly1d(zb[0]);ycn_fit=10**pc(xx);ybs_fit=10**pb(xx)
 ezc=np.sqrt(zc[1][0][0]);ezb=np.sqrt(zb[1][0][0])
 plot_Tb=1
 if(plot_polarisation):
-    plt.plot(freq,maxTbv[:,10],'o',color='blue')
-    plt.errorbar(freq,maxTbv[:,10],yerr=eTbv[:,10],color='blue',label='Continuum (18:44:00.5-18:44:00.55 UT)')
-    plt.plot(freq,maxTbv[:,858],'o',color='red')
-    plt.errorbar(freq,maxTbv[:,858],yerr=eTbv[:,858],color='red',label='Bursts (18:44:42.9-18:44:42.95 UT)')
+    plt.plot(freq,maxTbr[:,qtime],'o',color='blue')
+    plt.errorbar(freq,maxTbr[:,qtime],yerr=eTbr[:,10],color='blue',label='Continuum (18:44:07.5-18:44:07.55 UT)')
+    plt.plot(freq,maxTbr[:,858],'o',color='red')
+    plt.errorbar(freq,maxTbr[:,858],yerr=eTbr[:,858],color='red',label='Bursts (18:44:42.9-18:44:42.95 UT)')
     plt.plot(freq,ycn_fit,'--',color='blue',label='$\\beta$='+str(np.round(zc[0][0],2))+'$\\pm$'+str(np.round(ezc,2)))
     plt.plot(freq,ybs_fit,'--',color='red',label='$\\beta$='+str(np.round(zb[0][0],2))+'$\\pm$'+str(np.round(ezb,2)))
     plt.legend();plt.xlabel('Frequency (GHz)');plt.ylabel("$T_B$ (K)");plt.xscale('log');plt.yscale('log')#;plt.ylim(0,100)
@@ -1644,36 +1647,39 @@ plt.show()
 
 
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import Ellipse
 ncolors = 256
 color_array = plt.get_cmap('gist_rainbow')(range(ncolors))
 color_array[:,-1] = np.linspace(0.0,1.0,ncolors)
 map_object = LinearSegmentedColormap.from_list(name='rainbow_alpha',colors=color_array)
 plt.register_cmap(cmap=map_object)
 
-f=plt.figure(figsize=(10,10))
-ax0 = f.add_subplot(111)
 cc=maphmi[-1]
 dd=v;dd.data[np.isnan(dd.data)]=0
+ee=allmaps['aia171']['map171'][10]
+f=plt.figure(figsize=(10,10))
+ax0 = f.add_subplot(111,projection=cc)
 xlaia=cc.center.Tx.value-0.61*int(cc.data.shape[0]/2);xraia=cc.center.Tx.value+0.61*int(cc.data.shape[0]/2);ylaia=cc.center.Ty.value-0.61*int(cc.data.shape[1]/2);yraia=cc.center.Ty.value+0.61*int(cc.data.shape[0]/2)
-p=cc.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
+p=cc.plot(axes=ax0,aspect='auto')#,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
 #lev1=(1.5e7/dd.data.max())*np.array([60,70,80,90])*u.percent
 lev1=np.array([70,75,85,95])*u.percent
 xlvla=dd.center.Tx.value-2.0*int(dd.data.shape[0]/2);xrvla=dd.center.Tx.value+2.0*int(dd.data.shape[0]/2);ylvla=dd.center.Ty.value-2.0*int(dd.data.shape[1]/2);yrvla=dd.center.Ty.value+2.0*int(dd.data.shape[0]/2)
-dd.draw_contours(levels=lev1,colors=color_array[0][0:3],linewidths=2,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
-v2.draw_contours(levels=lev1,colors=color_array[30][0:3],linewidths=2,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
-v4.draw_contours(levels=lev1,colors=color_array[40][0:3],linewidths=2,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
-v6.draw_contours(levels=lev1,colors=color_array[50][0:3],linewidths=2,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
-ax0.text(-900+10,100+40,str(np.round(dd.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[0][0:3])
-ax0.text(-900+10,100+30,str(np.round(v2.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[30][0:3])
-ax0.text(-900+10,100+20,str(np.round(v4.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[40][0:3])
-ax0.text(-900+10,100+10,str(np.round(v6.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[50][0:3])
-ax0.set_xlim([xlaia,xraia]);ax0.set_ylim([ylaia,yraia])
+dd.draw_contours(levels=lev1,colors=color_array[0][0:3],linewidths=2)#,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
+v2.draw_contours(levels=lev1,colors=color_array[30][0:3],linewidths=2)#,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
+v4.draw_contours(levels=lev1,colors=color_array[40][0:3],linewidths=2)#,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
+v6.draw_contours(levels=lev1,colors=color_array[50][0:3],linewidths=2)#,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
+p=ee.plot(axes=ax0,aspect='auto',cmap='rainbow_alpha',vmin=100,vmax=8000,alpha=0.7)#,extent=[xlaia,xraia,ylaia,yraia])
+ax0.set_title('HMI: 18:50:47 UT VLA: 18:44:43.00-18:44:43.05 UT')
+ax0.text(400,100,str(np.round(dd.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[0][0:3])
+ax0.text(400,120,str(np.round(v2.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[30][0:3])
+ax0.text(400,140,str(np.round(v4.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[40][0:3])
+ax0.text(400,160,str(np.round(v6.meta['restfrq']/1.e9,3))+' GHz',fontsize=18,color=color_array[50][0:3])
+beam = Ellipse(xy=(340, 80), width=24, height=40, edgecolor='blue', fc='None', lw=2)
+ax0.add_patch(beam)
+#ax0.set_xlim([xlaia,xraia]);ax0.set_ylim([ylaia,yraia])
 #ax0.text(-1200,0,str(np.round(dd.meta['crval3']/1.e9,4))+' GHz',color='r')
 #ax0.text(-1200,50,'Contours: 3, 4.5, 6, 7.5, 9, 10, 12, 13 MK',color='yellow')
-ax0.set_xlim([-900,-700]),ax0.set_ylim([100,300])
-ee=allmaps['aia171']['map171'][10]
-p=ee.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto',cmap='rainbow_alpha',vmin=100,vmax=8000,alpha=0.7)
-ax0.set_title('HMI: 18:50:47 UT VLA: 18:44:43.00-18:44:43.05 UT')
+#ax0.set_xlim([-900,-700]),ax0.set_ylim([100,300])
 plt.show()
 
 

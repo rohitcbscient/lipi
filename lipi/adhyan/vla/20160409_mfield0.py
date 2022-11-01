@@ -246,7 +246,7 @@ plot_paper_timeseries=1
 Tball0=np.hstack((qsmaxTbr,maxTbr[0]));Tball0[2132:2170]=np.nan;Tball0[4531:4570]=np.nan;qsmaxTbr[2132:2170]=np.nan;qsmaxTbr[4531:4570]=np.nan
 if(plot_paper_timeseries):
     f,ax=plt.subplots(1,1)
-    ax.plot(Tball0/1.e6,'o-',label=str(freq[0])+' GHz',markersize=2.0)
+    ax.plot(Tball0/1.e6,'o-',label=str(np.round(freq[0]))+' GHz',markersize=2.0)
     ax.axvline(x=0,color='k');ax.axvline(x=6799,color='k');ax.axvline(x=4800,color='k');ax.axvspan(-1,4800,color='yellow',alpha=0.2);ax.axvspan(4800,6800,color='gray',alpha=0.2)
     ax.set_xticks(np.arange(len(Tball0))[::900]);ax.set_xticklabels(['18:40:00','18:40:45','18:41:30','18:42:15','18:43:00','18:43:45','18:44:30','18:45:15'])
     ax.legend();ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS UT)')
