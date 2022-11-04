@@ -15,7 +15,7 @@ for b in bl:
         listp=sorted(glob.glob('/media/rohit/MWA/20140914/pickle/f*'+str(fid)+'*T'+b+'*.p'))
         Tb[k][j]=[0]*len(listp);nccf[k][j]=[0]*len(listp);corr[k][j]=[0]*len(listp)
         for i in range(len(listp)):
-            aa=pickle.load(open(listp[i],'rb'))
+            aa=pickle.load(open(listp[i],'rb'),encoding='bytes')
             Tb[k][j][i]=aa[17][3][0][1:3].mean(axis=0);nccf[k][j][i]=aa[5][0][1:3].mean(axis=0);corr[k][j][i]=aa[17][2][0][1:3].mean(axis=0)
         Tb[k][j]=np.array(Tb[k][j]);nccf[k][j]=np.array(nccf[k][j]);corr[k][j]=np.array(corr[k][j])
         j=j+1
@@ -26,12 +26,12 @@ Tb=Tb.reshape(6,9,1325).mean(axis=0)
 
 Tbimg=[0]*3;Tbimgmax=[0]*3
 for i in range(3):
-    bb=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_'+fl[i*4]+'.p','rb'))
+    bb=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_'+fl[i*4]+'.p','rb'),encoding='bytes')
     Tbimg[i]=np.array(bb[0]);Tbimgmax[i]=np.array(bb[0]).max(axis=(1,2))
 
 ############## LASCO
 
-lasco=pickle.load(open('/media/rohit/MWA/20140914/lasco/lasco_maps.p','rb'))
+lasco=pickle.load(open('/media/rohit/MWA/20140914/lasco/lasco_maps.p','rb'),encoding='bytes')
 
 
 for i in range(3):
@@ -41,7 +41,7 @@ plt.show()
 
 
 #plt.plot(corr[0],'o-');plt.show()
-plt.imshow(Tb,origin=0,aspect='auto',interpolation='None',vmax=200,vmin=0)
+plt.imshow(Tb,origin='lower',aspect='auto',interpolation='None',vmax=200,vmin=0)
 plt.colorbar(label='Flux (SFU)');plt.yticks(np.arange(9),freq);
 plt.xticks([0,150,300,450,600,750,900,1050,1200],['01:30','02:00','02:30','03:00','03:30','04:00','04:30','05:00','05:30'])
 plt.xlabel('Time (HH:MM UT)');plt.ylabel('Frequency (MHz)')

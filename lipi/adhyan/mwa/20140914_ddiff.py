@@ -34,6 +34,10 @@ for i in range(len(bdiff_list)):
     intb171[i]=d[liney,linex]
 intb171=np.array(intb171).swapaxes(0,1)[:,::-1]
 
+
+plt.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
+plt.show()
+
 f,ax=plt.subplots(4,1,sharex=True);ax0=ax[0];ax1=ax[1];ax2=ax[2];ax3=ax[3]
 ax0.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
 ax0.set_xticks(np.arange(1311)[::200]);ax0.set_xticklabels(time171[::200]);ax0.set_xlabel('Time (HH:MM:SS)')

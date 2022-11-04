@@ -122,15 +122,17 @@ beam=np.array(([6.79143269857,7.19919993083],
 
 
 ####### Radio Contours #############
+freq=np.array([108, 120, 133, 145, 160, 179, 197, 217, 240])
+flist=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
 aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_187-188_sub_test.p','rb'),encoding='bytes');Tb240=np.array(aa[0]);maxX=[0]*len(Tb240);maxY=[0]*len(Tb240);xc90_240=[0]*len(Tb240);yc90_240=[0]*len(Tb240)
 aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_125-126_sub_test.p','rb'),encoding='bytes');Tb160=np.array(aa[0]);xc90_160=[0]*len(Tb160);yc90_160=[0]*len(Tb160)
 aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_084-085_sub_test.p','rb'),encoding='bytes');Tb108=np.array(aa[0]);xc90_108=[0]*len(Tb108);yc90_108=[0]*len(Tb108)
 xc90_240_,yc90_240_,xc90_160_,yc90_160_,xc90_108_,yc90_108_=0,0,0,0,0,0
-freq=np.array([108, 120, 133, 145, 160, 179, 197, 217, 240])
-flist=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+
 Tball=[0]*9;xc90=[0]*9;yc90=[0]*9;maxX=[0]*9;maxY=[0]*9;Tbmax=[0]*9;xbsub50=[0]*9;ybsub50=[0]*9
 Tbsuball=[0]*9;xcsub90=[0]*9;ycsub90=[0]*9;maxsubX=[0]*9;maxsubY=[0]*9
 for j in range(9):
+    print(freq[j],' MHz')
     bb=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_'+flist[j]+'_sub_test.p','rb'),encoding='bytes')
     aa=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_'+flist[j]+'.p','rb'),encoding='bytes')
     Tball[j]=np.array(aa[0]);xc90[j]=[0]*len(Tball[j]);yc90[j]=[0]*len(Tball[j]);maxX[j]=[0]*len(Tball[j]);maxY[j]=[0]*len(Tball[j])
@@ -172,6 +174,8 @@ tmwa=np.array(aa[10]);tsubmwa=np.array(bb[5]);pa_angle=np.array(pa_angle);Tbmax=
 xcsub90_xray=xcsub90-750;ycsub90_xray=ycsub90+300;rcsub90_xray=np.sqrt(xcsub90_xray**2 + ycsub90_xray**2);
 pickle.dump([tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
 
+tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+
 from surya.utils import model
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
@@ -206,6 +210,72 @@ for i in range(899):
 
 
 
+def get_pol(aa):
+    XXamp=aa[5][0];YYamp=aa[5][3]
+    XYamp=aa[5][1]
+    XYphase=aa[6][1]
+    YXamp=aa[5][2]
+    YXphase=aa[6][2]
+    V=(XYamp*np.sin(XYphase)-YXamp*np.sin(YXphase))/2
+    I=(XXamp+YYamp)/2
+    return I,V
+
+
+
+ff1='/media/rohit/MWA/20140914/pickle/20140914_084-085.ms_T009-010.p'
+aa=pickle.load(open(ff1,'rb'),encoding='bytes')
+I108,V108=get_pol(aa)
+ff2='/media/rohit/MWA/20140914/pickle/20140914_187-188.ms_T009-010.p'
+bb=pickle.load(open(ff2,'rb'),encoding='bytes')
+I240,V240=get_pol(bb)
+filelist=sorted(glob.glob('/media/rohit/MWA/20140914/pickle/20140914_*.ms_T009-010.p'))
+flist=['084-085','093-094','103-104','113-114','125-126','139-140','153-154','169-170','187-188']
+freq=np.array([108,120,133,145,161,179,197,217,240]);I=[0]*9;V=[0]*9
+for i in range(9):
+    aa=pickle.load(open(filelist[i],'rb'),encoding='bytes')
+    I_,V_=get_pol(aa);I[i]=I_[0];V[i]=V_[0]
+I=np.array(I);V=np.array(V)
+
+VbyI_sub=-1*V[:,400:1299]/I[:,400:1299]
+plt.imshow(V/I*-1,aspect='auto',origin='lower',vmin=0,vmax=0.8,cmap='jet')
+plt.xlabel('Time (HH:MM:SS UT)');plt.ylabel('Frequency (MHz)')
+plt.yticks(np.arange(9),freq)
+plt.xticks(np.arange(53)[::10]*25,aa[14][::10]);plt.colorbar(label="(V/I)")
+plt.show()
+
+############333
+tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+
+############### AIA
+
+ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*ddiff.fits'))
+bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*bdiff.fits'))
+linex=np.arange(3100,3500);liney=np.arange(1270,1670)[::-1]
+line_check=1
+if line_check:
+    mapp=Map(ddiff_list[0]);d=mapp.data
+    mapp.plot()
+    plt.plot(linex,liney,color='k')
+    plt.show()
+
+intd171=[0]*len(ddiff_list)
+time171=[0]*len(ddiff_list)
+for i in range(len(ddiff_list)):
+    mapp=Map(ddiff_list[i]);d=mapp.data;intd171[i]=[0]*len(linex)
+    time171[i]=ddiff_list[i].split('T')[1].split('Z')[0]
+    for j in range(len(linex)):
+        intd171[i][j]=d[liney[j]-5:liney[j]+5,linex[j]-5:linex[j]+5].mean()
+intd171=np.array(intd171).swapaxes(0,1)[:,::-1]
+
+intb171=[0]*len(bdiff_list)
+for i in range(len(bdiff_list)):
+    mapp=Map(bdiff_list[i]);d=mapp.data
+    intb171[i]=d[liney,linex]
+intb171=np.array(intb171).swapaxes(0,1)[:,::-1]
+
+
+
+
 sys.exit()
 
 colors = iter(cm.jet(np.linspace(0, 1,9)))
@@ -224,6 +294,14 @@ for i in [0,8]:
     ax1.plot(ycsub90[i],'o-',markersize=2,label=str(freq[i])+' MHz')
 ax0.set_ylim(0,250);ax1.set_ylim(-600,-200)
 ax0.legend();ax1.legend();ax1.set_ylabel('Y-Coordinate');ax0.set_ylabel('$T_B$ (MK)')
+plt.show()
+
+
+f,(ax0) = plt.subplots(1,1)
+ax0.plot(np.array(xcsub90)[6:].mean(axis=0),'o',label=str(np.round(freq[6]))+'-240 MHz')
+ax0.plot(np.array(xcsub90)[0:2].mean(axis=0),'o',label='108-'+str(np.round(freq[2]))+' MHz')
+ax0.legend();ax0.set_ylim([700,1000]);ax0.set_ylabel('Y-Coordinate (arcsec)');ax0.set_xlabel('Time (HH:MM UT)')
+ax0.set_xticks([0,100,200,300,400,500,600,700,800]);ax0.set_xticklabels(['02:15','02:35','02:55','03:15','03:35','03:55','04:15','04:35','04:55'])
 plt.show()
 
 f,ax=plt.subplots(2,1,sharex=True);ax0=ax[0];ax1=ax[1]
@@ -278,6 +356,20 @@ ax.plot(tmwa,np.array(maxY[-1]),'o-',markersize=0.5,label='Y-Coordinate')
 ax1.plot(tmwa,Tball[-1].max(axis=(1,2)),'o-',markersize=4.5,color='k');ax.legend()
 plt.show()
 
+
+f,ax0=plt.subplots(1,1)
+ax0.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
+ax0.set_xticks(np.arange(1311)[::200]);ax0.set_xticklabels(time171[::200]);ax0.set_xlabel('Time (HH:MM:SS)')
+ax0.set_yticks(np.arange(400)[::50]);ax0.set_yticklabels(np.arange(400)[::50]*726/1.e3);ax0.set_ylabel('Radial Distance (Mm)')
+#ax1=ax0.twinx()
+#ax1.plot(Tbmax[1],color='magenta',label='120 MHz');ax1.plot(Tbmax[7],color='r',label='217 MHz');ax1.legend();ax1.set_ylim(0,80.e6)
+ax2=ax0.twinx()
+ax2.plot(-1*V[0]/I[0],'-',color='k')
+ax2.axvline(x=460,linestyle='--',color='orange')
+ax2.axvline(x=240,linestyle='--',color='orange')
+ax2.axvline(x=180,linestyle='--',color='orange')
+plt.show()
+
 f,ax=plt.subplots(1,1)
 ax.plot(freq,Tbsuball.max(axis=(2,3))[:,200:300].mean(axis=1)/1.e6,'o',color='blue')
 ax.errorbar(freq,Tbsuball.max(axis=(2,3))[:,200:300].mean(axis=1)/1.e6,yerr=Tbsuball.max(axis=(2,3))[:,250:300].std(axis=1)/1.e6,label='Rising Phase',color='blue')
@@ -286,14 +378,31 @@ ax.errorbar(freq,np.nanmean(Tbsuball.max(axis=(2,3))[:,600:650],axis=1)/1.e6,yer
 ax.legend();ax.set_xlabel('Frequency (MHz)');ax.set_ylabel('$T_B$ (MK)')
 plt.show()
 
+### Plot Spectrum
+Tbsub_spec=Tbsubmax[:,250:550].mean(axis=1)
+Tbsub_err = Tbsubmax[:,0:200].std(axis=1)
+f,ax=plt.subplots(1,1)
+ax.plot(freq,Tbsub_spec/1.e6,'o',color='k')
+ax.errorbar(freq, Tbsub_spec/1.e6, yerr = Tbsub_err/1.e6,color='k')
+ax.set_xlabel('Frequency (MHz)'); ax.set_ylabel('$T_B$ (MK)')
+ax.axvline(x=freq[4],linestyle = ":")
+ax.axvspan(100, freq[4], color='red',alpha=0.2);ax.axvspan(freq[4], 250, color='green', alpha=0.2)
+ax.text(110, 130, 'Fundamental Emission', bbox=dict(facecolor='red', alpha=0.5))
+ax.text(185, 90, 'Harmonic Emission', bbox=dict(facecolor='green', alpha=0.5))
+ax.set_xlim(100,250)
+plt.show()
+
 f,(ax0,ax1,ax2)=plt.subplots(3,1,sharex=True)
-im0=ax0.imshow(Tbmax[:,400:1299]/1.e6,aspect='auto',cmap='jet',origin='lower',vmin=1.e0,vmax=1.e2,interpolation='None')
+im0=ax0.imshow(Tbmax[:,400:1299]/1.e6,aspect='auto',cmap='jet',origin='lower',vmin=1.e0,vmax=1.e2,interpolation='nearest')
 ax0.set_xlabel('Time');ax0.set_ylabel('Frequency (MHz)');ax0_divider = make_axes_locatable(ax0);cax0 = ax0_divider.append_axes("right", size="1%", pad="0%")
+ax0.contour(VbyI_sub,[0.4],colors='k',linewidths=2.0)
+ax0.contour(VbyI_sub,[0.5],colors='k',linewidths=2.0)
+ax0.contour(VbyI_sub,[0.6],colors='k',linewidths=2.0)
 f.colorbar(im0,label='$T_B$ (MK)',cax=cax0)
 im1=ax1.imshow(np.sqrt(xcsub90**2 + ycsub90**2),aspect='auto',origin='lower',vmin=800,vmax=1100,cmap='jet',interpolation='None')
 ax1.set_xlabel('Time');ax1.set_ylabel('Frequency (MHz)');ax1_divider = make_axes_locatable(ax1);cax1 = ax1_divider.append_axes("right", size="1%", pad="0%")
 f.colorbar(im1,label='Radial Coordinate (arcsec)',cax=cax1)
-ax2.plot(pa_angle+45,'o');ax2.set_xlabel('Time');ax2.set_ylabel('Position Angle (deg) w.r.t radial vector')
+ax2.plot(pa_angle+45,'o');ax2.set_xlabel('Time (HH:MM)');ax2.set_ylabel('Position Angle (deg) w.r.t radial vector')
 ax2.set_xticks([0,100,200,300,400,500,600,700,800]);ax2.set_xticklabels(['02:15','02:35','02:55','03:15','03:35','03:55','04:15','04:35','04:55'])
 ax1.set_yticks([0,1,2,3,4,5,6,7,8]);ax1.set_yticklabels(freq)
 ax0.set_yticks([0,1,2,3,4,5,6,7,8]);ax0.set_yticklabels(freq)
