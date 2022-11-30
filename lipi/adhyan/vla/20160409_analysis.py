@@ -88,11 +88,11 @@ def idl2sunpy_sdo(mapsav,wave,inst):
 
 def produce_tstring(f):
     mapp=Map(f);d=mapp.date
-    print(d)
-    date=mapp.date.ymdhms#.date
+    date1=mapp.date.ymdhms#.date
     #hhmmss=' '+str(date.hour)+':'+str(date.minute)+':'+str(date.second)+'.'+str(date.microsecond/1.e6).split('.')[1]
-    hhmmss=' '+str(date[3])+':'+str(date[4])+':'+str(date[4])+'.'+str(date[5]/1.e6).split('.')[1]
+    hhmmss=' '+str(date1[3])+':'+str(date1[4])+':'+str(date1[5])
     sec=ut.hms2sec_c(hhmmss)
+    print(d, date1,sec,hhmmss)
     return sec
 
 def get_sunpy_maps_rot(f,wave,inst):
@@ -259,6 +259,7 @@ sys.exit()
 
 dump_submaps=1
 if(dump_submaps):
+    # NOT USED
     list1600=sorted(glob.glob('/media/rohit/VLA/20160409_EUV/full_sun/1600/*rot.sav'))
     list1700=sorted(glob.glob('/media/rohit/VLA/20160409_EUV/full_sun/1700/*rot.sav'))
     list335=sorted(glob.glob('/media/rohit/VLA/20160409_EUV/full_sun/335/*rot.sav'))
@@ -286,17 +287,17 @@ if(dump_submaps):
     #map193,data193,time193=get_sunpy_maps(list193)
     #map1600,data1600,time1600=get_sunpy_maps(list1600)
     #map1700,data1700,time1700=get_sunpy_maps(list1700)
-    allmaps={};allmaps['aia94']={'map94':map94,'data94':data94,'time94':time94}
-    allmaps['aia131']={'map131':map131,'data131':data131,'time131':time131}
-    allmaps['aia171']={'map171':map171,'data171':data171,'time171':time171}
-    allmaps['aia193']={'map193':map193,'data193':data193,'time193':time193}
-    allmaps['aia211']={'map211':map211,'data211':data211,'time211':time211}
-    allmaps['aia304']={'map304':map304,'data304':data304,'time304':time304}
-    allmaps['aia335']={'map335':map335,'data335':data335,'time335':time335}
-    allmaps['aia1600']={'map1600':map1600,'data1600':data1600,'time1600':time1600}
-    allmaps['aia1700']={'map1700':map1700,'data1700':data1700,'time1700':time1700}
+    allaiamaps={};allaiamaps['aia94']={'map94':map94,'data94':data94,'time94':time94}
+    allaiamaps['aia131']={'map131':map131,'data131':data131,'time131':time131}
+    allaiamaps['aia171']={'map171':map171,'data171':data171,'time171':time171}
+    allaiamaps['aia193']={'map193':map193,'data193':data193,'time193':time193}
+    allaiamaps['aia211']={'map211':map211,'data211':data211,'time211':time211}
+    allaiamaps['aia304']={'map304':map304,'data304':data304,'time304':time304}
+    allaiamaps['aia335']={'map335':map335,'data335':data335,'time335':time335}
+    allaiamaps['aia1600']={'map1600':map1600,'data1600':data1600,'time1600':time1600}
+    allaiamaps['aia1700']={'map1700':map1700,'data1700':data1700,'time1700':time1700}
     print("Writing..")
-    pickle.dump(allmaps,open('/media/rohit/VLA/20160409/20160409_submap_aia_50ms.p','wb'))
+    pickle.dump(allaiamaps,open('/media/rohit/VLA/20160409/20160409_submap_aia_50ms.p','wb'))
     sys.exit()
     ##########################
     mapd94,datad94,timed94=get_sunpy_rundiff_maps(list94,'94','AIA')
@@ -1186,8 +1187,8 @@ pickle.dump([TbRRr1,TbRRr2,TbRRr3,TbRRr4,TbRRr5,xcRRmax,ycRRmax,xcRR90,ycRR90],o
 
 #### READ
 
-TbRRr1,TbRRr2,TbRRr3,TbRRr4,TbRRr5,xcRRmax,ycRRmax,xcRR90,ycRR90=pickle.load(open('/media/rohit/VLA/20160409/MaxRR.p','rb'))
-TbLLr1,TbLLr2,TbLLr3,TbLLr4,TbLLr5,xcLLmax,ycLLmax,xcLL90,ycLL90,timevla_all=pickle.load(open('/media/rohit/VLA/20160409/MaxLL.p','rb'))
+TbRRr1,TbRRr2,TbRRr3,TbRRr4,TbRRr5,xcRRmax,ycRRmax,xcRR90,ycRR90=pickle.load(open('/media/rohit/VLA/20160409/MaxRR.p','rb'),encoding='latin1')
+TbLLr1,TbLLr2,TbLLr3,TbLLr4,TbLLr5,xcLLmax,ycLLmax,xcLL90,ycLL90,timevla_all=pickle.load(open('/media/rohit/VLA/20160409/MaxLL.p','rb'),encoding='latin1')
 dcp_r1=(TbRRr1-TbLLr1)/(TbLLr1+TbRRr1)
 ff=11
 
@@ -1363,7 +1364,7 @@ sys.exit()
 #################
 vlafileLL='/media/rohit/VLA/20160409/vlamaps_LL/vlamap_18:44:43_0860.p'
 vlafileRR='/media/rohit/VLA/20160409/vlamaps_RR/vlamap_18:44:43_0860.p'
-vlaLL=pickle.load(open(vlafileLL,'rb'));vlaRR=pickle.load(open(vlafileRR,'rb'))
+vlaLL=pickle.load(open(vlafileLL,'rb'),encoding='latin1');vlaRR=pickle.load(open(vlafileRR,'rb'),encoding='latin1')
 tidx_94=ut.find_predecessor(allmaps['aia94']['time94'],vlaLL['vla']['timevla'][0])[0]
 tidx_131=ut.find_predecessor(allmaps['aia131']['time131'],vlaLL['vla']['timevla'][0])[0]
 tidx_171=ut.find_predecessor(allmaps['aia171']['time171'],vlaLL['vla']['timevla'][0])[0]
@@ -1410,7 +1411,7 @@ for i in range(len(list171)):
 
 ################ Read submaps ##############
 allmaps=pickle.load(open('/media/rohit/VLA/20160409/20160409_submap_aia_50ms.p','rb'),encoding='latin-1')
-vla0=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_0_50ms.p','rb'))
+vla0=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_0_50ms.p','rb'),encoding='latin-1')
 #vla1=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_1_50ms.p','rb'))
 #vla2=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_2_50ms.p','rb'))
 #vla3=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_3_50ms.p','rb'))
@@ -1492,8 +1493,8 @@ def get_ts(d,xl,xr,yl,yr):
     ts=[0]*len(d)
     for i in range(len(d)):
         #ts[i]=np.nanmax(d[i][xl:xr,yl:yr])
-        ts[i]=np.nanmean(d[i])
-    ts=np.array(ts)
+        ts[i]=np.nanmean(d[i][xl:xr,yl:yr])
+    ts=np.array(ts)/np.nanmax(np.array(ts))
     return ts
 
 
@@ -1504,11 +1505,13 @@ data335=allmaps['aia335']['data335']
 data1600=allmaps['aia1600']['data1600']
 data1700=allmaps['aia1700']['data1700']
 #Timeseries
-ts94=get_ts(data94,350,500,600,750)
-ts131=get_ts(data131,350,500,600,750)
-ts335=get_ts(data335,350,500,600,750)
-ts1600=get_ts(data1600,350,500,600,750)
-ts1700=get_ts(data1700,350,500,600,750)
+ts94=get_ts(data94,160,190,300,330) # 300-330,160-190
+ts131=get_ts(data131,160,190,300,330)
+ts335=get_ts(data335,160,190,300,330)
+ts1600=get_ts(data1600,160,190,300,330)
+ts1700=get_ts(data1700,160,190,300,330)
+time94=allmaps['aia94']['time94'];time131=allmaps['aia131']['time131'];time335=allmaps['aia335']['time335']
+time1600=allmaps['aia1600']['time1600'];time1700=allmaps['aia1700']['time1700'];time171=allmaps['aia171']['time171']
 
 #############################################
 
@@ -1568,37 +1571,44 @@ sys.exit()
 
 plot_euv_time=1
 if(plot_euv_time):
-    f,ax=plt.subplots(3,1,sharex=True)
-    ax[0].imshow(ds_LL1,aspect='auto',origin='lower',cmap='YlGnBu',vmin=10,vmax=80,extent=[67200.0,67560.,freq[0],freq[-1]])
+    dsplt=ds_LL1[0:128].mean(axis=0)/120; dsplt[2130:2170]=np.nan; dsplt[4530:4570]=np.nan; dsplt[6930:6970]=np.nan
+    f,ax=plt.subplots(3,1,sharex=True,gridspec_kw={'height_ratios': [1, 3, 1]})
+    ax[0].imshow(ds_LL1,aspect='auto',origin='lower',cmap='coolwarm',vmin=1,vmax=120,extent=[67200.0,67560.,freq[0],freq[-1]])
     ax[0].set_ylabel('Frequency (GHz)')
-    ax[1].plot(time94,ts94-ts94[1],'o-',label='AIA 94 $\AA$')
-    ax[1].plot(time131,ts131-ts131[1],'o-',label='AIA 131 $\AA$')
-    ax[1].plot(time335,ts335-ts335[1],'o-',label='AIA 335 $\AA$')
-    ax[1].plot(time1600,ts1600-ts1600[1],'o-',label='AIA 1600 $\AA$')
-    ax[1].plot(qstimevla[0][0]+np.arange(7200)*0.05,ds_LL1[0:128].mean(axis=0)/120,'-',color='k',label='0.99-1.25 GHz')
-    ax[1].plot(fmtime[14244:14332],fmrate[14244:14332:,0:20].mean(axis=1)/200,'o-',color='orange',label='FERMI')
+    ax[1].axhline(y=0.5,linestyle='--',color='gray')
+    ax[1].axvline(x=67315, linestyle='--', color='gray')
+    ax[1].axvline(x=67430, linestyle='--', color='gray')
+    ax[1].axvline(x=67443, linestyle='--', color='gray')
+    ax[1].axvline(x=67484, linestyle='--', color='gray')
+    ax[1].text(67315,2.4,"18:41:55",color='blue');ax[1].text(67415,2.5,"18:43:50",color='blue');ax[1].text(67443,2.5,"18:44:03",color='blue');ax[1].text(67484,2.5,"18:44:44",color='blue')
+    ax[1].plot(time94,ts94-ts94[1]+0.5,'o-',markersize=2,label='AIA 94 $\AA$')
+    ax[1].plot(time131,ts131-ts131[1]+0.5,'o-',markersize=2,label='AIA 131 $\AA$')
+    ax[1].plot(time335,ts335-ts335[1]+0.5,'o-',markersize=2,label='AIA 335 $\AA$')
+    ax[1].plot(time1600,ts1600-ts1600[1]+0.5,'o-',markersize=2,label='AIA 1600 $\AA$')
+    ax[1].plot(qstimevla[0][0]+np.arange(7200)*0.05,dsplt,'-',color='k',label='0.99-1.25 GHz')
+    ax[1].plot(fmtime[14244:14332],fmrate[14244:14332:,0:20].mean(axis=1)/200,'o-',markersize=2,color='orange',label='FERMI (10-25 keV)')
     #ax1.plot(np.hstack((np.array(qstimevla)[:,0],np.array(timevla_all)[0:2000])),np.hstack((np.array(qsTbr_r1),Tbr_r1[1]))/1.e8,'-',color='k',label='1.077 GHz')
     ax[1].set_xticks(np.arange(11)*60+67212-11)
     ax[1].set_xticklabels(['18:40','18:41','18:42','18:43','18:44','18:45','18:46','18:47','18:48','18:49','18:50'])
     #plt.ylabel('T$_{B}$ ($\\times10^{5}$ (K))');plt.xlabel('Time (HH:MM UT)')
     ax[1].legend(loc=2,prop={'size':15})
-    ax[2].plot(gtime[292:585]-600+67200,gf0540[292:585],'o-',color='g',label='0.5-4.0$\AA$')
+    ax[2].plot(gtime[292:585]-600+67200,gf0540[292:585]*1.e-23,'o-',color='g',label='0.5-4.0$\AA$')
     ax2=ax[2].twinx()
-    ax2.plot(gtime[292:585]-600+67200,gf1080[292:585],'o-',label='1.0-8.0$\AA$');ax[2].legend(loc=4);ax2.legend(loc=2)
+    ax2.plot(gtime[292:585]-600+67200,gf1080[292:585]*1.e-23,'o-',label='1.0-8.0$\AA$');ax[2].legend(loc=4);ax2.legend(loc=2)
     ax[1].set_ylabel('Amplitude');ax[2].set_xlabel('Time (HH:MM UT)')#;ax1.set_ylabel('')
-    ax[2].set_xlim([67200.,67560.]);ax[2].set_ylabel('Flux (W/m$^2$)');ax2.set_ylabel('Flux (W/m$^2$)')
+    ax[2].set_xlim([67200.,67560.]);ax[2].set_ylabel('Flux ($\\times10^{-23}$W/m$^2$)');ax2.set_ylabel('Flux ($\\times10^{-23}$W/m$^2$)')
     plt.show()
 
 f,ax=plt.subplots(1,1)
-ax.plot(gtime-600+67200,gf0540,'o-',color='g',label='0.5-4.0$\AA$')
+ax.plot(gtime-600+67200,gf0540*1.e-23,'o-',color='g',label='0.5-4.0$\AA$')
 ax1=ax.twinx()
-ax1.plot(gtime-600+67200,gf1080,'o-',color='b',label='1.0-8.0$\AA$')
+ax1.plot(gtime-600+67200,gf1080*1.e-23,'o-',color='b',label='1.0-8.0$\AA$')
 #ax.plot(gtime[292:585]-600+67200,gf0540[292:585],'o-',color='g',label='0.5-4.0$\AA$')
 ax.axvline(x=67200,linestyle='--',color='k')
 ax.axvline(x=67798,linestyle='--',color='k')
 ax.set_xticks(np.arange(11)*180+66601)
 ax.set_xticklabels(['18:30','18:33','18:36','18:39','18:42','18:45','18:48','18:51','18:54','18:57','19:00'])
-ax.set_ylabel('Flux (W/m$^2$)');ax1.set_ylabel('Flux (W/m$^2$)');ax.set_xlabel('Time (HH:MM UT)')
+ax.set_ylabel('Flux ($\\times10^{-23}$W/m$^2$)');ax1.set_ylabel('Flux ($\\times10^{-23}$W/m$^2$)');ax.set_xlabel('Time (HH:MM UT)')
 ax.legend(loc=4);ax1.legend(loc=2)
 plt.show()
 
