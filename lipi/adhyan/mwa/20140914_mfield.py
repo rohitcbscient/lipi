@@ -44,7 +44,7 @@ hmimap=Map(hmid,hmimap.meta)
 ###########################
 aiamap=Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.193A_2014-09-14T02_24_33.45Z.image_lev1.fits')
 aiamap=Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T02_24_13.21Z.image_lev1.fits')
-aiamapb,aiamapd=np.load('aia.lev1.171A_2014-09-14T02_16_13.26Z.image_lev1.fits_bdiff.sav.sunpy.npy',allow_pickle=True)
+#aiamapb,aiamapd=np.load('aia.lev1.171A_2014-09-14T02_16_13.26Z.image_lev1.fits_bdiff.sav.sunpy.npy',allow_pickle=True)
 
 blh = SkyCoord(625*u.arcsec, -425*u.arcsec, frame=hmimap.coordinate_frame)
 trh = SkyCoord(775*u.arcsec, -275*u.arcsec, frame=hmimap.coordinate_frame)
@@ -166,7 +166,7 @@ for j in range(9):
         xbsub50[j][i]=l50;ybsub50[j][i]=w50
     Tbmax[j]=Tball[j][0:1323].max(axis=(1,2))
     xc90[j]=xc90[j][0:1323];yc90[j]=yc90[j][0:1323]
-pa_angle=np.arctan((np.array(ycsub90[7])-np.array(ycsub90[1]))/(np.array(xcsub90[7])-np.array(xcsub90[1])))*180/np.pi
+pa_angle=np.arctan((np.array(xcsub90[7])-np.array(xcsub90[1]))/(np.array(ycsub90[7])-np.array(ycsub90[1])))*180/np.pi
 Tball=np.array(Tball);xc90=np.array(xc90);yc90=np.array(yc90);xbsub50=np.array(xbsub50);ybsub50=np.array(ybsub50);maxX=np.array(maxX);maxY=np.array(maxY)
 Tbsuball=np.array(Tbsuball);xcsub90=np.array(xcsub90);ycsub90=np.array(ycsub90);maxsubX=np.array(maxsubX);maxsubY=np.array(maxsubY)
 Tbsuball[Tbsuball>5.e8]=np.nan
@@ -175,6 +175,7 @@ xcsub90_xray=xcsub90-750;ycsub90_xray=ycsub90+300;rcsub90_xray=np.sqrt(xcsub90_x
 pickle.dump([tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
 
 tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+rcsub90=np.sqrt(xcsub90**2+ycsub90**2)
 
 from surya.utils import model
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
@@ -236,12 +237,70 @@ for i in range(9):
     I_,V_=get_pol(aa);I[i]=I_[0];V[i]=V_[0]
 I=np.array(I);V=np.array(V)
 
-VbyI_sub=-1*V[:,400:1299]/I[:,400:1299]
+VbyI_sub=-1*V[:,270:270+899]/I[:,270:270+899]
 plt.imshow(V/I*-1,aspect='auto',origin='lower',vmin=0,vmax=0.8,cmap='jet')
 plt.xlabel('Time (HH:MM:SS UT)');plt.ylabel('Frequency (MHz)')
 plt.yticks(np.arange(9),freq)
 plt.xticks(np.arange(53)[::10]*25,aa[14][::10]);plt.colorbar(label="(V/I)")
 plt.show()
+
+#--- Plotting the centroids plot
+hTb=np.nanmean(Tbsubmax[4:,:],axis=0)/1.e6;hTb[hTb<0] = np.nan
+fTb=np.nanmean(Tbsubmax[0:4,:],axis=0)/1.e6;fTb[fTb<0] = np.nan
+f,ax=plt.subplots(1,1)
+ax.plot(hTb,color='red',label='161-240 MHz')
+ax.plot(fTb,color='blue',label='108-145 MHz')
+ax.axvline(x=379,color='k',linestyle='--',label='03:20:00 UT')
+ax.legend();ax.set_ylim(0,200);ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS)')
+ax.set_xticks([0,200,400,600,800]);ax.set_xticklabels(['02:15:04','02:48:24','03:22:04','03:55:24','04:29:04'])
+ax.text(10, 160, 'Fundamental Dominated', bbox=dict(facecolor='red', alpha=0.5))
+ax.text(400, 160, 'Harmonic Dominated', bbox=dict(facecolor='green', alpha=0.5))
+ax.axvspan(0, 379, color='red',alpha=0.2);ax.axvspan(379, 900, color='green', alpha=0.2)
+plt.show()
+
+
+hTb=np.nanmean(Tbsubmax[4:,:],axis=0)/1.e6;hTb[hTb<0] = np.nan
+fTb=np.nanmean(Tbsubmax[0:4,:],axis=0)/1.e6;fTb[fTb<0] = np.nan
+f,ax=plt.subplots(1,1)
+ax.plot(hTb,color='red',label='161-240 MHz')
+ax.plot(fTb,color='blue',label='108-145 MHz')
+ax.axvline(x=404,color='brown',linestyle='--',label='03:22:24 UT') # 379 / 03:20:00 /Tb changed
+ax.legend();ax.set_ylim(0,200);ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS UT)')
+ax.set_xticks([0,200,400,600,800]);ax.set_xticklabels(['02:15:04','02:48:24','03:22:04','03:55:24','04:29:04'])
+ax.text(10, 180, 'Harmonic Dominated', bbox=dict(facecolor='red', alpha=0.5))
+ax.text(428, 180, 'Fundamental Dominated', bbox=dict(facecolor='green', alpha=0.5))
+ax.axvspan(0, 404, color='red',alpha=0.2);ax.axvspan(404, 900, color='green', alpha=0.2)
+ax1=ax.twinx()
+ax1.plot(np.arange(rcsub90.shape[1])[70:],np.mean(rcsub90[6:,70:],axis=0),'o-',color='k',markersize=2,linewidth=0.5);ax1.set_ylabel('Radial Coordinate (arcsec)')
+ax1.set_ylim(750,1000)
+plt.show()
+
+
+f,ax=plt.subplots(1,1)
+ax.imshow(Tbsubmax/1.e6,aspect='auto',origin='lower',vmin=0,vmax=200,cmap='coolwarm')
+ax.contour(Tbsubmax/1.e6,[135],colors='k',linewidths=1)
+ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS)')
+ax.set_xticks([0,200,300,400,500,600,800]);ax.set_xticklabels(['02:15:04','02:48:24','03:05:04','03:22:04','03:38:44','03:55:24','04:29:04'])
+ax.set_yticks(np.arange(9));ax.set_yticklabels(freq);ax.set_xlim([190,610])
+plt.show()
+
+f,ax=plt.subplots(1,1)
+ax.plot(freq,Tbsubmax[:,414]/1.e6,'o-',label='03:24:04 UT')
+ax.legend();ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Frequency (MHz)')
+ax.axvline(x=161,linestyle='--',color='k')
+ax.text(120, 161, 'Harmonic Emission', bbox=dict(facecolor='red', alpha=0.5))
+ax.text(180, 161, 'Fundamental Emission', bbox=dict(facecolor='green', alpha=0.5))
+ax.axvspan(108, 161, color='red',alpha=0.2);ax.axvspan(161, 240, color='green', alpha=0.2)
+ax.set_xlim(100,250)
+plt.show()
+
+#############
+
+rhessi0="/data/Dropbox/20140914/rhessi_analysis/hsi_20140914_010340_002.fits";r0=fits.open(rhessi0);r0_h,r0_d=r0[0].header,r0[0].data
+rhessi1="/data/Dropbox/20140914/rhessi_analysis/hsi_20140914_021700_002.fits";r1=fits.open(rhessi1);r1_h,r1_d=r1[0].header,r1[0].data
+rh_counts=readsav('/media/rohit/MWA/20140914/rhessi/counts_obs.sav')
+
+
 
 ############333
 tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
@@ -408,8 +467,31 @@ ax1.set_yticks([0,1,2,3,4,5,6,7,8]);ax1.set_yticklabels(freq)
 ax0.set_yticks([0,1,2,3,4,5,6,7,8]);ax0.set_yticklabels(freq)
 plt.show()
 
+xcsub90[:,0:120]=np.nan;ycsub90[:,0:120]=np.nan
 
-bdiff_list=sorted(glob.glob('/sdata/fits/*171*bdiff.fits'))[500:505]
+f,(ax0,ax1,ax2)=plt.subplots(3,1,sharex=True)
+im0=ax0.imshow(Tbmax[:,270:270+899]/1.e6,aspect='auto',cmap='coolwarm',origin='lower',vmin=1.e0,vmax=1.e2,interpolation='nearest')
+ax0.set_ylabel('Frequency (MHz)');ax0_divider = make_axes_locatable(ax0);cax0 = ax0_divider.append_axes("right", size="1%", pad="0%")
+ax0.contour(VbyI_sub,[0.4],colors='k',linewidths=2.0)
+ax0.contour(VbyI_sub,[0.5],colors='k',linewidths=2.0)
+ax0.contour(VbyI_sub,[0.6],colors='k',linewidths=2.0)
+ax0.axvline(x=372,linestyle='--',linewidth=3,color='green')
+f.colorbar(im0,label='$T_B$ (MK)',cax=cax0)
+im1=ax1.imshow(np.sqrt(xcsub90**2 + ycsub90**2),aspect='auto',origin='lower',vmin=750,vmax=1000,cmap='coolwarm',interpolation='None')
+ax1.set_ylabel('Frequency (MHz)');ax1_divider = make_axes_locatable(ax1);cax1 = ax1_divider.append_axes("right", size="1%", pad="0%")
+ax1.axvline(x=372,linestyle='--',linewidth=3,color='green')
+f.colorbar(im1,label='Radial Coordinate (arcsec)',cax=cax1)
+ax2.plot(pa_angle,'o',markersize=2);ax2.set_xlabel('Time (HH:MM)');ax2.set_ylabel('Orientation Angle (deg)')
+ax2.set_xticks([0,120,240,360,480,600,720,840]);ax2.set_xticklabels(['02:15','02:35','02:55','03:15','03:35','03:55','04:15','04:35'])
+ax2.axvline(x=372,linestyle='--',linewidth=3,color='green')
+ax1.set_yticks([0,1,2,3,4,5,6,7,8]);ax1.set_yticklabels(freq)
+ax0.set_yticks([0,1,2,3,4,5,6,7,8]);ax0.set_yticklabels(freq)
+ax2.set_yticks([-50,-20,0,20,50]);ax2.set_ylim([-95,70])
+ax0.text(130,7,'(A)');ax1.text(130,7,'(B)');ax2.text(130,40,'(C)')
+plt.show()
+
+
+bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*bdiff.fits'))[500:505]
 for i in range(len(bdiff_list)):
     ii="%04d"%i
     mapp=Map(bdiff_list[i])
@@ -423,7 +505,7 @@ for i in range(len(bdiff_list)):
     ax.set_xlim([blx,trx]);ax.set_ylim([bly,rty])
     plt.savefig('/sdata/fits/pngs171_bdiff/aia171_bdiff_'+ii+'.png')
 
-ddiff_list=sorted(glob.glob('/sdata/fits/*94*bdiff.fits'))
+ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*94*bdiff.fits'))
 for i in range(150,650):
     ii="%04d"%i
     mapp=Map(ddiff_list[i])
@@ -450,7 +532,7 @@ for i in range(150,650):
     plt.savefig('/sdata/fits/pngs94_ddiff/aia193_bdiff3_'+ii+'.png')
     plt.close()
 
-ddiff_list=sorted(glob.glob('/sdata/fits/*171*ddiff.fits'))
+ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*ddiff.fits'))
 for i in range(150,450):
     ii="%04d"%i
     mapp=Map(ddiff_list[i])
@@ -488,6 +570,7 @@ for i in range(150,450):
         seeds0 = SkyCoord(hp_lon0.ravel(), hp_lat0.ravel(),frame=mapp.coordinate_frame)
         ax.plot_coord(seeds0, color=next(colors), marker='o', markersize=10,alpha=0.5,linestyle='None',markeredgecolor='black')
     plt.savefig('/sdata/fits/pngs171_ddiff/aia171_ddiff2_'+ii+'.png')
+    plt.show()
     plt.close()
 
 
@@ -632,30 +715,51 @@ if plot_one:
     #ax.set_xlim([blx,trx]);ax.set_ylim([bly,rty])
     plt.show()
 
+#####- PAPER
+
 plot_one=1
 if plot_one:
+    aiamap = Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T02_00_35.34Z.image_lev1.fits')
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111,projection=aiamap)
-    p0=aiamap.plot(axes=ax,aspect='auto')
+    p0=aiamap.plot(axes=ax,aspect='auto',vmin=100,vmax=8000)
     hp_lon0 =  bshp0x* u.arcsec;hp_lat0 = bshp0y* u.arcsec
     hp_lon1 = bshp1x * u.arcsec;hp_lat1 = bshp1y* u.arcsec
-    seeds00 = SkyCoord(hp_lon0.ravel(), hp_lat0.ravel(),frame=aiamap.coordinate_frame)
-    ax.plot_coord(seeds00, color='brown', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
+    #seeds00 = SkyCoord(hp_lon0.ravel(), hp_lat0.ravel(),frame=aiamap.coordinate_frame)
+    #ax.plot_coord(seeds00, color='brown', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
     seeds01 = SkyCoord(hp_lon1.ravel(), hp_lat1.ravel(),frame=aiamap.coordinate_frame)
-    ax.plot_coord(seeds01, color='black', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
-    seeds1 = SkyCoord(xc90[8][400:1000]*u.arcsec, yc90[8][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
-    ax.plot_coord(seeds1, color='tab:red', marker='s', markersize=1.0,alpha=0.6,linestyle='None')
-    seeds2 = SkyCoord(xc90[4][400:1000]*u.arcsec, yc90[4][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
-    ax.plot_coord(seeds2, color='tab:green', marker='s', markersize=1.0,alpha=0.6,linestyle='None')
-    seeds3 = SkyCoord(xc90[0][400:1000]*u.arcsec, yc90[0][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
-    ax.plot_coord(seeds3, color='tab:blue', marker='s', markersize=1.0,alpha=1.0,linestyle='None')
-    seeds4 = SkyCoord(710*u.arcsec, -314*u.arcsec,frame=hmimap.coordinate_frame)
-    ax.plot_coord(seeds4, color='tab:cyan', marker='o', markersize=10.0,alpha=1.0,linestyle='None')
+    ax.plot_coord(seeds01, color='tab:blue', marker='s', markersize=0.5,alpha=0.5,linestyle='None')
+    seeds1 = SkyCoord(xc90[8][400:600]*u.arcsec, yc90[8][400:600]*u.arcsec,frame=aiamap.coordinate_frame)
+    ax.plot_coord(seeds1, color='tab:red', marker='s', markersize=4.0,alpha=0.6,linestyle='None')
+    #-------------------
+    rhessi_image_list = sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_15-25keV_*.fits'))
+    img = fits.open(rhessi_image_list[85]);imgdata = img[0].data;imghead = img[0].header
+    aiahead1=aiamap.meta
+    aiahead1['naxis1']=imghead['NAXIS1'];aiahead1['naxis2']=imghead['NAXIS2']
+    aiahead1['CRPIX1']=imghead['CRPIX1'];aiahead1['CRPIX2']=imghead['CRPIX2']
+    aiahead1['CRVAL1']=imghead['CRVAL1'];aiahead1['CRVAL2']=imghead['CRVAL2']
+    aiahead1['CDELT1']=imghead['CDELT1'];aiahead1['CDELT2']=imghead['CDELT2']
+    img = fits.open(rhessi_image_list[trhessi_idx]);imgdata = img[0].data;imghead = img[0].header
+    rhessi_map=Map(imgdata,aiahead1)
+    frac_r1=0.9;frac_r2=0.8;frac_r3=0.85
+    lev_r1=np.nanmax(rhessi_map.data)*frac_r1
+    lev_r2 = np.nanmax(rhessi_map.data) * frac_r2
+    lev_r3 = np.nanmax(rhessi_map.data) * frac_r3
+    c1=rhessi_map.contour(level=lev_r1* u.ct);ax.plot_coord(c1[0],color='green')
+    c2 = rhessi_map.contour(level=lev_r2 * u.ct);ax.plot_coord(c2[0], color='green')
+    c3 = rhessi_map.contour(level=lev_r3 * u.ct);    ax.plot_coord(c3[0], color='green')
+    #seeds2 = SkyCoord(xc90[4][400:1000]*u.arcsec, yc90[4][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
+    #ax.plot_coord(seeds2, color='tab:green', marker='s', markersize=1.0,alpha=0.6,linestyle='None')
+    #seeds3 = SkyCoord(xc90[0][400:1000]*u.arcsec, yc90[0][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
+    #ax.plot_coord(seeds3, color='tab:blue', marker='s', markersize=1.0,alpha=1.0,linestyle='None')
+    #seeds4 = SkyCoord(710*u.arcsec, -314*u.arcsec,frame=hmimap.coordinate_frame)
+    #ax.plot_coord(seeds4, color='tab:cyan', marker='o', markersize=10.0,alpha=1.0,linestyle='None')
     #bl=SkyCoord(-850*u.arcsec,300*u.arcsec,frame=aiamap.coordinate_frame)
     #tr=SkyCoord(-550*u.arcsec,600*u.arcsec,frame=aiamap.coordinate_frame)
     #blx=aiamap.world_to_pixel(bla)[0].value;bly=aiamap.world_to_pixel(bla)[1].value
     #trx=aiamap.world_to_pixel(tra)[0].value;rty=aiamap.world_to_pixel(tra)[1].value
     #ax.set_xlim([blx,trx]);ax.set_ylim([bly,rty])
+    ax.set_xlim([2700,3700]);ax.set_ylim([800,1800])
     plt.show()
 
 plot_hmi=1
@@ -680,8 +784,8 @@ tmin=np.arange(len(xc90_240))*12
 plot_xc=1
 if(plot_xc):
     f,ax=plt.subplots(2,1,sharex=True);ax0=ax[0];ax1=ax[1]
-    ax0.plot(tmin,xc90_240,'o-',label='240 MHz');ax0.plot(tmin,xc90_160,'o-',label='160 MHz');ax0.plot(tmin,xc90_108,'o-',label='108 MHz')
-    ax1.plot(tmin,yc90_240,'o-',label='240 MHz');ax1.plot(tmin,yc90_160,'o-',label='160 MHz');ax1.plot(tmin,yc90_108,'o-',label='108 MHz')
+    ax0.plot(tmin,xc90_240[1:],'o-',label='240 MHz');ax0.plot(tmin,xc90_160,'o-',label='160 MHz');ax0.plot(tmin,xc90_108,'o-',label='108 MHz')
+    ax1.plot(tmin,yc90_240[1:],'o-',label='240 MHz');ax1.plot(tmin,yc90_160,'o-',label='160 MHz');ax1.plot(tmin,yc90_108,'o-',label='108 MHz')
     ax0.set_ylabel('X-Coordinate');ax0.legend();ax0.set_ylim(700,1050)
     ax1.set_ylabel('Y-Coordinate');ax1.legend();ax1.set_ylim(-600,-200);ax1.set_xlabel('Time (sec)')
     plt.show()
