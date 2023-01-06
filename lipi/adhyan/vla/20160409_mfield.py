@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.io import fits
 from surya.utils import Bextrap
+from surya.utils import main as ut
 from astropy import units as u
 import matplotlib.pyplot as plt
 import pickle
@@ -36,7 +37,7 @@ idx1500=np.where((babs<B1500+1) & (babs>B1500-1))
 z_1000=z[idx1000].max()*1.4;z_1500=z[idx1500].max()*1.4
 
 ####
-fermi_energy=15 # keV
+fermi_energy=4 # keV
 omegapbygyro=0.3
 R=z_1000-z_1500
 v=np.sqrt(fermi_energy/(0.5*9.1e-31)*(1.e3*1.6e-19))/1.e6 # Mm/s
@@ -155,3 +156,54 @@ bsmap[0].plot(axes=ax)
 seeds = SkyCoord(hp_lon.ravel(), hp_lat.ravel(),frame=bsmap[0].coordinate_frame)
 ax.plot_coord(seeds, color='white', marker='o', linewidth=0)
 
+
+#####
+
+penergy=np.linspace(1,20,100)
+pitch_angle_array=np.linspace(70,89,100)
+Mm2cm=1.e8
+volume=np.pi*(18/2.)**2*60
+stopping_depth=0.92e17*penergy**2
+ne=6.e8
+stopping_length=2.e17*penergy**2/ne/1.e8
+#stopping_length=stopping_depth*volume*Mm2cm**3
+ve=300*np.sqrt(1-(1/(0.002*penergy+1)**2))
+travel_time=np.zeros((len(ve),len(pitch_angle_array)))
+for i in range(len(ve)):
+    for j in range(len(pitch_angle_array)):
+        travel_time[i][j]=175./(ve[i]*np.cos(pitch_angle_array[j]*np.pi/180))
+
+energy_stopping_length=np.sqrt(60/2.e17*ne*1.e8) # stopping width = 60 Mm
+energy_stopping_idx=ut.find_nearest(penergy,energy_stopping_length)[0]
+
+ne_low=1.e8
+energy_stopping_length_low=np.sqrt(115/2.e17*ne_low*1.e8) # stopping width = 60 Mm
+energy_stopping_idx_low=ut.find_nearest(penergy,energy_stopping_length_low)[0]
+travel_time1=1.0*travel_time;travel_time1[travel_time1<40] = np.nan;travel_time1[travel_time1>50] = np.nan
+travel_time1[0:energy_stopping_idx_low]=np.nan; travel_time1[energy_stopping_idx:]=np.nan
+travel_time1[np.isfinite(travel_time1)]=1.0
+
+f,ax=plt.subplots(1,1)
+im=ax.imshow(np.log10(travel_time),origin='lower',aspect='auto',cmap='coolwarm')
+ax.contour(np.log10(travel_time),[np.log10(40)],color='k',linewidth=4)
+ax.contour(np.log10(travel_time),[np.log10(50)],color='k',linewidth=4)
+ax.imshow(travel_time1,origin='lower',alpha=0.5,cmap='Wistia')
+ax.axhline(y=energy_stopping_idx_low,color='brown')
+ax.axhline(y=energy_stopping_idx,color='brown')
+f.colorbar(im,label='$log_{10}$(Travel Time) (s)')
+#plt.plot([70.5],[17],'o',markersize=10,color='green')
+ax.set_xticks(np.arange(len(pitch_angle_array))[::10]);ax.set_xticklabels(np.round(pitch_angle_array,1)[::10])
+ax.set_yticks(np.arange(len(penergy))[::10]);ax.set_yticklabels(np.round(penergy,1)[::10])
+ax.set_ylabel('Energy (keV)');ax.set_xlabel('Pitch Angle (deg)')
+plt.show()
+
+f,ax=plt.subplots(1,1)
+ax.plot(penergy,stopping_length,'o-')
+ax.axvline(x=energy_stopping_length)
+plt.show()
+
+Talpha0=2*np.pi*30/(ve*np.sin(28*np.pi/180))
+s1=90;scl=80
+tcc=(Talpha0*np.arccos(scl/s1))
+t_collision_arr=lambda_ei/ve
+w=tcc/t_collision_arr
