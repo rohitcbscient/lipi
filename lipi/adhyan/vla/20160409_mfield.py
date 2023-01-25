@@ -1,11 +1,12 @@
 import numpy as np
 from astropy.io import fits
-from surya.utils import Bextrap
-from surya.utils import main as ut
 from astropy import units as u
 import matplotlib.pyplot as plt
+from surya.utils import Bextrap
+from surya.utils import main as ut
 import pickle
 from astropy.coordinates import SkyCoord
+from matplotlib.colors import LogNorm
 
 h=np.arange(200)*1400/1.e3 # in Mm
 h1=np.arange(200)*500/1.e3 # in Mm
@@ -31,25 +32,140 @@ x,y,z,bx,by,bz,b_hp,b_hp_pix,b_carr,b_carr_pix=Bextrap.transform_fieldlines(x,y,
 babs=np.sqrt(bx**2 + by**2 + bz**2)
 ####
 s=2
-B1000=1000./2.8/s;B1500=1500./2.8/s # in G
+B1000=1000./2.8/s;B1500=1500./2.8/s;B1200 = 1200./2.8/s # in G
 idx1000=np.where((babs<B1000+1) & (babs>B1000-1))
 idx1500=np.where((babs<B1500+1) & (babs>B1500-1))
-z_1000=z[idx1000].max()*1.4;z_1500=z[idx1500].max()*1.4
+idx1200=np.where((babs<B1200+1) & (babs>B1200-1))
+z_1000=z[idx1000].max()*1.4;z_1500=z[idx1500].max()*1.4;z_1200=z[idx1200].max()*1.4
 
 ####
-fermi_energy=4 # keV
+penergy=np.linspace(1,20,100)
+#fermi_energy=1 # keV
+pitch_angle=np.logspace(0,np.log10(90),1000)
 omegapbygyro=0.3
 R=z_1000-z_1500
-v=np.sqrt(fermi_energy/(0.5*9.1e-31)*(1.e3*1.6e-19))/1.e6 # Mm/s
-T=fermi_energy*1.16e7
-B_low=200;B_top=40;pitch_angle=np.logspace(0,np.log10(90),10000);htop=80; s_cl=z_1000 # Mm/s
-loop_length = np.pi*htop; B_scale_height=loop_length*0.5/np.e # Mm
-alpha0=np.arcsin(np.sqrt(B_top/B_low))*180/np.pi
-alphac=np.arcsin(np.sqrt(B_top/B1000))*180/np.pi
-mirror_point = loop_length*0.5-B_scale_height/np.tan(pitch_angle*3.14159/180);mirror_point[mirror_point<0] = 0
-mirror_ratio=B_low/B_top;idx=np.where(mirror_point>20)
-bounce_time = 2*np.pi*B_scale_height/(v*np.sin(pitch_angle*np.pi/180))
-tcc=bounce_time/np.pi*np.arccos((htop-s_cl)/(htop-mirror_point))
+B_low = 200;
+B_top = 40
+htop = 80;
+s_cl1000 = loop_length * 0.5-z_1000  # Mm/s
+s_cl1200 = loop_length * 0.5-z_1200  # Mm/s
+s_cl1500 = loop_length * 0.5-z_1500  # Mm/s
+loop_length = np.pi * htop;
+B_scale_height = loop_length * 0.5 / np.e  # Mm
+alpha0 = np.arcsin(np.sqrt(B_top / B_low)) * 180 / np.pi
+alphac = np.arcsin(np.sqrt(B_top / B1000)) * 180 / np.pi
+mirror_point = B_scale_height / np.tan(pitch_angle * 3.14159 / 180);
+mirror_point[mirror_point >loop_length*0.5] = loop_length*0.5
+mirror_ratio = B_low / B_top
+
+f,ax=plt.subplots(1,1)
+ax.plot(pitch_angle,mirror_point,'o-',label='Mirror Point')
+ax.axhline(y=s_cl1000,label='1.0 GHz',color='r')
+ax.axhline(y=s_cl1500,label='1.5 GHz',color='g')
+ax.axvline(x=70,label='$\\alpha=70^o$',color='k')
+ax.axvline(x=85,label='$\\alpha=85^o$',color='brown')
+ax.legend()
+ax.set_xlabel('Pitch Angle (deg)');ax.set_ylabel('$s$ (Mm)')
+plt.show()
+
+
+ne_1d=ne[28];ne_1p5GHz=ne_1d[75];ne_1d_low=1.5e8
+v=300*np.sqrt(1-(1/(0.002*penergy+1)**2))
+lambda_turb=lambda_ei*np.e
+tcc=[0]*len(penergy);bounce_time=[0]*len(penergy);w=[0]*len(penergy);t_loss=[0]*len(penergy)
+slength=[0]*len(penergy);slength_turb=[0]*len(penergy);
+i=0
+for fermi_energy in penergy:
+    #v[i]=np.sqrt(fermi_energy/(0.5*9.1e-31)*(1.e3*1.6e-19))/1.e6 # Mm/s
+    T=fermi_energy*1.16e7
+    #idx=np.where(mirror_point>20)
+    bounce_time[i] = 2*np.pi*B_scale_height/(v[i]*np.sin(pitch_angle*np.pi/180))
+    tcc[i]=bounce_time[i]/np.pi*np.arccos((s_cl)/(mirror_point))
+    epsilonD = 1/((np.pi*loop_length*1000)/(2*726*18)) # 18" radius
+    Tt=2.e6;lambda_ei=5210*Tt**2/(ne_1p5GHz)/1.e8 #(CGS) in Mm ne[28][72] is ne for the 1.5 GHz
+    w[i]=tcc[i]/(lambda_ei/v[i])
+    t_loss[i] = (lambda_ei/v[i]) * (0.5 * np.pi / np.arccos((s_cl)/(mirror_point)))
+    slength[i]=10*(fermi_energy**2/400)*(10**11/ne_1d_low)*(np.cos(pitch_angle*np.pi/180))
+    slength_turb[i]=np.sqrt(lambda_turb*1.e8/9.3e-36/ne_1d_low)*penergy
+    i=i+1
+tcc=np.array(tcc);bounce_time=np.array(bounce_time)
+v=np.array(v);w=np.array(w);slength=np.array(slength)
+slength[slength>60] = np.nan;slength[slength<20] = np.nan
+slength_p=slength*1.0
+t_loss=np.array(t_loss)
+slength_p[0:9]=np.nan; slength_p[19:]=np.nan
+slength_p[np.isfinite(slength_p)]=1.0
+slength_turb=np.array(slength_turb)
+
+K=1.e-36
+
+slength_diff=np.sqrt(lambda_ei/K/ne_1d_low)*penergy/1.e8
+
+#--- Bounce Time
+f,ax=plt.subplots(1,1)
+im=ax.imshow(bounce_time,aspect='auto',origin='lower',cmap='jet',norm=LogNorm(vmin=5, vmax=200))
+ax.contour(bounce_time,levels=[40],color='k')
+ax.set_xscale('linear');ax.set_xlim([500,980])
+tickxidx=[200,500,600,700,800,980];ax.set_xticks([])
+ax.set_xticks(tickxidx)
+ax.set_xticklabels(np.round(pitch_angle[tickxidx],1))
+ax.set_yticks(np.arange(len(penergy))[::10])
+ax.set_yticklabels(np.round(penergy[::10],1))
+ax.set_ylabel('Electron Energy (keV)');ax.set_xlabel('Pitch Angle (deg)')
+f.colorbar(im,label='Bounce Time (sec)')
+plt.show()
+
+#--- tcc
+f,ax=plt.subplots(1,1)
+im=ax.imshow(tcc,aspect='auto',origin='lower',cmap='jet',norm=LogNorm(vmin=0.5, vmax=3))
+ax.set_xscale('linear');ax.set_xlim([500,980])
+tickxidx=[200,500,600,850,900,950,980];ax.set_xticks([])
+ax.set_xticks(tickxidx)
+ax.set_xticklabels(np.round(pitch_angle[tickxidx],1))
+ax.set_yticks(np.arange(len(penergy))[::10])
+ax.set_yticklabels(np.round(penergy[::10],1))
+ax.set_ylabel('Electron Energy (keV)');ax.set_xlabel('Pitch Angle (deg)')
+f.colorbar(im,label='$t_{cc}$ (sec)')
+plt.show()
+
+#--- t_loss
+f,ax=plt.subplots(1,1)
+im=ax.imshow(t_loss,aspect='auto',origin='lower',cmap='jet',norm=LogNorm(vmin=0.01, vmax=0.5))
+ax.set_xscale('linear');ax.set_xlim([500,980])
+tickxidx=[200,300,400,450,500,500,600,650,700,750,800];ax.set_xticks([])
+ax.set_xticks(tickxidx)
+ax.set_xticklabels(np.round(pitch_angle[tickxidx],1))
+ax.set_yticks(np.arange(len(penergy))[::10])
+ax.set_yticklabels(np.round(penergy[::10],1))
+ax.set_ylabel('Electron Energy (keV)');ax.set_xlabel('Pitch Angle (deg)')
+f.colorbar(im,label='$t_{loss}$ (sec)')
+plt.show()
+
+
+#--- Stopping Length
+f,ax=plt.subplots(1,1)
+im=ax.imshow(slength,aspect='auto',origin='lower',cmap='spring',norm=LogNorm(vmin=5, vmax=100))
+ax.set_xscale('linear');ax.set_xlim([800,990])
+tickxidx=[200,500,600,700,750,850,900,950,980];ax.set_xticks([])
+ax.set_xticks(tickxidx)
+ax.set_xticklabels(np.round(pitch_angle[tickxidx],1))
+ax.set_yticks(np.arange(len(penergy))[::10])
+ax.set_yticklabels(np.round(penergy[::10],1))
+ax.set_ylabel('Electron Energy (keV)');ax.set_xlabel('Pitch Angle (deg)')
+f.colorbar(im,label='$L_{stop}$ (Mm)')
+ax.imshow(slength_p,aspect='auto',origin='lower',alpha=0.4,cmap='winter')
+#ax.axhline(y=9,color='brown')
+ax.axhline(y=18,color='brown')
+ax.axhline(y=9,color='red',label='$E_{min}$=2.4 keV',linewidth=2,linestyle='--')
+ax.axvline(x=925,color='blue',label='$\\alpha=65^o$')
+ax.axvline(x=990,color='brown',label='$\\alpha=86^o$')
+ax.axvline(x=975,color='black',label='$\\alpha=81^o$',linewidth=2,linestyle='--')
+ax.legend(loc=2)
+plt.show()
+
+
+
+
 epsilonD = 1/((np.pi*loop_length*1000)/(2*726*18)) # 18" radius
 Tt=2.e6;lambda_ei=5210*Tt**2/(ne[28][72])/1.e8 #(CGS) in Mm ne[28][72] is ne for the 1.5 GHz 
 t_collision=lambda_ei/v # in sec
@@ -106,9 +222,10 @@ plt.yscale('log');plt.show()
 cm = plt.cm.get_cmap('nipy_spectral');sc = plt.scatter(x*1.4-200,z*1.4, c=babs, vmin=0, vmax=500, s=35, cmap=cm,alpha=0.2)
 cb=plt.colorbar(sc,label='|B| (G)');cb.set_alpha(1);cb.draw_all()
 #idx1=np.where((babs<201)&(babs>199));plt.scatter(x[idx1]*1.4-200,z[idx1]*1.4, c='k')
-plt.plot(np.linspace(20,55,10),np.ones(10)*z_1000,'-',color='k',label='Gyrofrequency layer (s=2)')
-plt.plot(np.linspace(20,55,10),np.ones(10)*z_1500,'-',color='k')
-plt.plot(np.linspace(20,55,10),np.ones(10)*35,'--',color='k',label = 'Mirror height')
+plt.plot(np.linspace(20,55,10),np.ones(10)*z_1000,'-',color='r',label='1 GHz Gyrofrequency layer (s=2)')
+plt.plot(np.linspace(20,55,10),np.ones(10)*z_1200,'-',color='brown',label='1.2 GHz Gyrofrequency layer (s=2)')
+plt.plot(np.linspace(20,55,10),np.ones(10)*z_1500,'-',color='orange',label='1.5 GHz Gyrofrequency layer (s=2)')
+plt.plot(np.linspace(20,55,10),np.ones(10)*35,'--',color='k',label = 'Mirroring layers')
 plt.plot(np.linspace(-95,-50,10),np.ones(10)*20,'--',color='k')
 plt.xlabel('Distance (Mm)');plt.ylabel('Height (Mm)');plt.legend(loc=2);plt.ylim(0,200)
 plt.show()
@@ -171,7 +288,7 @@ ve=300*np.sqrt(1-(1/(0.002*penergy+1)**2))
 travel_time=np.zeros((len(ve),len(pitch_angle_array)))
 for i in range(len(ve)):
     for j in range(len(pitch_angle_array)):
-        travel_time[i][j]=175./(ve[i]*np.cos(pitch_angle_array[j]*np.pi/180))
+        travel_time[i][j]=115./(ve[i]*np.cos(pitch_angle_array[j]*np.pi/180))
 
 energy_stopping_length=np.sqrt(60/2.e17*ne*1.e8) # stopping width = 60 Mm
 energy_stopping_idx=ut.find_nearest(penergy,energy_stopping_length)[0]

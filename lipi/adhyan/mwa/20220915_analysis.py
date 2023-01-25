@@ -7,6 +7,7 @@ from sunpy.map import Map
 import itertools
 import astropy.units as u
 from surya.utils import main as ut
+from scipy.io import readsav
 
 baseline=['087-088','087-105','087-123','088-105','088-123','105-123']
 ds=[0]*len(baseline);i=0
@@ -29,7 +30,7 @@ for c in chan:
     ax.axhline(y=c)
 plt.show()
 
-img=[0]*len(chan);i=0
+img=[0]*len(chan);i=0;freq_mwa=[0]*len(chan)
 for c in chan:
     print(c)
     imglist=sorted(glob.glob('/home/rohit/20220915/20220915_sun.chan.'+str(c)+'.pol.I.time.*.image_image.FITS'))[0:380]
@@ -38,21 +39,41 @@ for c in chan:
         aa=fits.open(im);data=aa[0].data[0][0][924:1124,924:1124]
         img[i][j]=data
         j=j+1
+    freq_mwa[i] = np.round(aa[0].header['CRVAL3'] / 1.e6, 1)
     i=i+1
 img=np.array(img)
 region1=img[:,:,105:130,105:130];region1_max=np.nanmax(region1,axis=(2,3))
 region1_mean=np.nanmean(region1,axis=(2,3))
+tmwa=12600+np.arange(region1_mean.shape[1])*10
+freq_mwa=np.array(freq_mwa)
 
-plt.imshow(region1_max,aspect='auto',origin='lower',interpolation=None)
+#---------------------- STIX X-ray
 
-plt.imshow(img[0].mean(axis=0),aspect='auto',origin='lower',interpolation=None)
+stix=readsav('/data/Dropbox/STIX-MWA/20220915/STIX_data/stix_lightcurves_spec_8-s_Earth-UT_20220915.sav')
+stix_data=stix['stix_lcstr']
+stix_data0=stix_data['data'][0]
+tstix_low=stix_data['ut'][0][:,0]-stix_data['ut'][0][:,0][0]+ 11022 #Start time 03:03:42
+tstix_high=stix_data['ut'][0][:,1]-stix_data['ut'][0][:,1][0]+11041 #Start time 03:04:01
+
+#plt.imshow(region1_max,aspect='auto',origin='lower',interpolation=None)
+
+#plt.imshow(img[0].mean(axis=0),aspect='auto',origin='lower',interpolation=None)
 
 
 f,ax=plt.subplots(1,1)
-ax.plot(region1_mean[3],'o-')
-ax.set_xticks([0,50,100,150,200,250,300,350])
-ax.set_xticklabels(['03:30:00','03:38:20','03:46:40','03:55:00','04:03:20','04:11:40','04:20:00','04:28:20'])
+ax1=ax.twinx()
+ax1.plot(tmwa,region1_mean[0]*3,'o-',linewidth=1,markersize=3,label='MWA ('+str(freq_mwa[0])+' MHz)',color='k')
+ax1.plot(tmwa,region1_mean[1]-5,'o-',linewidth=1,markersize=3,label='MWA ('+str(freq_mwa[1])+' MHz)',color='brown')
+#ax1.plot(tmwa,(region1_mean[2]-17)*0.2,'o-',linewidth=1,markersize=3,label='MWA ('+str(freq_mwa[2])+' MHz)',color='green')
+#ax1.plot(tmwa,region1_mean[0:].mean(axis=0),'o-',linewidth=1,markersize=3,label='MWA ($\\nu$-Average)',color='k')
+ax.plot(tstix_low,stix_data0[:,0],'-',label='STIX (6-7 keV)',color='r')
+ax.plot(tstix_high,stix_data0[:,1],'-',label='STIX (16-22 keV)',color='b')
+ax.set_xticks(tstix_low[::50])
+ax.set_xticklabels(['03:03:42','03:14:12','03:21:14','03:28:16','03:36:20','p03:44:58','03:55:11','04:03:29','04:14:13'])
 ax.set_ylabel('Amplitude');ax.set_xlabel('Time (HH:MM:SS)')
+ax.legend();ax1.legend(loc=3);ax.set_yscale('log');ax.set_ylabel('STIX Count Flux (counts/s/cm$^2$/keV)')
+ax.set_xlabel('Time (HH:MM:SS UT) (Start Time: 03:03:42 UT)');ax1.set_ylabel('Amplitude')
+ax1.set_ylim(0,3.2)
 plt.show()
 
 plt.plot(region1_max[0],'o-',label='Channel '+str(chan[i]))

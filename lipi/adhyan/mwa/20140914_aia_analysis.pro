@@ -27,7 +27,7 @@ yrange=[-400,-200]
 ;yrange=[-77,-277]
 n=n_elements(fitsfiles)
 ;for i=10,n do begin 
-for i=0,n do begin 
+for i=865,n do begin 
 	print,fitsfiles(i)
 	read_sdo,fitsfiles(i),index,data
 	aia_prep,index,data,final_index,final_data,/normalize

@@ -26,6 +26,9 @@ import os
 import sunpy
 from tvtk.api import tvtk, write_data
 import matplotlib.cm as cm
+from surya.utils import model
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+import pycwt as wavelet
 
 rename=0
 if(rename):
@@ -166,19 +169,19 @@ for j in range(9):
         xbsub50[j][i]=l50;ybsub50[j][i]=w50
     Tbmax[j]=Tball[j][0:1323].max(axis=(1,2))
     xc90[j]=xc90[j][0:1323];yc90[j]=yc90[j][0:1323]
-pa_angle=np.arctan((np.array(xcsub90[7])-np.array(xcsub90[1]))/(np.array(ycsub90[7])-np.array(ycsub90[1])))*180/np.pi
+#pa_angle=np.arctan((np.array(xcsub90[7])-np.array(xcsub90[1]))/(np.array(ycsub90[7])-np.array(ycsub90[1])))*180/np.pi
+pa_angle=np.arctan((np.array(xcsub90)[5:].mean(axis=0)-np.array(xcsub90[:2]).mean(axis=0))/(np.array(ycsub90[5:]).mean(axis=0)-np.array(ycsub90[:2]).mean(axis=0)))*180/np.pi
 Tball=np.array(Tball);xc90=np.array(xc90);yc90=np.array(yc90);xbsub50=np.array(xbsub50);ybsub50=np.array(ybsub50);maxX=np.array(maxX);maxY=np.array(maxY)
 Tbsuball=np.array(Tbsuball);xcsub90=np.array(xcsub90);ycsub90=np.array(ycsub90);maxsubX=np.array(maxsubX);maxsubY=np.array(maxsubY)
 Tbsuball[Tbsuball>5.e8]=np.nan
 tmwa=np.array(aa[10]);tsubmwa=np.array(bb[5]);pa_angle=np.array(pa_angle);Tbmax=np.array(Tbmax);Tbsubmax=np.nanmax(Tbsuball,axis=(2,3))
 xcsub90_xray=xcsub90-750;ycsub90_xray=ycsub90+300;rcsub90_xray=np.sqrt(xcsub90_xray**2 + ycsub90_xray**2);
-pickle.dump([tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
+pickle.dump([tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
 
-tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
 rcsub90=np.sqrt(xcsub90**2+ycsub90**2)
 
-from surya.utils import model
-from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
 
 znewkirk=np.linspace(0,200,1000)
 freq_arr=np.linspace(100,240,100)
@@ -303,7 +306,79 @@ rh_counts=readsav('/media/rohit/MWA/20140914/rhessi/counts_obs.sav')
 
 
 ############333
-tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+
+
+################ PA_angle Wavelet
+def do_wavelet(Tbr, N):
+    #datawave_=(Tbr-Tbr[0])/1.e6
+    datawave_=Tbr
+    #datawave_=np.convolve(datawave_, np.ones(N)/N, mode='valid')
+    datawave=datawave_[int(N/2):int(-1*N/2+1)]-np.convolve(datawave_, np.ones(N)/N, mode='valid')
+    std=np.std(datawave);datawave_std=datawave/std
+    timewave=np.arange(len(datawave))*10
+    #mother=wavelet.Morlet(6)
+    mother=wavelet.MexicanHat()
+    dt=10;s0 = 2 * dt;dj = 1. / 12 # Lowest scale s0
+    J = 8. / dj # Number of scales -1; Largest scale: s0 * 2**(J * dj)
+    var=std**2
+    alpha, _, _ = wavelet.ar1(datawave_std)
+    wave, scales, freqs, coi1, fft, fftfreqs = wavelet.cwt(datawave_std, dt, dj, s0, J,mother)
+    iwave = wavelet.icwt(wave, scales, dt, dj, mother) * std # Inverse CWT
+    power = (np.abs(wave)) ** 2;fft_power = np.abs(fft) ** 2;period = 1 / freqs;power /= scales[:, None]
+    signif, fft_theor = wavelet.significance(var, dt, scales, 0, alpha,
+                                             significance_level=0.95,
+                                             wavelet=mother)
+    return datawave_std,power,iwave,coi1,period,signif,fft_theor,var
+
+def plot_wavelet(Tb,t,dt,period,power,coi1,fil,tfreq,signif):
+    plt.ioff();label='T$_B$';units='(deg)'
+    figprops = dict(figsize=(20, 20), dpi=72)
+    fig = plt.figure(**figprops)
+    ax = plt.axes([0.1, 0.68, 0.67, 0.2])
+    #ax.plot(t, iwave[i], '-', linewidth=1, color=[0.5, 0.5, 0.5])
+    ax.plot(t,Tb,'o-', 'k', linewidth=1.5,markersize=1)
+    #ax.axvline(x=t[195],linestyle='--',color='black')
+    ax.grid(True)
+    ax.set_ylabel(r'{}{}'.format(label, units))
+    bx = plt.axes([0.1, 0.37, 0.65, 0.28], sharex=ax);levels = np.linspace(0.005,0.1,90)
+    #bx.contourf(t, periodds, np.log2(powerds), np.log2(levels),extend='both', cmap=plt.cm.YlOrRd)
+    bx.contourf(t, period, np.log2(power),np.log2(levels),extend='both', cmap=plt.cm.YlOrRd)
+    extent = [t.min(), t.max(), 0, max(period)]
+    bx.fill(np.concatenate([t, t[-1:] + dt, t[-1:] + dt, t[:1] - dt, t[:1] - dt]),np.concatenate([coi1, [1], period[-1:],period[-1:], [1]]),'k', alpha=0.3, hatch='x')
+    #bx.set_title('b) Wavelet Power Spectrum: Freq:'+str(freq[i])+' GHz({})'.format(label, 'MORLET'))
+    bx.set_ylabel('Period (sec)');bx.set_xlabel('Time (sec)');bx.set_yscale('log')
+    bx.grid(True)
+    cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
+    cx.plot(power.mean(axis=1), period, 'k-', linewidth=1.5)
+    cx.set_title('Global Wavelet Spectrum')
+    cx.set_xlabel('Power (deg$^2$)')
+    #cx.set_ylim(([periodds.min(), periodds.max()]))
+    cx.grid(True)
+    cx.set_xscale('log');plt.title('Frequency: '+str(tfreq)+' GHz')
+    cx.plot(signif, period, 'k--')
+    plt.savefig(fil,dpi=100)
+    plt.show()
+
+#pa_angle[558]=pa_angle[555];pa_angle[559]=pa_angle[556]
+pa_angle[628:632] = pa_angle[620];pa_angle[536:538]=pa_angle[532]
+pa_angle1=pa_angle[0:897].reshape(3,299).mean(axis=0)
+pa_angle2=pa_angle[120:315]
+pa_angle3=pa_angle[340:860];pa_angle4=np.hstack((pa_angle2,pa_angle3))
+
+N=40;dt=10;t2=np.arange(len(pa_angle2)-N+1)*dt
+Tbrs_wave2,s_power2,s_iwave2,s_coi2,period2,signif2,fft_theor2,var2=do_wavelet(pa_angle2, N);ns_power2=s_power2/np.nanmax(s_power2)
+plot_wavelet(Tbrs_wave2,t2,dt,period2,s_power2,s_coi2,'power0.png','',signif2)
+
+N=40;dt=10;t3=np.arange(len(pa_angle3)-N+1)*dt
+Tbrs_wave3,s_power3,s_iwave3,s_coi3,period3,signif3,fft_theor3,var3=do_wavelet(pa_angle3, N);ns_power3=s_power3/np.nanmax(s_power3)
+plot_wavelet(Tbrs_wave3,t3,dt,period3,s_power3,s_coi3,'power1.png','',signif3)
+
+f,ax=plt.subplots(1,1)
+ax.plot(period,np.median(ns_power2,axis=1),'o-',label='Harmonic Phase')
+ax.plot(period,np.median(ns_power3,axis=1),'o-',label='Fundamental Phase')
+ax.set_ylabel('Normalised Power');ax.set_xlabel('Period (sec)');ax.legend()
+plt.show()
 
 ############### AIA
 
@@ -333,6 +408,9 @@ for i in range(len(bdiff_list)):
 intb171=np.array(intb171).swapaxes(0,1)[:,::-1]
 
 
+
+ddiff211_list=sorted(glob.glob('/sdata/fits/running_diff/*211*ddiff.fits'))
+bdiff211_list=sorted(glob.glob('/sdata/fits/running_diff/*211*bdiff.fits'))
 
 
 sys.exit()

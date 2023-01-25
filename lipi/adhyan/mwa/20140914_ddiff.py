@@ -10,12 +10,14 @@ from matplotlib.patches import Ellipse
 
 
 ############333
-tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
 
 ############### AIA
 
 ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*ddiff.fits'))
 bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*bdiff.fits'))
+ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*ddiff.fits'))
+bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*bdiff.fits'))
 linex=np.arange(3100,3500);liney=np.arange(1270,1670)[::-1]
 mapp=Map(ddiff_list[0]);d=mapp.data
 p2w=mapp.pixel_to_world(linex*u.pix,liney*u.pix);linex_arcsec=p2w.Tx.value;liney_arcsec=p2w.Ty.value
@@ -62,7 +64,7 @@ speedupy=np.linspace(131,247,10)
 
 f,ax0=plt.subplots(1,1)
 ax0.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
-ax0.set_xticks(np.arange(1311)[::200]);ax0.set_xticklabels(time171[::200])
+ax0.set_xticks(np.arange(intd171.shape[1])[::200]);ax0.set_xticklabels(time171[::200])
 ax0.set_yticks(np.arange(400)[::50]);ax0.set_yticklabels(np.round(liner_arcsec[::50],1))
 #ax0.plot(225+np.arange(len(Tbsubmax[0]))[80:],liner_pix[-1][80:],'o-',color='yellow',linewidth=0.5,markersize=2)
 ax1=ax0.twinx()
@@ -82,7 +84,7 @@ plt.show()
 
 f,ax=plt.subplots(4,1,sharex=True);ax0=ax[0];ax1=ax[1];ax2=ax[2];ax3=ax[3]
 ax0.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
-ax0.set_xticks(np.arange(1311)[::200]);ax0.set_xticklabels(time171[::200]);ax0.set_xlabel('Time (HH:MM:SS)')
+ax0.set_xticks(np.arange(intd171.shape[1])[::200]);ax0.set_xticklabels(time171[::200]);ax0.set_xlabel('Time (HH:MM:SS)')
 ax0.set_yticks(np.arange(400)[::50]);ax0.set_yticklabels(np.arange(400)[::50]*726/1.e3);ax0.set_ylabel('Radial Distance (Mm)')
 ax1.plot(225+np.arange(len(Tbsubmax[0])),Tbsubmax[0]/1.e6,'o-');ax1.set_yscale('log')
 ax2.plot(225+np.arange(len(ycsub90[0])),ycsub90[0],'o-');ax2.set_ylim([-600,0])
