@@ -7,7 +7,7 @@ def get_listobs(vis_):
     listfile_=vis_.split('.ms')[0]+'.listobs'
     if(os.path.isfile(listfile_)==False):
         listobs(vis=vis_,listfile=listfile_)
-        print listfile_+" created"
+        print(listfile_+" created")
 
 def get_plotants(vis_):
     figfile_=vis.split('.ms')[0]+'.plotants.png'
@@ -18,7 +18,7 @@ def get_plotants(vis_):
 
 def get_amp_phase(vis_,n0,n1,nspw):
     ms.open(vis_)
-    print 'Getting amp-phase for '+str(n0)+' & '+str(n1)
+    print('Getting amp-phase for '+str(n0)+' & '+str(n1))
     ms.select({'antenna1':[n0],'antenna2':[n1]})
     amp=ms.getdata(['amplitude'])['amplitude']
     phase=ms.getdata(['phase'])['phase']

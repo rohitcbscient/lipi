@@ -46,7 +46,7 @@ omegapbygyro=0.3
 R=z_1000-z_1500
 B_low = 200;
 B_top = 40
-htop = 80;
+htop = 80;loop_length=250
 s_cl1000 = loop_length * 0.5-z_1000  # Mm/s
 s_cl1200 = loop_length * 0.5-z_1200  # Mm/s
 s_cl1500 = loop_length * 0.5-z_1500  # Mm/s
@@ -69,6 +69,7 @@ ax.set_xlabel('Pitch Angle (deg)');ax.set_ylabel('$s$ (Mm)')
 plt.show()
 
 
+lambda_ei=0.03
 ne_1d=ne[28];ne_1p5GHz=ne_1d[75];ne_1d_low=1.5e8
 v=300*np.sqrt(1-(1/(0.002*penergy+1)**2))
 lambda_turb=lambda_ei*np.e
@@ -80,11 +81,11 @@ for fermi_energy in penergy:
     T=fermi_energy*1.16e7
     #idx=np.where(mirror_point>20)
     bounce_time[i] = 2*np.pi*B_scale_height/(v[i]*np.sin(pitch_angle*np.pi/180))
-    tcc[i]=bounce_time[i]/np.pi*np.arccos((s_cl)/(mirror_point))
+    tcc[i]=bounce_time[i]/np.pi*np.arccos((s_cl1000)/(mirror_point))
     epsilonD = 1/((np.pi*loop_length*1000)/(2*726*18)) # 18" radius
     Tt=2.e6;lambda_ei=5210*Tt**2/(ne_1p5GHz)/1.e8 #(CGS) in Mm ne[28][72] is ne for the 1.5 GHz
     w[i]=tcc[i]/(lambda_ei/v[i])
-    t_loss[i] = (lambda_ei/v[i]) * (0.5 * np.pi / np.arccos((s_cl)/(mirror_point)))
+    t_loss[i] = (lambda_ei/v[i]) * (0.5 * np.pi / np.arccos((s_cl1000)/(mirror_point)))
     slength[i]=10*(fermi_energy**2/400)*(10**11/ne_1d_low)*(np.cos(pitch_angle*np.pi/180))
     slength_turb[i]=np.sqrt(lambda_turb*1.e8/9.3e-36/ne_1d_low)*penergy
     i=i+1
