@@ -26,7 +26,6 @@ for i in range(len(freq)):
     height_Mm[i]=(float(mdl.nk_freq2r(freq[i],1)[0])-1)*6.99e2
 
 #chan=[0,12,22,38,46]
-chan=np.arange(14)
 f,ax=plt.subplots(1,1)
 ax.imshow(meands[0],aspect='auto',origin='lower',interpolation=None,vmin=0.1,vmax=1)
 #f.colorbar(label='NCCF')
@@ -64,7 +63,7 @@ if(write_data):
     freq_mwa=np.array(freq_mwa);bmin=np.array(bmin);bmaj=np.array(bmaj)
     pickle.dump([freq_mwa,Tb,Tbmax,S,bmin,bmaj,img],open('/home/rohit/20220915/Tb_20220915.p','wb'))
 
-
+chan=np.arange(14)
 freq_mwa,Tb,Tbmax,S,bmin,bmaj,img=pickle.load(open('/home/rohit/20220915/Tb_20220915.p','rb'))
 img[np.where(img<1.e-5)]=np.nan
 #region1=img[:,:,105:130,105:130];region1_max=np.nanmax(region1,axis=(2,3))
