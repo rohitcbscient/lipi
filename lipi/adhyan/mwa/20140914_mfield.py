@@ -132,53 +132,57 @@ aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_125-126_sub_test.p','
 aa=pickle.load(open('/media/rohit/MWA/20140914/Tb_20140914_084-085_sub_test.p','rb'),encoding='bytes');Tb108=np.array(aa[0]);xc90_108=[0]*len(Tb108);yc90_108=[0]*len(Tb108)
 xc90_240_,yc90_240_,xc90_160_,yc90_160_,xc90_108_,yc90_108_=0,0,0,0,0,0
 
-Tball=[0]*9;xc90=[0]*9;yc90=[0]*9;maxX=[0]*9;maxY=[0]*9;Tbmax=[0]*9;xbsub50=[0]*9;ybsub50=[0]*9
-Tbsuball=[0]*9;xcsub90=[0]*9;ycsub90=[0]*9;maxsubX=[0]*9;maxsubY=[0]*9
-for j in range(9):
-    print(freq[j],' MHz')
-    bb=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_'+flist[j]+'_sub_test.p','rb'),encoding='bytes')
-    aa=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_'+flist[j]+'.p','rb'),encoding='bytes')
-    Tball[j]=np.array(aa[0]);xc90[j]=[0]*len(Tball[j]);yc90[j]=[0]*len(Tball[j]);maxX[j]=[0]*len(Tball[j]);maxY[j]=[0]*len(Tball[j])
-    for i in range(len(Tball[j])):
-        if(Tball[j][i].shape[0]==200):
-            Tb_=Tball[j][i][50:-50,50:-50]
-        else:
-            Tb_=Tball[j][i];Tb_[np.isnan(Tb_)]=0
-        y,x=np.where(Tb_==np.max(Tb_))
-        maxX[j][i]=50.*(x[0]-50.);maxY[j][i]=50.*(y[0]-50.)
-        if(np.nanmax(Tb_)!=0):
-            bi=ut.get_bimage(Tb_,0.3);xc90_,yc90_,w,l,angle=ut.fitEllipse(bi)
-        else:
-            xc90_,yc90_=0,0
-        xc90[j][i]=50.*(xc90_-50.);yc90[j][i]=50.*(yc90_-50.)
-    #---- Sub-----------#########
-    Tbsuball[j]=np.array(bb[0]);xcsub90[j]=[0]*len(Tbsuball[j]);ycsub90[j]=[0]*len(Tbsuball[j]);maxsubX[j]=[0]*len(Tbsuball[j]);maxsubY[j]=[0]*len(Tbsuball[j]);xbsub50[j]=[0]*len(Tbsuball[j]);ybsub50[j]=[0]*len(Tbsuball[j])
-    for i in range(len(Tbsuball[j])):
-        if(Tbsuball[j][i].shape[0]==200):
-            Tb_=Tbsuball[j][i][50:-50,50:-50]
-        else:
-            Tb_=Tbsuball[j][i];Tb_[np.isnan(Tb_)]=0
-        y,x=np.where(Tb_==np.max(Tb_))
-        maxsubX[j][i]=50.*(x[0]-50.);maxsubY[j][i]=50.*(y[0]-50.)
-        if(np.nanmax(Tb_)!=0):
-            bi=ut.get_bimage(Tb_,0.9);xc90_,yc90_,w,l,angle=ut.fitEllipse(bi)
-            bi50=ut.get_bimage(Tb_,0.6);xc50_,yc50_,w50,l50,angle=ut.fitEllipse(bi50)
-        else:
-            xc90_,yc90_=0,0;w50,l50=0,0
-        xcsub90[j][i]=50.*(xc90_-50.);ycsub90[j][i]=50.*(yc90_-50.)
-        xbsub50[j][i]=l50;ybsub50[j][i]=w50
-    Tbmax[j]=Tball[j][0:1323].max(axis=(1,2))
-    xc90[j]=xc90[j][0:1323];yc90[j]=yc90[j][0:1323]
-#pa_angle=np.arctan((np.array(xcsub90[7])-np.array(xcsub90[1]))/(np.array(ycsub90[7])-np.array(ycsub90[1])))*180/np.pi
-pa_angle=np.arctan((np.array(xcsub90)[5:].mean(axis=0)-np.array(xcsub90[:2]).mean(axis=0))/(np.array(ycsub90[5:]).mean(axis=0)-np.array(ycsub90[:2]).mean(axis=0)))*180/np.pi
-Tball=np.array(Tball);xc90=np.array(xc90);yc90=np.array(yc90);xbsub50=np.array(xbsub50);ybsub50=np.array(ybsub50);maxX=np.array(maxX);maxY=np.array(maxY)
-Tbsuball=np.array(Tbsuball);xcsub90=np.array(xcsub90);ycsub90=np.array(ycsub90);maxsubX=np.array(maxsubX);maxsubY=np.array(maxsubY)
-Tbsuball[Tbsuball>5.e8]=np.nan
-tmwa=np.array(aa[10]);tsubmwa=np.array(bb[5]);pa_angle=np.array(pa_angle);Tbmax=np.array(Tbmax);Tbsubmax=np.nanmax(Tbsuball,axis=(2,3))
-xcsub90_xray=xcsub90-750;ycsub90_xray=ycsub90+300;rcsub90_xray=np.sqrt(xcsub90_xray**2 + ycsub90_xray**2);
-pickle.dump([tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
 
-tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+write_pickle=1
+if(write_pickle):
+    Tball=[0]*9;xc90=[0]*9;yc90=[0]*9;maxX=[0]*9;maxY=[0]*9;Tbmax=[0]*9;xbsub50=[0]*9;ybsub50=[0]*9
+    Tbsuball=[0]*9;xcsub90=[0]*9;ycsub90=[0]*9;maxsubX=[0]*9;maxsubY=[0]*9
+    for j in range(9):
+        print(freq[j],' MHz')
+        bb=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_'+flist[j]+'_sub_test.p','rb'),encoding='bytes')
+        aa=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_'+flist[j]+'.p','rb'),encoding='bytes')
+        Tball[j]=np.array(aa[0]);xc90[j]=[0]*len(Tball[j]);yc90[j]=[0]*len(Tball[j]);maxX[j]=[0]*len(Tball[j]);maxY[j]=[0]*len(Tball[j])
+        for i in range(len(Tball[j])):
+            if(Tball[j][i].shape[0]==200):
+                Tb_=Tball[j][i][50:-50,50:-50]
+            else:
+                Tb_=Tball[j][i];Tb_[np.isnan(Tb_)]=0
+            y,x=np.where(Tb_==np.max(Tb_))
+            maxX[j][i]=50.*(x[0]-50.);maxY[j][i]=50.*(y[0]-50.)
+            if(np.nanmax(Tb_)!=0):
+                bi=ut.get_bimage(Tb_,0.3);xc90_,yc90_,w,l,angle=ut.fitEllipse(bi)
+            else:
+                xc90_,yc90_=0,0
+            xc90[j][i]=50.*(xc90_-50.);yc90[j][i]=50.*(yc90_-50.)
+        #---- Sub-----------#########
+        Tbsuball[j]=np.array(bb[0]);xcsub90[j]=[0]*len(Tbsuball[j]);ycsub90[j]=[0]*len(Tbsuball[j]);maxsubX[j]=[0]*len(Tbsuball[j]);maxsubY[j]=[0]*len(Tbsuball[j]);xbsub50[j]=[0]*len(Tbsuball[j]);ybsub50[j]=[0]*len(Tbsuball[j])
+        for i in range(len(Tbsuball[j])):
+            if(Tbsuball[j][i].shape[0]==200):
+                Tb_=Tbsuball[j][i][50:-50,50:-50]
+            else:
+                Tb_=Tbsuball[j][i];Tb_[np.isnan(Tb_)]=0
+            y,x=np.where(Tb_==np.max(Tb_))
+            maxsubX[j][i]=50.*(x[0]-50.);maxsubY[j][i]=50.*(y[0]-50.)
+            if(np.nanmax(Tb_)!=0):
+                bi=ut.get_bimage(Tb_,0.9);xc90_,yc90_,w,l,angle=ut.fitEllipse(bi)
+                bi50=ut.get_bimage(Tb_,0.6);xc50_,yc50_,w50,l50,angle=ut.fitEllipse(bi50)
+            else:
+                xc90_,yc90_=0,0;w50,l50=0,0
+            xcsub90[j][i]=50.*(xc90_-50.);ycsub90[j][i]=50.*(yc90_-50.)
+            xbsub50[j][i]=l50;ybsub50[j][i]=w50
+        Tbmax[j]=Tball[j][0:1323].max(axis=(1,2))
+        xc90[j]=xc90[j][0:1323];yc90[j]=yc90[j][0:1323]
+    #pa_angle=np.arctan((np.array(xcsub90[7])-np.array(xcsub90[1]))/(np.array(ycsub90[7])-np.array(ycsub90[1])))*180/np.pi
+    pa_angle=np.arctan((np.array(xcsub90)[5:].mean(axis=0)-np.array(xcsub90[:2]).mean(axis=0))/(np.array(ycsub90[5:]).mean(axis=0)-np.array(ycsub90[:2]).mean(axis=0)))*180/np.pi
+    Tball=np.array(Tball);xc90=np.array(xc90);yc90=np.array(yc90);xbsub50=np.array(xbsub50);ybsub50=np.array(ybsub50);maxX=np.array(maxX);maxY=np.array(maxY)
+    Tbsuball=np.array(Tbsuball);xcsub90=np.array(xcsub90);ycsub90=np.array(ycsub90);maxsubX=np.array(maxsubX);maxsubY=np.array(maxsubY)
+    Tbsuball[Tbsuball>5.e8]=np.nan
+    tmwa=np.array(aa[10]);tsubmwa=np.array(bb[5]);pa_angle=np.array(pa_angle);Tbmax=np.array(Tbmax);Tbsubmax=np.nanmax(Tbsuball,axis=(2,3))
+    xcsub90_xray=xcsub90-750;ycsub90_xray=ycsub90+300;rcsub90_xray=np.sqrt(xcsub90_xray**2 + ycsub90_xray**2);
+    Tbsubstd = np.nanstd(Tbsuball[:, 0:500, 0:500, 0:500], axis=(1, 2, 3)) * 5
+    pickle.dump([tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
+
+tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
 rcsub90=np.sqrt(xcsub90**2+ycsub90**2)
 
 
@@ -195,7 +199,7 @@ for i in range(9):
     bshp1x_mean[i] = bshp1x[idx].mean();bshp1y_mean[i] = bshp1y[idx].mean() 
 rcsub90_mean_freq=np.sqrt((xcsub90.mean(axis=1)-bshp1x_mean)**2 +(ycsub90.mean(axis=1)-bshp1y_mean)**2)
 rcsub90_std_freq=xcsub90[:,200:400].std(axis=1)+ycsub90[:,200:400].std(axis=1)
-Tbsubstd=np.nanstd(Tbsuball[:,0:500,0:500,0:500],axis=(1,2,3))*5
+
 #-----------------------------------------------
 
 i=0;Tbmaxfit=[0]*len(Tbsubmax[0]);alpha=[0]*len(Tbsubmax[0]);ealpha=[0]*len(Tbsubmax[0])
@@ -256,9 +260,9 @@ ax.plot(fTb,color='blue',label='108-145 MHz')
 ax.axvline(x=379,color='k',linestyle='--',label='03:20:00 UT')
 ax.legend();ax.set_ylim(0,200);ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Time (HH:MM:SS)')
 ax.set_xticks([0,200,400,600,800]);ax.set_xticklabels(['02:15:04','02:48:24','03:22:04','03:55:24','04:29:04'])
-ax.text(10, 160, 'Fundamental Dominated', bbox=dict(facecolor='red', alpha=0.5))
-ax.text(400, 160, 'Harmonic Dominated', bbox=dict(facecolor='green', alpha=0.5))
-ax.axvspan(0, 379, color='red',alpha=0.2);ax.axvspan(379, 900, color='green', alpha=0.2)
+ax.text(10, 160, 'Harmonic Dominated', bbox=dict(facecolor='green', alpha=0.5))
+ax.text(400, 160, 'Fundamental Dominated', bbox=dict(facecolor='red', alpha=0.5))
+ax.axvspan(0, 379, color='green',alpha=0.2);ax.axvspan(379, 900, color='red', alpha=0.2)
 plt.show()
 
 
@@ -291,8 +295,8 @@ f,ax=plt.subplots(1,1)
 ax.plot(freq,Tbsubmax[:,414]/1.e6,'o-',label='03:24:04 UT')
 ax.legend();ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Frequency (MHz)')
 ax.axvline(x=161,linestyle='--',color='k')
-ax.text(120, 161, 'Harmonic Emission', bbox=dict(facecolor='red', alpha=0.5))
-ax.text(180, 161, 'Fundamental Emission', bbox=dict(facecolor='green', alpha=0.5))
+ax.text(120, 161, 'Fundamental Emission', bbox=dict(facecolor='red', alpha=0.5))
+ax.text(180, 161, 'Harmonic Emission', bbox=dict(facecolor='green', alpha=0.5))
 ax.axvspan(108, 161, color='red',alpha=0.2);ax.axvspan(161, 240, color='green', alpha=0.2)
 ax.set_xlim(100,250)
 plt.show()
@@ -306,7 +310,7 @@ rh_counts=readsav('/media/rohit/MWA/20140914/rhessi/counts_obs.sav')
 
 
 ############333
-tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
 
 
 ################ PA_angle Wavelet
@@ -317,8 +321,8 @@ def do_wavelet(Tbr, N):
     datawave=datawave_[int(N/2):int(-1*N/2+1)]-np.convolve(datawave_, np.ones(N)/N, mode='valid')
     std=np.std(datawave);datawave_std=datawave/std
     timewave=np.arange(len(datawave))*10
-    #mother=wavelet.Morlet(6)
-    mother=wavelet.MexicanHat()
+    mother=wavelet.Morlet(6)
+    #mother=wavelet.MexicanHat()
     dt=10;s0 = 2 * dt;dj = 1. / 12 # Lowest scale s0
     J = 8. / dj # Number of scales -1; Largest scale: s0 * 2**(J * dj)
     var=std**2
@@ -332,33 +336,36 @@ def do_wavelet(Tbr, N):
     return datawave_std,power,iwave,coi1,period,signif,fft_theor,var
 
 def plot_wavelet(Tb,t,dt,period,power,coi1,fil,tfreq,signif):
-    plt.ioff();label='T$_B$';units='(deg)'
-    figprops = dict(figsize=(20, 20), dpi=72)
+    #plt.ioff();label='Angle';units='(deg)'
+    figprops = dict(figsize=(20, 10), dpi=72)
     fig = plt.figure(**figprops)
     ax = plt.axes([0.1, 0.68, 0.67, 0.2])
     #ax.plot(t, iwave[i], '-', linewidth=1, color=[0.5, 0.5, 0.5])
-    ax.plot(t,Tb,'o-', 'k', linewidth=1.5,markersize=1)
+    ax.plot(t,Tb,'o-',color='k', linewidth=1.5,markersize=1)
+    ax.set_yticks([-3,-2,-1,0,1,2,3])
     #ax.axvline(x=t[195],linestyle='--',color='black')
     ax.grid(True)
-    ax.set_ylabel(r'{}{}'.format(label, units))
+    ax.set_ylabel('Angle (degrees)')
     bx = plt.axes([0.1, 0.37, 0.65, 0.28], sharex=ax);levels = np.linspace(0.005,0.1,90)
     #bx.contourf(t, periodds, np.log2(powerds), np.log2(levels),extend='both', cmap=plt.cm.YlOrRd)
     bx.contourf(t, period, np.log2(power),np.log2(levels),extend='both', cmap=plt.cm.YlOrRd)
     extent = [t.min(), t.max(), 0, max(period)]
-    bx.fill(np.concatenate([t, t[-1:] + dt, t[-1:] + dt, t[:1] - dt, t[:1] - dt]),np.concatenate([coi1, [1], period[-1:],period[-1:], [1]]),'k', alpha=0.3, hatch='x')
+    bx.fill(np.concatenate([t, t[-1:] + dt, t[-1:] + dt, t[:1] - dt, t[:1] - dt]),np.concatenate([coi1*2, [20], period[-1:],period[-1:], [20]]),'k', alpha=0.3, hatch='x')
     #bx.set_title('b) Wavelet Power Spectrum: Freq:'+str(freq[i])+' GHz({})'.format(label, 'MORLET'))
     bx.set_ylabel('Period (sec)');bx.set_xlabel('Time (sec)');bx.set_yscale('log')
+    bx.set_ylim(20,5000)
     bx.grid(True)
     cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
     cx.plot(power.mean(axis=1), period, 'k-', linewidth=1.5)
     cx.set_title('Global Wavelet Spectrum')
     cx.set_xlabel('Power (deg$^2$)')
     #cx.set_ylim(([periodds.min(), periodds.max()]))
+    cx.set_xlim(1.e-5,1.e-1)
     cx.grid(True)
     cx.set_xscale('log');plt.title('Frequency: '+str(tfreq)+' GHz')
-    cx.plot(signif, period, 'k--')
-    plt.savefig(fil,dpi=100)
-    plt.show()
+    #cx.plot(signif, period, 'k--')
+    fig.savefig(fil,dpi=100)
+    fig.show()
 
 #pa_angle[558]=pa_angle[555];pa_angle[559]=pa_angle[556]
 pa_angle[628:632] = pa_angle[620];pa_angle[536:538]=pa_angle[532]
@@ -368,15 +375,30 @@ pa_angle3=pa_angle[340:860];pa_angle4=np.hstack((pa_angle2,pa_angle3))
 
 N=40;dt=10;t2=np.arange(len(pa_angle2)-N+1)*dt
 Tbrs_wave2,s_power2,s_iwave2,s_coi2,period2,signif2,fft_theor2,var2=do_wavelet(pa_angle2, N);ns_power2=s_power2/np.nanmax(s_power2)
-plot_wavelet(Tbrs_wave2,t2,dt,period2,s_power2,s_coi2,'power0.png','',signif2)
+plot_wavelet(Tbrs_wave2,t2,dt,period2,s_power2,s_coi2,'/data/Dropbox/20140914/power0.png','',signif2)
 
 N=40;dt=10;t3=np.arange(len(pa_angle3)-N+1)*dt
 Tbrs_wave3,s_power3,s_iwave3,s_coi3,period3,signif3,fft_theor3,var3=do_wavelet(pa_angle3, N);ns_power3=s_power3/np.nanmax(s_power3)
-plot_wavelet(Tbrs_wave3,t3,dt,period3,s_power3,s_coi3,'power1.png','',signif3)
+plot_wavelet(Tbrs_wave3,t3,dt,period3,s_power3,s_coi3,'/data/Dropbox/20140914/power1.png','',signif3)
+
+max_period2=period2[np.where(np.median(ns_power2,axis=1)==np.median(ns_power2,axis=1).max())[0]][0]
+max_period3=period3[np.where(np.median(ns_power3,axis=1)==np.median(ns_power3,axis=1).max())[0]][0]
+
+test_window=0
+if (test_window):
+    Narray=20+np.arange(100)[::2];power_arr=[0]*len(Narray)
+    for i in range(len(Narray)):
+        Tbrs_wave_arr,s_power_arr,s_iwave_arr,s_coi_arr,period_arr,signif_arr,fft_theor_arr,var_arr=do_wavelet(pa_angle3, Narray[i])
+        power_arr_1=s_power_arr/np.nanmax(s_power_arr)
+        power_arr[i]=np.array(np.median(power_arr_1,axis=1))
+    power_arr=np.array(power_arr)
+    plt.imshow(power_arr,origin='lower',aspect='auto')
+    plt.show()
+
 
 f,ax=plt.subplots(1,1)
-ax.plot(period,np.median(ns_power2,axis=1),'o-',label='Harmonic Phase')
-ax.plot(period,np.median(ns_power3,axis=1),'o-',label='Fundamental Phase')
+ax.plot(period2,np.median(ns_power2,axis=1),'o-',label='Harmonic Phase')
+ax.plot(period3,np.median(ns_power3,axis=1),'o-',label='Fundamental Phase')
 ax.set_ylabel('Normalised Power');ax.set_xlabel('Period (sec)');ax.legend()
 plt.show()
 
@@ -411,6 +433,56 @@ intb171=np.array(intb171).swapaxes(0,1)[:,::-1]
 
 ddiff211_list=sorted(glob.glob('/sdata/fits/running_diff/*211*ddiff.fits'))
 bdiff211_list=sorted(glob.glob('/sdata/fits/running_diff/*211*bdiff.fits'))
+
+linex=np.arange(3100,3500);liney=np.arange(1270,1670)[::-1]
+line_check=1
+if line_check:
+    mapp=Map(ddiff211_list[0]);d=mapp.data
+    mapp.plot()
+    plt.plot(linex,liney,color='k')
+    plt.show()
+
+intd211=[0]*len(ddiff211_list)
+time211=[0]*len(ddiff211_list)
+for i in range(len(ddiff211_list)):
+    mapp=Map(ddiff211_list[i]);d=mapp.data;intd211[i]=[0]*len(linex)
+    time211[i]=ddiff211_list[i].split('T')[1].split('Z')[0]
+    for j in range(len(linex)):
+        intd211[i][j]=d[liney[j]-5:liney[j]+5,linex[j]-5:linex[j]+5].mean()
+intd211=np.array(intd211).swapaxes(0,1)[:,::-1]
+
+intb211=[0]*len(bdiff211_list)
+for i in range(len(bdiff211_list)):
+    mapp=Map(bdiff211_list[i]);d=mapp.data
+    intb211[i]=d[liney,linex]
+intb211=np.array(intb211).swapaxes(0,1)[:,::-1]
+
+ddiff094_list=sorted(glob.glob('/sdata/fits/running_diff/*94*ddiff.fits'))
+bdiff094_list=sorted(glob.glob('/sdata/fits/running_diff/*94*bdiff.fits'))
+
+linex=np.arange(3100,3500);liney=np.arange(1270,1670)[::-1]
+line_check=1
+if line_check:
+    mapp=Map(ddiff094_list[0]);d=mapp.data
+    mapp.plot()
+    plt.plot(linex,liney,color='k')
+    plt.show()
+
+intd094=[0]*len(ddiff094_list)
+time094=[0]*len(ddiff094_list)
+for i in range(len(ddiff094_list)):
+    mapp=Map(ddiff094_list[i]);d=mapp.data;intd094[i]=[0]*len(linex)
+    time094[i]=ddiff094_list[i].split('T')[1].split('Z')[0]
+    for j in range(len(linex)):
+        intd094[i][j]=d[liney[j]-5:liney[j]+5,linex[j]-5:linex[j]+5].mean()
+intd094=np.array(intd094).swapaxes(0,1)[:,::-1]
+
+intb094=[0]*len(bdiff094_list)
+for i in range(len(bdiff094_list)):
+    mapp=Map(bdiff094_list[i]);d=mapp.data
+    intb094[i]=d[liney,linex]
+intb094=np.array(intb094).swapaxes(0,1)[:,::-1]
+
 
 
 sys.exit()
@@ -519,10 +591,11 @@ plt.show()
 Tbsub_spec=Tbsubmax[:,250:550].mean(axis=1)
 Tbsub_err = Tbsubmax[:,0:200].std(axis=1)
 f,ax=plt.subplots(1,1)
-ax.plot(freq,Tbsub_spec/1.e6,'o',color='k')
+ax.plot(freq,Tbsub_spec/1.e6,'o',color='k',label='Mean $T_B$')
+ax.plot(freq,Tbsubmax[:,414]/1.e6,'o-',label='03:24:04 UT')
 ax.errorbar(freq, Tbsub_spec/1.e6, yerr = Tbsub_err/1.e6,color='k')
 ax.set_xlabel('Frequency (MHz)'); ax.set_ylabel('$T_B$ (MK)')
-ax.axvline(x=freq[4],linestyle = ":")
+ax.axvline(x=freq[4],linestyle = ":");ax.legend(loc=3)
 ax.axvspan(100, freq[4], color='red',alpha=0.2);ax.axvspan(freq[4], 250, color='green', alpha=0.2)
 ax.text(110, 130, 'Fundamental Emission', bbox=dict(facecolor='red', alpha=0.5))
 ax.text(185, 90, 'Harmonic Emission', bbox=dict(facecolor='green', alpha=0.5))
@@ -548,20 +621,23 @@ plt.show()
 xcsub90[:,0:120]=np.nan;ycsub90[:,0:120]=np.nan
 
 f,(ax0,ax1,ax2)=plt.subplots(3,1,sharex=True)
-im0=ax0.imshow(Tbmax[:,270:270+899]/1.e6,aspect='auto',cmap='coolwarm',origin='lower',vmin=1.e0,vmax=1.e2,interpolation='nearest')
+x1=404
+im0=ax0.imshow(Tbsubmax/1.e6,aspect='auto',cmap='coolwarm',origin='lower',vmin=1.e0,vmax=1.5e2,interpolation='nearest')
 ax0.set_ylabel('Frequency (MHz)');ax0_divider = make_axes_locatable(ax0);cax0 = ax0_divider.append_axes("right", size="1%", pad="0%")
 ax0.contour(VbyI_sub,[0.4],colors='k',linewidths=2.0)
 ax0.contour(VbyI_sub,[0.5],colors='k',linewidths=2.0)
 ax0.contour(VbyI_sub,[0.6],colors='k',linewidths=2.0)
-ax0.axvline(x=372,linestyle='--',linewidth=3,color='green')
+ax0.contour(Tbsubmax/1.e6,[120],colors='yellow',linewidths=1)
+ax0.axvline(x=x1,linestyle='--',linewidth=3,color='lime')
 f.colorbar(im0,label='$T_B$ (MK)',cax=cax0)
-im1=ax1.imshow(np.sqrt(xcsub90**2 + ycsub90**2),aspect='auto',origin='lower',vmin=750,vmax=1000,cmap='coolwarm',interpolation='None')
+im1=ax1.imshow(rcsub90,aspect='auto',origin='lower',vmin=750,vmax=1000,cmap='coolwarm',interpolation='None')
 ax1.set_ylabel('Frequency (MHz)');ax1_divider = make_axes_locatable(ax1);cax1 = ax1_divider.append_axes("right", size="1%", pad="0%")
-ax1.axvline(x=372,linestyle='--',linewidth=3,color='green')
+ax1.axvline(x=x1,linestyle='--',linewidth=3,color='lime')
 f.colorbar(im1,label='Radial Coordinate (arcsec)',cax=cax1)
 ax2.plot(pa_angle,'o',markersize=2);ax2.set_xlabel('Time (HH:MM)');ax2.set_ylabel('Orientation Angle (deg)')
 ax2.set_xticks([0,120,240,360,480,600,720,840]);ax2.set_xticklabels(['02:15','02:35','02:55','03:15','03:35','03:55','04:15','04:35'])
-ax2.axvline(x=372,linestyle='--',linewidth=3,color='green')
+ax2.axvline(x=x1,linestyle='--',linewidth=3,color='lime')
+ax0.axvline(x=379,linestyle='--',linewidth=3,color='cyan')
 ax1.set_yticks([0,1,2,3,4,5,6,7,8]);ax1.set_yticklabels(freq)
 ax0.set_yticks([0,1,2,3,4,5,6,7,8]);ax0.set_yticklabels(freq)
 ax2.set_yticks([-50,-20,0,20,50]);ax2.set_ylim([-95,70])

@@ -10,14 +10,12 @@ from matplotlib.patches import Ellipse
 
 
 ############333
-tmwa,tsubmwa,Tbmax,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle=pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
 
 ############### AIA
 
 ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*ddiff.fits'))
 bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*bdiff.fits'))
-ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*ddiff.fits'))
-bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*bdiff.fits'))
 linex=np.arange(3100,3500);liney=np.arange(1270,1670)[::-1]
 mapp=Map(ddiff_list[0]);d=mapp.data
 p2w=mapp.pixel_to_world(linex*u.pix,liney*u.pix);linex_arcsec=p2w.Tx.value;liney_arcsec=p2w.Ty.value
@@ -46,6 +44,51 @@ for i in range(len(bdiff_list)):
 intb171=np.array(intb171).swapaxes(0,1)[:,::-1]
 
 
+ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*ddiff.fits'))
+bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*bdiff.fits'))
+
+intd211=[0]*len(ddiff211_list)
+time211=[0]*len(ddiff211_list)
+for i in range(len(ddiff211_list)):
+    mapp=Map(ddiff211_list[i]);d=mapp.data;intd211[i]=[0]*len(linex)
+    time211[i]=ddiff211_list[i].split('T')[1].split('Z')[0]
+    for j in range(len(linex)):
+        intd211[i][j]=d[liney[j]-5:liney[j]+5,linex[j]-5:linex[j]+5].mean()
+intd211=np.array(intd211).swapaxes(0,1)[:,::-1]
+
+intb211=[0]*len(bdiff211_list)
+for i in range(len(bdiff211_list)):
+    mapp=Map(bdiff211_list[i]);d=mapp.data
+    intb211[i]=d[liney,linex]
+intb211=np.array(intb211).swapaxes(0,1)[:,::-1]
+
+
+ddiff094_list=sorted(glob.glob('/sdata/fits/running_diff/*94*ddiff.fits'))
+bdiff094_list=sorted(glob.glob('/sdata/fits/running_diff/*94*bdiff.fits'))
+
+linex=np.arange(3100,3500);liney=np.arange(1270,1670)[::-1]
+line_check=1
+if line_check:
+    mapp=Map(ddiff094_list[0]);d=mapp.data
+    mapp.plot()
+    plt.plot(linex,liney,color='k')
+    plt.show()
+
+intd094=[0]*len(ddiff094_list)
+time094=[0]*len(ddiff094_list)
+for i in range(len(ddiff094_list)):
+    mapp=Map(ddiff094_list[i]);d=mapp.data;intd094[i]=[0]*len(linex)
+    time094[i]=ddiff094_list[i].split('T')[1].split('Z')[0]
+    for j in range(len(linex)):
+        intd094[i][j]=d[liney[j]-5:liney[j]+5,linex[j]-5:linex[j]+5].mean()
+intd094=np.array(intd094).swapaxes(0,1)[:,::-1]
+
+intb094=[0]*len(bdiff094_list)
+for i in range(len(bdiff094_list)):
+    mapp=Map(bdiff094_list[i]);d=mapp.data
+    intb094[i]=d[liney,linex]
+intb094=np.array(intb094).swapaxes(0,1)[:,::-1]
+
 y1=ut.find_nearest(liner_arcsec,rcsub90[-1][80])[0]
 y2=ut.find_nearest(liner_arcsec,rcsub90[-1][-1])[0]
 liner_plot=[0]*rcsub90.shape[1]
@@ -62,6 +105,12 @@ speedy=np.linspace(130,350,10)[::-1]
 speedupx=np.linspace(131,1300,10)
 speedupy=np.linspace(131,247,10)
 
+speed94_1x=np.linspace(220,316,10)
+speed94_1y=np.linspace(220,353,10)
+
+speed94_2x=np.linspace(405,468,10)
+speed94_2y=np.linspace(309,353,10)
+
 f,ax0=plt.subplots(1,1)
 ax0.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
 ax0.set_xticks(np.arange(intd171.shape[1])[::200]);ax0.set_xticklabels(time171[::200])
@@ -73,13 +122,31 @@ ax1.set_ylim(liner_arcsec[0],liner_arcsec[-1])
 ax0.axvline(x=562,linestyle='--',color='k',label='FH-Transition')
 ax0.axvline(x=217,linestyle='-.',color='r',label='Type-IV Start')
 ax0.axvline(x=1056,linestyle='-.',color='g',label='Type-IV Ends')
-ax0.plot(speedx,speedy,'-',color='cyan',linewidth=3,label='Slope: -0.05"/s $\\approx$ -36 km/s')
-ax0.plot(speedupx,speedupy,'-',color='lime',linewidth=3,label='Slope: 0.01"/s $\\approx$ 7.2 km/s')
+ax0.plot(speedx,speedy,'-',color='cyan',linewidth=3,label='Slope: -0.03"/s $\\approx$ -21 km/s')
+ax0.plot(speedupx,speedupy,'-',color='lime',linewidth=3,label='Slope: 0.006"/s $\\approx$ 4.3 km/s')
 #ax0.axhline(y=y1,color='r',label='240 MHz Location at Start')
 #ax0.axhline(y=y2,color='g',label='240 MHz Location at End')
-ax0.legend(loc=1);ax1.legend(loc=2);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH:MM:SS UT)')
+ax0.legend(loc=1);ax1.legend(loc=2);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH_MM_SS UT)')
 e1 = Ellipse(xy=(240, 315), width=100, height=70, edgecolor='magenta', fc='None', lw=2);ax0.add_patch(e1)
 e1 = Ellipse(xy=(205, 250), width=80, height=50, edgecolor='magenta', fc='None', lw=2);ax0.add_patch(e1)
+plt.show()
+
+f,ax0=plt.subplots(1,1)
+ax0.imshow(intd094[:,::-1],aspect='auto',origin='lower',vmin=-1,vmax=1,cmap='coolwarm')
+ax0.set_xticks(np.arange(intd094.shape[1])[::200]);ax0.set_xticklabels(time094[::200])
+ax0.set_yticks(np.arange(400)[::50]);ax0.set_yticklabels(np.round(liner_arcsec[::50],1))
+#ax0.plot(225+np.arange(len(Tbsubmax[0]))[80:],liner_pix[-1][80:],'o-',color='yellow',linewidth=0.5,markersize=2)
+ax1=ax0.twinx()
+ax1.plot(158+np.arange(len(Tbsubmax[0]))[80:],rcsub90[-1][80:],'o-',color='k',linewidth=1,markersize=2,label='240 MHz Type-IV radial location')
+ax1.set_ylim(liner_arcsec[0],liner_arcsec[-1])
+ax0.axvline(x=562,linestyle='--',color='k',label='FH-Transition')
+ax0.axvline(x=217,linestyle='-.',color='r',label='Type-IV Start')
+ax0.plot(speed94_1x,speed94_1y,'-',color='cyan',linewidth=3,label='Slope: 0.08"/s $\\approx$ 60 km/s')
+ax0.plot(speed94_2x,speed94_2y,'-',color='magenta',linewidth=3,label='Slope: 0.04"/s $\\approx$ 30 km/s')
+ax0.plot(speedupx,speedupy,'-',color='lime',linewidth=3,label='Slope: 0.006"/s $\\approx$ 4.3 km/s')
+#ax0.axhline(y=y1,color='r',label='240 MHz Location at Start')
+#ax0.axhline(y=y2,color='g',label='240 MHz Location at End')
+ax0.legend(loc=1);ax1.legend(loc=2);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH_MM_SS UT)')
 plt.show()
 
 f,ax=plt.subplots(4,1,sharex=True);ax0=ax[0];ax1=ax[1];ax2=ax[2];ax3=ax[3]
