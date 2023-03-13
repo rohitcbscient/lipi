@@ -44,8 +44,8 @@ for i in range(len(bdiff_list)):
 intb171=np.array(intb171).swapaxes(0,1)[:,::-1]
 
 
-ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*ddiff.fits'))
-bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*211*bdiff.fits'))
+ddiff211_list=sorted(glob.glob('/sdata/fits/running_diff/*211*ddiff.fits'))
+bdiff211_list=sorted(glob.glob('/sdata/fits/running_diff/*211*bdiff.fits'))
 
 intd211=[0]*len(ddiff211_list)
 time211=[0]*len(ddiff211_list)
@@ -105,6 +105,9 @@ speedy=np.linspace(130,350,10)[::-1]
 speedupx=np.linspace(131,1300,10)
 speedupy=np.linspace(131,247,10)
 
+speedupx1=np.linspace(170,220,10)
+speedupy2=np.linspace(260,353,10)
+
 speed94_1x=np.linspace(220,316,10)
 speed94_1y=np.linspace(220,353,10)
 
@@ -124,6 +127,7 @@ ax0.axvline(x=217,linestyle='-.',color='r',label='Type-IV Start')
 ax0.axvline(x=1056,linestyle='-.',color='g',label='Type-IV Ends')
 ax0.plot(speedx,speedy,'-',color='cyan',linewidth=3,label='Slope: -0.03"/s $\\approx$ -21 km/s')
 ax0.plot(speedupx,speedupy,'-',color='lime',linewidth=3,label='Slope: 0.006"/s $\\approx$ 4.3 km/s')
+ax0.plot(speedupx1,speedupy2,'-',color='gold',linewidth=3,label='Slope: 0.11"/s $\\approx$ 81 km/s')
 #ax0.axhline(y=y1,color='r',label='240 MHz Location at Start')
 #ax0.axhline(y=y2,color='g',label='240 MHz Location at End')
 ax0.legend(loc=1);ax1.legend(loc=2);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH_MM_SS UT)')

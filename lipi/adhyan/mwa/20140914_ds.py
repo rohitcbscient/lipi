@@ -143,6 +143,30 @@ obs_time=corr_count['obs_times']
 obs_energies = corr_count['obs_energies']
 corr_data=corr_count['obs_data']*1.0;corr_data[753:1137,:]=np.nan;corr_data[2300:2620,:]=np.nan;corr_data=corr_data.swapaxes(0,1)
 
+# bb[2] - > Channel, Emin, Emax
+# bb[3] - > General Information about fits
+bb=fits.open('/media/rohit/MWA/20140914/rhessi/fitspec_02450_02459.fits')
+bb_rate=bb[1].data['RATE'][0];bb_stat_err=bb[1].data['STAT_ERR'][0]
+bb_chisq=bb[1].data['CHISQ'];bb_convfac=bb[1].data['CONVFAC'][0]
+bb_phmodel=bb[1].data['PHMODEL'][0];bb_res=bb[1].data['RESIDUAL'][0];source_xy=bb[1].data['SOURCE_XY']
+bb_chan=bb[1].data['CHANNEL'][0]
+
+cc=fits.open('/media/rohit/MWA/20140914/rhessi/spec_fits/fitspec_020530_020559_vth_pow.fits')
+ct_energy,rate,bkg_rate,err_rate,err_bkg_rate,resid,vth_fits,pow_fits,total_fits=cc[0].data
+
+f,(ax0,ax1)=plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios': [3, 1]})
+ax0.plot(ct_energy,rate,'o-',markersize=7,color='k',label='Data')
+#ax0.errorbar(ct_energy,rate,yerr=err_rate,label='Data Count Rate',color='k')
+ax1.plot(ct_energy,resid,'o-',markersize=1,color='red')
+#ax1.errorbar(ct_energy,resid,yerr=err_bkg_rate,label='RESIDUAL',color='red')
+ax0.plot(ct_energy,total_fits,'-',markersize=1,label='Fit (vth+pow)',color='blue')
+ax0.plot(ct_energy,vth_fits,'-',markersize=1,label='Fit (vth)',color='orange')
+ax0.plot(ct_energy,pow_fits,'-',markersize=1,label='Fit (pow)',color='magenta')
+ax0.legend();ax1.legend();ax1.set_ylabel('Normalised Residual'),ax0.set_yscale('log');ax1.set_xscale('log')
+ax0.set_ylabel('Photons $s^{-1}$ $cm^{-2}$ $kev^{-1}$');ax1.set_xlabel('Energy (keV)')
+ax1.set_xlim(6,40);ax1.set_ylim(-20,20);ax0.set_ylim(1.e-3,1.e5)
+plt.show()
+
 #2014-09-14T01:30:28.000 TO 2014-09-14T04:53:20.000'
 
 f,ax=plt.subplots(1,1)
@@ -357,7 +381,7 @@ for i in range(len(ddiff_list)):
 
 
 
-rh_fit_list=glob.glob('/media/rohit/MWA/20140914/rhessi/fitsummary_*.txt')
+rh_fit_list=glob.glob('/media/rohit/MWA/20140914/rhessi/spec_fits/fitsummary_*.txt')
 spidx1=[0]*len(rh_fit_list);spidx2=[0]*len(rh_fit_list);spidx_break=[0]*len(rh_fit_list)
 espidx1=[0]*len(rh_fit_list);espidx2=[0]*len(rh_fit_list);espidx_break=[0]*len(rh_fit_list);chisq=[0]*len(rh_fit_list)
 rh_time=[0]*len(rh_fit_list);rh_time_sec=[0]*len(rh_fit_list)

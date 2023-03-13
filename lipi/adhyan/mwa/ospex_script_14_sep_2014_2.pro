@@ -17,16 +17,27 @@
 ;                                                                                            
 ;pro ospex_script_14_sep_2014_2, obj=obj    
 
-
-for j=0b,15 do begin
+; 5 mins from 02:00 to 02:05, we average over 30 sec, then from 02:05 to 02:15 we average over 10 sec
+; Total images = 10 + 6*10 = 70 images
+;For 30 sec integration
+for j=0b,5 do begin
 j=j*1
-for i=0b,5 do begin
-ii=i*10
-ie=ii+9
-t1=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ii,2))          
+for i=0b,1 do begin
+ii=i*30
+ie=ii+29
+
+; Below is the 10 sec section of the for loop
+;for j=6b,14 do begin
+;j=j*1
+;for i=0b,5 do begin
+;ii=i*10
+;ie=ii+9
+t1_name=strjoin('02:'+string(j,format='(I3.2)')+':'+string(ii,format='(I3.2)'))
+t2_name=strjoin('02:'+string(j,format='(I3.2)')+':'+string(ie,format='(I3.2)'))
+t1=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ii,2))
 t2=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ie,2))
-tname=strjoin(strsplit(t1,/extract,':'))+'_'+strjoin(strsplit(t2,/extract,':')) 
-print,t1,t2,tname                                    
+tname=strjoin(strsplit(t1_name,/extract,': '))+'_'+strjoin(strsplit(t2_name,/extract,': '))
+print,t1_name,'///',t2_name,'///',tname
 if not is_class(obj,'SPEX',/quiet) then obj = ospex()   
 obj-> set, spex_fit_manual=0, spex_autoplot_enable=0, spex_fitcomp_plot_resid=0, spex_fit_progbar=1                                     
 obj-> set, $                                                                                 
@@ -37,8 +48,7 @@ obj-> set, spex_source_xy= [940.435, -202.580]
 obj-> set, spex_fit_manual= 2                                                                
 obj-> set, spex_fit_start_method= 'previous_iter'                                            
 obj-> set, spex_erange= [8.0000000D, 40.000000D]                                             
-obj-> set, spex_fit_time_interval= [strjoin('14-Sep-2014 '+t1), $                         
- strjoin('14-Sep-2014 '+t2)]                                                                    
+obj-> set, spex_fit_time_interval= [strjoin('14-Sep-2014 '+t1), strjoin('14-Sep-2014 '+t2)]
 obj-> set, spex_bk_time_interval=['14-Sep-2014 01:40:00.000', '14-Sep-2014 01:45:00.000']    
 obj-> set, mcurvefit_itmax= 800L                                                             
 obj-> set, spex_uncert= 0.000100000                                                          
@@ -70,8 +80,21 @@ obj-> set, spex_fit_manual=0, spex_autoplot_enable=0, spex_fitcomp_plot_resid=0,
 obj -> dofit, /all
 obj->fitsummary, file_text='fitsummary_'+tname+'.txt'
 ;obj->filewrite, /fits, /buildsrm, srmfile=srmfilename, specfile = spfilename, all_simplify=0, /create
-obj-> plot_spectrum, /show_fit, /use_fitted, spex_units='flux', /bksub, /photon, /show_err
-obj-> savefit,outfile='fitspec_'+tname+'.fits'  
+;obj-> plot_spectrum, /show_fit, /use_fitted, spex_units='flux', /bksub, /photon, /show_err
+ct_energy = obj-> getaxis(/ct_energy)
+rate = obj->calc_summ(item='data_photon_flux',errors='data_photon_flux_errors')
+bkg_rate = obj->calc_summ(item='background_photon_flux',errors='background_photon_flux_errors')
+spectrum_fits = obj -> calc_func_components(spex_unit='flux',/photons)
+err_rate = obj->calc_summ(errors='data_photon_flux_errors')
+err_bkg_rate = obj->calc_summ(errors='background_photon_flux_errors')
+resid = obj->calc_summ(item='resid')
+total_fit = spectrum_fits.yvals[*,0]
+pow = spectrum_fits.yvals[*,1]
+vth_fit = spectrum_fits.yvals[*,2]
+obj-> set, vth_fit= vth_fit
+obj-> set, pow= pow
+obj-> savefit,outfile='fitspec_'+tname+'.fits'
+writefits,'fitspec_'+tname+'_vth_pow.fits',[[ct_energy],[rate],[bkg_rate],[err_rate],[err_bkg_rate],[resid],[vth_fit],[pow],[total_fit]]
 endfor
 endfor
 end                                                                                          

@@ -1422,6 +1422,8 @@ print("Reading 5 and 7..")
 #vla7=pickle.load(open('/media/rohit/VLA/20160409/20160409_vla_spw_7_50ms.p','rb'))
 
 timevla=vla0['vla0']['timevla']
+
+#########################
 time94=allmaps['aia94']['time94'];time131=allmaps['aia131']['time131'];time335=allmaps['aia335']['time335']
 time1600=allmaps['aia1600']['time1600'];time1700=allmaps['aia1700']['time1700'];time171=allmaps['aia171']['time171']
 timed94=allmaps['aiad94']['timed94'];timed131=allmaps['aiad131']['timed131'];time335=allmaps['aiad335']['timed335']
@@ -1563,7 +1565,7 @@ ds_RR=ds[1].swapaxes(0,1).reshape(512,2400)
 freq=freq.swapaxes(0,1).flatten()/1.e9
 ds1s=np.subtract(ds1['spec'][0][0].swapaxes(0,1),ds1['spec'][0][0][:,0]).swapaxes(0,1)/3 
 ds_LL1=np.hstack((ds1s,np.subtract(ds1s[:,-1],-1*ds_LL[6:512].swapaxes(0,1)+28).swapaxes(0,1)))
-
+ds_RR1=np.hstack((ds1s,np.subtract(ds1s[:,-1],-1*ds_RR[6:512].swapaxes(0,1)+28).swapaxes(0,1)))
 
 
 sys.exit()
@@ -1573,8 +1575,10 @@ plot_euv_time=1
 if(plot_euv_time):
     dsplt=ds_LL1[0:128].mean(axis=0)/120; dsplt[2130:2170]=np.nan; dsplt[4530:4570]=np.nan; dsplt[6930:6970]=np.nan
     f,ax=plt.subplots(3,1,sharex=True,gridspec_kw={'height_ratios': [1, 3, 1]})
-    ax[0].imshow(ds_LL1,aspect='auto',origin='lower',cmap='coolwarm',vmin=1,vmax=120,extent=[67200.0,67560.,freq[0],freq[-1]])
+    im0=ax[0].imshow(ds_LL1/300*7,aspect='auto',origin='lower',cmap='coolwarm',vmin=0.1,vmax=2,extent=[67200.0,67560.,freq[0],freq[-1]])
     ax[0].set_ylabel('Frequency (GHz)')
+    divider = make_axes_locatable(ax[0]);cax = divider.append_axes('right', size='0.5%', pad=0.01)
+    f.colorbar(im0, cax=cax, orientation='vertical',label='(SFU)')
     ax[1].axhline(y=0.5,linestyle='--',color='gray')
     ax[1].axvline(x=67315, linestyle='--', color='gray')
     ax[1].axvline(x=67430, linestyle='--', color='gray')
