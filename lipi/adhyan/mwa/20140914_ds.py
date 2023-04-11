@@ -413,7 +413,7 @@ plt.errorbar(rh_time_sec,spidx1,linestyle='None',yerr=espidx1,color='blue')
 plt.plot(rh_time_sec,spidx2,'o-',color='red',label='High-Energy')
 plt.errorbar(rh_time_sec,spidx2,linestyle='None',yerr=espidx2,color='red')
 plt.legend();plt.xlabel('Time (HH:MM:SS)');plt.ylabel('Spectral Index')
-plt.xticks(rh_time_sec[::18],rh_time1[::18])
+plt.xticks([rh_time_sec[0],rh_time_sec[5],rh_time_sec[15],rh_time_sec[30],rh_time_sec[50]],[rh_time1[0],rh_time1[5],rh_time1[15],rh_time1[30],rh_time1[50]])
 plt.show()
 
 plt.plot(rh_time_sec,spidx_break,'o-',color='k',label='High-Energy')

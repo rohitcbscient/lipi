@@ -1575,7 +1575,7 @@ plot_euv_time=1
 if(plot_euv_time):
     dsplt=ds_LL1[0:128].mean(axis=0)/120; dsplt[2130:2170]=np.nan; dsplt[4530:4570]=np.nan; dsplt[6930:6970]=np.nan
     f,ax=plt.subplots(3,1,sharex=True,gridspec_kw={'height_ratios': [1, 3, 1]})
-    im0=ax[0].imshow(ds_LL1/300*7,aspect='auto',origin='lower',cmap='coolwarm',vmin=0.1,vmax=2,extent=[67200.0,67560.,freq[0],freq[-1]])
+    im0=ax[0].imshow((ds_LL1+ds_RR1)/350*20,aspect='auto',origin='lower',cmap='coolwarm',vmin=0.1,vmax=10,extent=[67200.0,67560.,freq[0],freq[-1]])
     ax[0].set_ylabel('Frequency (GHz)')
     divider = make_axes_locatable(ax[0]);cax = divider.append_axes('right', size='0.5%', pad=0.01)
     f.colorbar(im0, cax=cax, orientation='vertical',label='(SFU)')
@@ -1621,22 +1621,49 @@ listvla_rr=sorted(glob.glob('/media/rohit/VLA/20160409/images_50ms_RR/spw_2/*spw
 listvla_rr=sorted(glob.glob('/media/rohit/VLA/20160409/images_50ms_RR/spw_4/*spw.4_16-31*FITS'));v4=Map(listvla_rr[860]);v4.data[np.isnan(v4.data)]=0
 listvla_rr=sorted(glob.glob('/media/rohit/VLA/20160409/images_50ms_RR/spw_6/*spw.6_16-31*FITS'));v6=Map(listvla_rr[860]);v6.data[np.isnan(v6.data)]=0
 f=plt.figure(figsize=(10,10))
-ax0 = f.add_subplot(111)
-cc=allmaps['aia171']['map171'][10]
 dd=v;dd.data[np.isnan(dd.data)]=0
+cc=allmaps['aia171']['map171'][10]
+ax0 = f.add_subplot(111,projection=cc)
 xlaia=cc.center.Tx.value-0.61*int(cc.data.shape[0]/2);xraia=cc.center.Tx.value+0.61*int(cc.data.shape[0]/2);ylaia=cc.center.Ty.value-0.61*int(cc.data.shape[1]/2);yraia=cc.center.Ty.value+0.61*int(cc.data.shape[0]/2)
-p=cc.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
+p=cc.plot(axes=ax0,aspect='auto')
 #lev1=(1.5e7/dd.data.max())*np.array([60,70,80,90])*u.percent
 lev1=np.array([60,70,80,90])*u.percent
 xlvla=dd.center.Tx.value-2.0*int(dd.data.shape[0]/2);xrvla=dd.center.Tx.value+2.0*int(dd.data.shape[0]/2);ylvla=dd.center.Ty.value-2.0*int(dd.data.shape[1]/2);yrvla=dd.center.Ty.value+2.0*int(dd.data.shape[0]/2)
-dd.draw_contours(levels=lev1,colors='r',linewidths=2,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
+dd.draw_contours(axes=ax0,levels=lev1,colors='r',linewidths=2,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
 ax0.set_title('AIA 171 $\AA$:18:42:10 UT VLA: 18:44:43.00-18:44:43.05 UT')
-ax0.set_xlim([xlaia,xraia]);ax0.set_ylim([ylaia,yraia])
+#ax0.set_xlim([xlaia,xraia]);ax0.set_ylim([ylaia,yraia])
 #ax0.text(-1200,0,str(np.round(dd.meta['crval3']/1.e9,4))+' GHz',color='r')
 #ax0.text(-1200,50,'Contours: 3, 4.5, 6, 7.5, 9, 10, 12, 13 MK',color='yellow')
-ax0.set_xlim([-900,-700]),ax0.set_ylim([100,300])
+#ax0.set_xlim([-900,-700]),ax0.set_ylim([100,300])
 plt.show()
 
+
+f=plt.figure(figsize=(10,10))
+dd=v;dd.data[np.isnan(dd.data)]=0
+cc=allmaps['aia171']['map171'][0]
+ax0 = f.add_subplot(111,projection=cc)
+xlaia=cc.center.Tx.value-0.61*int(cc.data.shape[0]/2);xraia=cc.center.Tx.value+0.61*int(cc.data.shape[0]/2);ylaia=cc.center.Ty.value-0.61*int(cc.data.shape[1]/2);yraia=cc.center.Ty.value+0.61*int(cc.data.shape[0]/2)
+p=cc.plot(axes=ax0,aspect='auto')
+#lev1=(1.5e7/dd.data.max())*np.array([60,70,80,90])*u.percent
+lev1=np.array([5,10,20,60,70,80,90])*u.percent
+xlvla=dd.center.Tx.value-2.0*int(dd.data.shape[0]/2);xrvla=dd.center.Tx.value+2.0*int(dd.data.shape[0]/2);ylvla=dd.center.Ty.value-2.0*int(dd.data.shape[1]/2);yrvla=dd.center.Ty.value+2.0*int(dd.data.shape[0]/2)
+dd.draw_contours(axes=ax0,levels=lev1,colors='r',linewidths=2,extent=[xlvla,xrvla,ylvla,yrvla])#[xlpix,xrpix,ylpix,yrpix])
+#ax0.set_title('AIA 171 $\AA$:18:42:10 UT VLA: 18:44:43.00-18:44:43.05 UT')
+#ax0.set_xlim([xlaia,xraia]);ax0.set_ylim([ylaia,yraia])
+#ax0.text(-1200,0,str(np.round(dd.meta['crval3']/1.e9,4))+' GHz',color='r')
+#ax0.text(-1200,50,'Contours: 3, 4.5, 6, 7.5, 9, 10, 12, 13 MK',color='yellow')
+#ax0.set_xlim([-900,-700]),ax0.set_ylim([100,300])
+plt.show()
+
+
+f=plt.figure(figsize=(10,10))
+cc=allmaps['aia171']['map171'][10]
+ax0 = f.add_subplot(111,projection=cc)
+p=cc.plot(axes=ax0,aspect='auto')
+lev1=np.array([60,70,80,90])*u.percent
+xlvla=dd.center.Tx.value-2.0*int(dd.data.shape[0]/2);xrvla=dd.center.Tx.value+2.0*int(dd.data.shape[0]/2);ylvla=dd.center.Ty.value-2.0*int(dd.data.shape[1]/2);yrvla=dd.center.Ty.value+2.0*int(dd.data.shape[0]/2)
+dd.draw_contours(axes=ax0,levels=lev1,extent=[xlvla,xrvla,ylvla,yrvla])
+f.show()
 
 f=plt.figure(figsize=(10,10))
 ax0 = f.add_subplot(111)

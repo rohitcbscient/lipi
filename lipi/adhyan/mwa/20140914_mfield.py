@@ -182,9 +182,9 @@ if(write_pickle):
     tmwa=np.array(aa[10]);tsubmwa=np.array(bb[5]);pa_angle=np.array(pa_angle)+45;Tbmax=np.array(Tbmax);Tbsubmax=np.nanmax(Tbsuball,axis=(2,3))
     xcsub90_xray=xcsub90-750;ycsub90_xray=ycsub90+300;rcsub90_xray=np.sqrt(xcsub90_xray**2 + ycsub90_xray**2);
     Tbsubstd = np.nanstd(Tbsuball[:, 0:500, 0:500, 0:500], axis=(1, 2, 3)) * 5
-    pickle.dump([tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle,pa_amp],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
+    pickle.dump([tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,xc90,yc90,maxsubX,maxsubY,pa_angle,pa_amp],open('/media/rohit/MWA/20140914/Tb_centroid.p','wb'))
 
-tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle,pa_amp = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,xc90,yc90,maxsubX,maxsubY,pa_angle,pa_amp = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
 rcsub90=np.sqrt(xcsub90**2+ycsub90**2)
 
 
@@ -857,7 +857,7 @@ for i in range(150,450):
     plt.show()
     plt.close()
 
-
+s=2
 f,((ax0,ax1),(ax2,ax3))=plt.subplots(2,2)
 #im=ax.scatter(x1,y1,c=bsz1,cmap='jet',vmin=0,vmax=40)
 im0=ax0.scatter(rs1*delta,z1*delta,c=bsabs1,cmap='jet',vmin=0,vmax=40,alpha=0.5)
@@ -865,6 +865,7 @@ ax0.set_xlabel('Radial Coordinate (arcsec)');ax0.set_ylabel('Z-Coordinate (arcse
 cax0 = ax0_divider.append_axes("right", size="7%", pad="2%")
 f.colorbar(im0,label='|B| (G)',cax=cax0)
 ax1.plot(r_arr,freq_arr,'o-',label='$\omega_e$ (Newkirk)')
+ax1.axhline(y=108,linestyle='--',color='k')
 ax1.plot(np.arange(300)*1.4,babs[:,200,200]/2.8*s,'o-',label='$\Omega_e$ (s=2)');ax1.legend();ax1.set_xlim(10,200);ax1.set_ylabel('Frequency (MHz)'),ax1.set_xlabel('Coronal Height (Mm)')
 im2=ax2.scatter(rs1*delta,z1*delta,c=bsabs1/2.8*s,cmap='jet',vmin=100,vmax=240,alpha=0.5);ax2_divider = make_axes_locatable(ax2)
 cax2 = ax2_divider.append_axes("right", size="7%", pad="2%")
@@ -1004,6 +1005,11 @@ if plot_one:
 plot_one=1
 if plot_one:
     aiamap = Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T02_00_35.34Z.image_lev1.fits')
+    aiamap1 = Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T01_50_59.34Z.image_lev1.fits')
+    data240=Tb240[1100];data240[np.isnan(data240)] =0
+    hd240=aiamap1.meta;aiamap1.meta['cdelt2'] = 50;aiamap1.meta['cdelt1'] = 50
+    aiamap1.meta['naxis1']=200;aiamap1.meta['naxis2']=200;aiamap1.meta['crpix1']=100;aiamap1.meta['crpix2']=100
+    mwamap240=Map(data240,aiamap1.meta)
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111,projection=aiamap)
     p0=aiamap.plot(axes=ax,aspect='auto',vmin=100,vmax=8000)
@@ -1013,7 +1019,7 @@ if plot_one:
     #ax.plot_coord(seeds00, color='brown', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
     seeds01 = SkyCoord(hp_lon1.ravel(), hp_lat1.ravel(),frame=aiamap.coordinate_frame)
     ax.plot_coord(seeds01, color='tab:blue', marker='s', markersize=0.5,alpha=0.5,linestyle='None')
-    seeds1 = SkyCoord(xc90[8][400:600]*u.arcsec, yc90[8][400:600]*u.arcsec,frame=aiamap.coordinate_frame)
+    seeds1 = SkyCoord(xcsub90[8][400:1000]*u.arcsec, ycsub90[8][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
     ax.plot_coord(seeds1, color='tab:red', marker='s', markersize=4.0,alpha=0.6,linestyle='None')
     #-------------------
     rhessi_image_list = sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_15-25keV_*.fits'))
@@ -1023,7 +1029,7 @@ if plot_one:
     aiahead1['CRPIX1']=imghead['CRPIX1'];aiahead1['CRPIX2']=imghead['CRPIX2']
     aiahead1['CRVAL1']=imghead['CRVAL1'];aiahead1['CRVAL2']=imghead['CRVAL2']
     aiahead1['CDELT1']=imghead['CDELT1'];aiahead1['CDELT2']=imghead['CDELT2']
-    img = fits.open(rhessi_image_list[trhessi_idx]);imgdata = img[0].data;imghead = img[0].header
+    img = fits.open(rhessi_image_list[85]);imgdata = img[0].data;imghead = img[0].header
     rhessi_map=Map(imgdata,aiahead1)
     frac_r1=0.9;frac_r2=0.8;frac_r3=0.85
     lev_r1=np.nanmax(rhessi_map.data)*frac_r1
@@ -1031,7 +1037,10 @@ if plot_one:
     lev_r3 = np.nanmax(rhessi_map.data) * frac_r3
     c1=rhessi_map.contour(level=lev_r1* u.ct);ax.plot_coord(c1[0],color='green')
     c2 = rhessi_map.contour(level=lev_r2 * u.ct);ax.plot_coord(c2[0], color='green')
-    c3 = rhessi_map.contour(level=lev_r3 * u.ct);    ax.plot_coord(c3[0], color='green')
+    c3 = rhessi_map.contour(level=lev_r3 * u.ct); ax.plot_coord(c3[0], color='green')
+    lev240=np.nanmax(data240.data)
+    c4=mwamap240.contour(level=lev240*0.8*u.ct);ax.plot_coord(c4[0],color='red',linewidth=3)
+    c5 = mwamap240.contour(level=lev240*0.9* u.ct);ax.plot_coord(c5[0], color='red', linewidth=3)
     #seeds2 = SkyCoord(xc90[4][400:1000]*u.arcsec, yc90[4][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
     #ax.plot_coord(seeds2, color='tab:green', marker='s', markersize=1.0,alpha=0.6,linestyle='None')
     #seeds3 = SkyCoord(xc90[0][400:1000]*u.arcsec, yc90[0][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)

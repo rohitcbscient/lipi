@@ -20,18 +20,18 @@
 ; 5 mins from 02:00 to 02:05, we average over 30 sec, then from 02:05 to 02:15 we average over 10 sec
 ; Total images = 10 + 6*10 = 70 images
 ;For 30 sec integration
-for j=0b,5 do begin
-j=j*1
-for i=0b,1 do begin
-ii=i*30
-ie=ii+29
-
-; Below is the 10 sec section of the for loop
-;for j=6b,14 do begin
+;for j=0b,5 do begin
 ;j=j*1
-;for i=0b,5 do begin
-;ii=i*10
-;ie=ii+9
+;for i=0b,1 do begin
+;ii=i*30
+;ie=ii+29
+
+; Below is the 10 sec section of the for loop 14 & 5
+for j=6b,6 do begin
+j=j*1
+for i=0b,0 do begin
+ii=i*10
+ie=ii+9
 t1_name=strjoin('02:'+string(j,format='(I3.2)')+':'+string(ii,format='(I3.2)'))
 t2_name=strjoin('02:'+string(j,format='(I3.2)')+':'+string(ie,format='(I3.2)'))
 t1=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ii,2))
@@ -87,12 +87,15 @@ bkg_rate = obj->calc_summ(item='background_photon_flux',errors='background_photo
 spectrum_fits = obj -> calc_func_components(spex_unit='flux',/photons)
 err_rate = obj->calc_summ(errors='data_photon_flux_errors')
 err_bkg_rate = obj->calc_summ(errors='background_photon_flux_errors')
+electron_flux = obj -> calc_summ(errors='thick_integ_flux')
 resid = obj->calc_summ(item='resid')
 total_fit = spectrum_fits.yvals[*,0]
 pow = spectrum_fits.yvals[*,1]
 vth_fit = spectrum_fits.yvals[*,2]
 obj-> set, vth_fit= vth_fit
 obj-> set, pow= pow
+sum_params = obj -> get(/spex_summ_params)
+nontherm_electron_energy_flux=calc_nontherm_electron_energy_flux(sum_params)
 obj-> savefit,outfile='fitspec_'+tname+'.fits'
 writefits,'fitspec_'+tname+'_vth_pow.fits',[[ct_energy],[rate],[bkg_rate],[err_rate],[err_bkg_rate],[resid],[vth_fit],[pow],[total_fit]]
 endfor
