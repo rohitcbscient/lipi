@@ -15,7 +15,7 @@
 ;  http://hesperia.gsfc.nasa.gov/ssw/packages/spex/doc/ospex_explanation.htm                 
 ;  for a complete list of methods and their arguments.                                       
 ;                                                                                            
-;pro ospex_script_14_sep_2014_2, obj=obj    
+;pro ospex_script_14_sep_2014_2, obj=obj
 
 ; 5 mins from 02:00 to 02:05, we average over 30 sec, then from 02:05 to 02:15 we average over 10 sec
 ; Total images = 10 + 6*10 = 70 images
@@ -27,7 +27,7 @@
 ;ie=ii+29
 
 ; Below is the 10 sec section of the for loop 14 & 5
-for j=6b,6 do begin
+for j=5b,5 do begin
 j=j*1
 for i=0b,0 do begin
 ii=i*10
@@ -47,12 +47,12 @@ obj-> set, spex_source_angle= 90.0000
 obj-> set, spex_source_xy= [940.435, -202.580]                                               
 obj-> set, spex_fit_manual= 2                                                                
 obj-> set, spex_fit_start_method= 'previous_iter'                                            
-obj-> set, spex_erange= [8.0000000D, 40.000000D]                                             
+obj-> set, spex_erange= [8.0000000D, 40.000000D]
 obj-> set, spex_fit_time_interval= [strjoin('14-Sep-2014 '+t1), strjoin('14-Sep-2014 '+t2)]
 obj-> set, spex_bk_time_interval=['14-Sep-2014 01:40:00.000', '14-Sep-2014 01:45:00.000']    
 obj-> set, mcurvefit_itmax= 800L                                                             
 obj-> set, spex_uncert= 0.000100000                                                          
-obj-> set, fit_function= 'bpow+vth'                                                          
+obj-> set, fit_function= 'vth+bpow'
 obj-> set, fit_comp_params= [0.115391, 4.78865, 19.0751, 6.04168, 0.0820958, 0.842910, $     
  9.97226]                                                                                    
 obj-> set, fit_comp_minima= [1.00000e-10, 1.70000, 10.0000, 1.70000, 1.00000e-20, 0.500000, $
@@ -82,11 +82,13 @@ obj->fitsummary, file_text='fitsummary_'+tname+'.txt'
 ;obj->filewrite, /fits, /buildsrm, srmfile=srmfilename, specfile = spfilename, all_simplify=0, /create
 ;obj-> plot_spectrum, /show_fit, /use_fitted, spex_units='flux', /bksub, /photon, /show_err
 ct_energy = obj-> getaxis(/ct_energy)
-rate = obj->calc_summ(item='data_photon_flux',errors='data_photon_flux_errors')
-bkg_rate = obj->calc_summ(item='background_photon_flux',errors='background_photon_flux_errors')
+rate = obj->calc_summ(item='data_photon_flux',errors=err_ph)
+err_rate = err_ph
+print,rate,err_ph
+bkg_rate = obj->calc_summ(item='background_photon_flux',errors=back_err_ph)
+print,bkg_rate,back_err_ph
 spectrum_fits = obj -> calc_func_components(spex_unit='flux',/photons)
-err_rate = obj->calc_summ(errors='data_photon_flux_errors')
-err_bkg_rate = obj->calc_summ(errors='background_photon_flux_errors')
+err_bkg_rate = back_err_ph
 electron_flux = obj -> calc_summ(errors='thick_integ_flux')
 resid = obj->calc_summ(item='resid')
 total_fit = spectrum_fits.yvals[*,0]
@@ -97,7 +99,14 @@ obj-> set, pow= pow
 sum_params = obj -> get(/spex_summ_params)
 nontherm_electron_energy_flux=calc_nontherm_electron_energy_flux(sum_params)
 obj-> savefit,outfile='fitspec_'+tname+'.fits'
+s = obj->get(/spex_summ)
+param_fit = s.spex_summ_params
+ele_dist=calc_electron_distribution(energy=ct_energy, func='thick2_vnorm')
+nontherm_electon_energy_flux=calc_nontherm_electron_energy_flux(param_fit, func='thick2_vnorm',/indep)
+print,rate,err_ph
 writefits,'fitspec_'+tname+'_vth_pow.fits',[[ct_energy],[rate],[bkg_rate],[err_rate],[err_bkg_rate],[resid],[vth_fit],[pow],[total_fit]]
+writefits,'nontherm_energy_flux_n_power_'+tname+'.fits',[nontherm_electon_energy_flux]
+writefits,'electron_dist_'+tname+'.fits',[ele_dist]
 endfor
 endfor
 end                                                                                          

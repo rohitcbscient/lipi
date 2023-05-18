@@ -1535,6 +1535,7 @@ gf0540=goes['lx'][1];gf1080=goes['lx'][0];gtime=goes['tarray']
 fm=fits.open('/data/Dropbox/20160409/fermi/glg_cspec_n5_160409_v00_data.fits')
 fm0=fm[0];fm1=fm[1]
 fmrate=fm1.data['RATE'];fmtime=fm1.data['TIME']
+fmmin=fm[2].data['E_MIN']
 fmtime=fmtime-fmtime[0]
 plt.plot(fmtime,fmrate,'o-')
 plt.show()
@@ -1581,16 +1582,20 @@ if(plot_euv_time):
     f.colorbar(im0, cax=cax, orientation='vertical',label='(SFU)')
     ax[1].axhline(y=0.5,linestyle='--',color='gray')
     ax[1].axvline(x=67315, linestyle='--', color='gray')
+    ax[1].axvline(x=67415, linestyle='--', color='gray',linewidth=5)
     ax[1].axvline(x=67430, linestyle='--', color='gray')
     ax[1].axvline(x=67443, linestyle='--', color='gray')
     ax[1].axvline(x=67484, linestyle='--', color='gray')
-    ax[1].text(67315,2.4,"18:41:55",color='blue');ax[1].text(67415,2.5,"18:43:50",color='blue');ax[1].text(67443,2.5,"18:44:03",color='blue');ax[1].text(67484,2.5,"18:44:44",color='blue')
+    ax[1].text(67400,2.5,"18:43:35",color='blue')
+    ax[1].text(67320,2.4,"18:41:55",color='blue');ax[1].text(67420,2.3,"18:43:50",color='blue')
+    ax[1].text(67443,2.5,"18:44:03",color='blue');ax[1].text(67484,2.5,"18:44:44",color='blue')
     ax[1].plot(time94,ts94-ts94[1]+0.5,'o-',markersize=2,label='AIA 94 $\AA$')
     ax[1].plot(time131,ts131-ts131[1]+0.5,'o-',markersize=2,label='AIA 131 $\AA$')
     ax[1].plot(time335,ts335-ts335[1]+0.5,'o-',markersize=2,label='AIA 335 $\AA$')
     ax[1].plot(time1600,ts1600-ts1600[1]+0.5,'o-',markersize=2,label='AIA 1600 $\AA$')
     ax[1].plot(qstimevla[0][0]+np.arange(7200)*0.05,dsplt,'-',color='k',label='0.99-1.25 GHz')
-    ax[1].plot(fmtime[14244:14332],fmrate[14244:14332:,0:20].mean(axis=1)/200,'o-',markersize=2,color='orange',label='FERMI (10-25 keV)')
+    ax[1].plot(fmtime[14244:14332],fmrate[14244:14332:,1:8].mean(axis=1)/400,'o-',markersize=2,color='brown',label='FERMI (5-12 keV)')
+    ax[1].plot(fmtime[14244:14332],fmrate[14244:14332:,14:21].mean(axis=1)/40,'o-',markersize=2,color='magenta',label='FERMI (18-28 keV)')
     #ax1.plot(np.hstack((np.array(qstimevla)[:,0],np.array(timevla_all)[0:2000])),np.hstack((np.array(qsTbr_r1),Tbr_r1[1]))/1.e8,'-',color='k',label='1.077 GHz')
     ax[1].set_xticks(np.arange(11)*60+67212-11)
     ax[1].set_xticklabels(['18:40','18:41','18:42','18:43','18:44','18:45','18:46','18:47','18:48','18:49','18:50'])
@@ -1601,6 +1606,9 @@ if(plot_euv_time):
     ax2.plot(gtime[292:585]-600+67200,gf1080[292:585]*1.e-23,'o-',label='1.0-8.0$\AA$');ax[2].legend(loc=4);ax2.legend(loc=2)
     ax[1].set_ylabel('Amplitude');ax[2].set_xlabel('Time (HH:MM UT)')#;ax1.set_ylabel('')
     ax[2].set_xlim([67200.,67560.]);ax[2].set_ylabel('Flux ($\\times10^{-23}$W/m$^2$)');ax2.set_ylabel('Flux ($\\times10^{-23}$W/m$^2$)')
+    ax[1].text(67530,3.4,"(A)",color='white',fontsize=20)
+    ax[1].text(67530,2.3,"(B)",color='k',fontsize=20)
+    ax[2].text(67530,1.6,"(C)",color='k',fontsize=20)
     plt.show()
 
 f,ax=plt.subplots(1,1)

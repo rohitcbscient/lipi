@@ -562,6 +562,16 @@ if line_check:
     plt.plot(linex1, liney1, color='blue')
     plt.show()
 
+
+for_aiaarea=1
+if(for_aiaarea):
+    mapp=Map(ddiff_list[160]);d=mapp.data
+    mapp.plot(vmin=-1000,vmax=1000)
+    plt.xlim(3000,3500);plt.ylim(1200,1700)
+    plt.arrow(3120,1440,50,50,head_width=10,fc='red', ec='red')
+    plt.colorbar()
+    plt.show()
+
 intd211=[0]*len(ddiff211_list)
 time211=[0]*len(ddiff211_list)
 for i in range(len(ddiff211_list)):

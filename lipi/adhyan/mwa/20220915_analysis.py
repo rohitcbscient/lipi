@@ -6,17 +6,18 @@ from astropy.io import fits
 from sunpy.map import Map
 import itertools
 import astropy.units as u
-from scipy.io import readsav
-from surya.utils import main as ut
 from scipy.ndimage.interpolation import rotate
 from surya.utils import model as mdl
+from surya.utils import main as ut
+from scipy.io import readsav
+
 
 baseline=['000-002','000-005','000-007','002-005','002-007','005-007']
 chlist=[61,65,69,73,81,86,91,96,101,113,120,127,134,142,150,158,167,187,226]
 flux=[0]*len(chlist);freq=[0]*len(chlist);dflux=[0]*len(chlist)
 i=0
 for ch in chlist:
-    f2=pickle.load(open('/sdata/20220915_MWA/pickle/flux_V1_20220915_ch'+str(ch)+'.p','rb'),encoding='latin1')
+    f2=pickle.load(open('/data/20220915_MWA/pickle/flux_V1_20220915_ch'+str(ch)+'.p','rb'),encoding='latin1')
     flux[i]=np.mean(f2[17][3][0],axis=0)
     freq[i]=ch*1.28
     dflux[i]=flux[i]-flux[i][0]
@@ -108,6 +109,75 @@ ax.set_ylabel('$T_B$ (MK)');ax.set_xlabel('Frequency (MHz)')
 ax.legend(loc=2);ax.set_ylim(0,10)
 plt.show()
 
+#---------------------------- new
+
+#chlist_img=[61,65,69,77,81,86,91,96,101,107,113,120,127,134,142,150,167,177,187,210,226]
+chlist_img=[61,65,69,81,86,91,96,101,107,120,127,134,142,150,167,177,187]
+Tbmax_r1=[0]*len(chlist_img);Tbmax_r2=[0]*len(chlist_img)
+Smax_r1=[0]*len(chlist_img);Smax_r2=[0]*len(chlist_img)
+bmin=[0]*len(chlist_img);bmaj=[0]*len(chlist_img)
+freq_mwa=[0]*len(chlist_img)
+Tb_mean_region1=[0]*len(chlist_img);Tb_mean_region2=[0]*len(chlist_img)
+Tb_r2_1=[0]*len(chlist_img);Tb_r1_1=[0]*len(chlist_img)
+xc_max_reg1=[0]*len(chlist_img);xc_max_reg2=[0]*len(chlist_img)
+yc_max_reg1=[0]*len(chlist_img);yc_max_reg2=[0]*len(chlist_img)
+idx_r1=[0]*len(chlist_img);idx_r2=[0]*len(chlist_img)
+reg='reg1'
+for i in range(len(chlist_img)):
+    c=chlist_img[i]
+    print('Channel: '+str(c))
+    freq_mwa[i],Tb,Tbmax_r1[i],S,bmin[i],bmaj[i],img=pickle.load(open('/data/20220915_MWA/Tb_20220915_'+str(reg)+'_ch'+str(c)+'.p','rb'),encoding='latin1')
+    print(Tb.shape)
+    Smax_r1[i]=np.nanmax(S,axis=(1,2))
+    Tb_r1 = Tb[:, 115:125,112:122]
+    #Tb_r1 = Tb[:,119,116]
+    Tb_r1_1[i]=Tb_r1*0;xc_max_reg1[i]=[0]*len(Tb_r1);yc_max_reg1[i]=[0]*len(Tb_r1);idx_r1[i]=[0]*len(Tb_r1)
+    for k in range(len(Tb_r1)):
+        if(any(map(lambda x: x == 0, np.array(np.where(Tb_r1[k]==np.nanmax(Tb_r1[k]))).flatten()))==False):
+            Tb_r1_1[i][k]=Tb_r1[k]
+            xc_max_reg1[i][k],yc_max_reg1[i][k]=np.where(Tb[k][115:125,112:122]==np.nanmax(Tb[k][115:125,112:122]))
+        else:
+            Tbmax_r1[i][k] = np.nan
+            Tb_r1_1[i][k] = np.nan
+    Tbmax_r1[i][Tbmax_r1[i]>1.e10] = np.nan;Tbmax_r1[i][Tbmax_r1[i]<1.e5] = np.nan
+    Tb_r1_1[i][Tb_r1_1[i]>1.e10] = np.nan; Tb_r1_1[i][Tb_r1_1[i]<1.e5] = np.nan
+    idx_r1[i]=np.arange(len(Tbmax_r1[i]))[np.isfinite(Tbmax_r1[i])]
+    #Tb_mean_region1[i]=np.nanmean(Tb_r1_1[i][idx_r1[i]],axis=(1,2))
+    Tb_mean_region1[i]=Tb[:, 119,116]
+
+reg='reg2'
+for i in range(len(chlist_img)):
+    c=chlist_img[i]
+    print('Channel: '+str(c))
+    freq_mwa[i],Tb,Tbmax_r2[i],S,bmin[i],bmaj[i],img=pickle.load(open('/data/20220915_MWA/Tb_20220915_'+str(reg)+'_ch'+str(c)+'.p','rb'),encoding='latin1')
+    Smax_r2[i]=np.nanmax(S,axis=(1,2))
+    Tb_r2=Tb[:,99:106,116:123]
+    #Tb_r2=Tb[:,102,120]
+    Tb_r2_1[i]=Tb_r2*0;idx_r2[i]=[0]*len(Tb_r2);xc_max_reg2[i]=[0]*len(Tb_r2);yc_max_reg2[i]=[0]*len(Tb_r2)
+    for k in range(len(Tb_r2)):
+        if(any(map(lambda x: x == 0, np.array(np.where(Tb_r2[k]==np.nanmax(Tb_r2[k]))).flatten()))==False):
+            Tb_r2_1[i][k]=Tb_r2[k]
+            xc_max_reg2[i][k],yc_max_reg2[i][k]=np.where(Tb[k][115:125,112:122]==np.nanmax(Tb[k][115:125,112:122]))
+            idx_r2[i][k]=k
+    Tbmax_r2[i][Tbmax_r2[i]>1.e10] = np.nan;Tbmax_r2[i][Tbmax_r2[i]<1.e5] = np.nan
+    Tb_r2_1[i][Tb_r2_1[i]>1.e10] = np.nan; Tb_r2_1[i][Tb_r2_1[i]<1.e5] = np.nan
+    idx_r2[i]=np.arange(len(Tbmax_r2[i]))[np.isfinite(Tbmax_r2[i])]
+    #Tb_mean_region2[i]=np.nanmean(Tb_r2_1[i][idx_r2[i]],axis=(1,2))
+    Tb_mean_region2[i]=Tb[:,102,120]
+
+freq_mwa=np.array(freq_mwa)
+Tbmax_r1=np.array(Tbmax_r1);Tbmax_r2=np.array(Tbmax_r2)
+Smax_r1=np.array(Smax_r1);Smax_r2=np.array(Smax_r2)
+bmin=np.array(bmin);bmaj=np.array(bmaj)
+Tb_mean_region2=np.array(Tb_mean_region2);Tb_mean_region1=np.array(Tb_mean_region1)
+Tb_r1_1=np.array(Tb_r1_1);Tb_r2_1=np.array(Tb_r2_1)
+pickle.dump([freq_mwa,Tbmax_r1,Tbmax_r2,Tb_mean_region1,Tb_mean_region2,Smax_r1, \
+             Smax_r2,bmin,bmaj,Tb_r1_1,Tb_r2_1,idx_r1,idx_r2],open('/data/20220915_MWA/20220915_Tbmax.p','wb'))
+
+#freq_mwa,Tbmax_reg1,Smax_reg1,bmin,bmaj = pickle.load(open('/data/20220915_MWA/20220915_reg1_Tbmax.p','rb'),encoding='latin1')
+#freq_mwa,Tbmax_reg2,Smax_reg2,bmin,bmaj = pickle.load(open('/data/20220915_MWA/20220915_reg2_Tbmax.p','rb'),encoding='latin1')
+freq_mwa,Tbmax_r1,Tbmax_r2,Tb_mean_region1,Tb_mean_region2,Smax_r1,Smax_r2,bmin,bmaj,Tb_r1_1,Tb_r2_1,idx_r1,idx_r2= \
+pickle.load(open('/data/20220915_MWA/20220915_Tbmax.p','rb'),encoding='latin1')
 
 #----------------- HMI
 hmifile=sorted(glob.glob('/sdata/20220915_hmi/hmi.m_45s.2022.09.12_03_01_30_TAI.magnetogram.fits'))

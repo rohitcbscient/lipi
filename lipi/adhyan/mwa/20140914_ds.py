@@ -98,6 +98,16 @@ flux=np.array(flux).reshape(9,53*25)
 
 goes=readsav(goesfile);goes18=goes['yclean'][0];goes0540=goes['yclean'][1];tgoes=goes['tarray']
 
+########33 AMATERAS
+
+ama=fits.open('/data/Dropbox/20140914/20140914_IPRT.fits')
+ama_head=ama[0].header
+ama_rr_db=ama[0].data[0];ama_ll_db=ama[0].data[1];ama_freq=np.arange(ama_rr_db.shape[0])
+ama_rr=10**(ama_rr_db/100);ama_ll=10**(ama_ll_db/100)
+ama_v=ama_rr-ama_ll;ama_I=ama_rr+ama_ll
+ama_dcp=ama_v/ama_I
+# V = RR-LL/(RR+LL)
+
 plt.plot(flux[1].flatten())
 plt.show()
 
@@ -151,44 +161,56 @@ bb_chisq=bb[1].data['CHISQ'];bb_convfac=bb[1].data['CONVFAC'][0]
 bb_phmodel=bb[1].data['PHMODEL'][0];bb_res=bb[1].data['RESIDUAL'][0];source_xy=bb[1].data['SOURCE_XY']
 bb_chan=bb[1].data['CHANNEL'][0]
 
-cc=fits.open('/media/rohit/MWA/20140914/rhessi/spec_fits/fitspec_020530_020559_vth_pow.fits')
+frac_bb=bb_stat_err/bb_rate
+
+#cc=fits.open('/media/rohit/MWA/20140914/rhessi/spec_fits/fitspec_020500_020559_vth_pow.fits') # 30 sec
+cc=fits.open('/sdata/20140914_rhessi/vth+thick2/fitspec_021040_021059_vth_pow.fits')
 ct_energy,rate,bkg_rate,err_rate,err_bkg_rate,resid,vth_fits,pow_fits,total_fits=cc[0].data
 
+
+
+
 f,(ax0,ax1)=plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios': [3, 1]})
-ax0.plot(ct_energy,rate,'o-',markersize=7,color='k',label='Data')
+ax0.plot(ct_energy,rate,'o',markersize=7,color='k')
+ax0.errorbar(ct_energy,rate,yerr=err_rate,color='k',label='Data')
+ax0.errorbar(ct_energy,bkg_rate,yerr=err_bkg_rate,color='magenta',label='Background')
 #ax0.errorbar(ct_energy,rate,yerr=err_rate,label='Data Count Rate',color='k')
-ax1.plot(ct_energy,resid,'o-',markersize=1,color='red')
+ax1.plot(ct_energy,resid,'o-',markersize=1,color='red',label='Residual')
+#ax1.errorbar(ct_energy,resid,yerr=resid*frac_bb,color='red',label='Residual')
 #ax1.errorbar(ct_energy,resid,yerr=err_bkg_rate,label='RESIDUAL',color='red')
-ax0.plot(ct_energy,total_fits,'-',markersize=1,label='Fit (vth+pow)',color='blue')
-ax0.plot(ct_energy,vth_fits,'-',markersize=1,label='Fit (vth)',color='orange')
-ax0.plot(ct_energy,pow_fits,'-',markersize=1,label='Fit (pow)',color='magenta')
+ax0.plot(ct_energy,total_fits,'-',markersize=1,label='Fit (vth+thick2)',color='blue')
+ax0.plot(ct_energy,vth_fits,'-',markersize=1,label='Fit (thick2)',color='orange')
+ax0.plot(ct_energy,pow_fits,'-',markersize=1,label='Fit (vth)',color='green')
 ax0.legend();ax1.legend();ax1.set_ylabel('Normalised Residual'),ax0.set_yscale('log');ax1.set_xscale('log')
 ax0.set_ylabel('Photons $s^{-1}$ $cm^{-2}$ $kev^{-1}$');ax1.set_xlabel('Energy (keV)')
-ax1.set_xlim(6,40);ax1.set_ylim(-20,20);ax0.set_ylim(1.e-3,1.e5)
+ax1.set_xlim(5,80);ax1.set_ylim(-5,5);ax0.set_ylim(1.e-2,5.e4)
 plt.show()
 
 #2014-09-14T01:30:28.000 TO 2014-09-14T04:53:20.000'
 
+yplot=corr_data[3];yplot1=corr_data[1:3].mean(axis=0)
 f,ax=plt.subplots(1,1)
-ax.plot(obs_time,corr_data[2],'o-',markersize=2,label='12-25 keV')
-ax.plot(obs_time,corr_data[3],'o-',markersize=2,label='25-50 keV')
+ax.plot(obs_time,yplot1,'o-',markersize=2,label='6-25 keV')
+ax.plot(obs_time,yplot,'o-',markersize=2,label='25-50 keV')
 ax.axvspan(obs_time[400],obs_time[700],color='yellow',alpha=0.2)
 ax.axvspan(obs_time[753],obs_time[1137],color='gray',alpha=0.2)
+ax.axvspan(obs_time[165],obs_time[270],color='red',alpha=0.2)
 ax.axvspan(obs_time[2300],obs_time[2620],color='gray',alpha=0.2,label='RHESSI Nights')
 ax.set_yscale('log')
 ax.set_xticks([obs_time[0],obs_time[500],obs_time[1000],obs_time[1500],obs_time[2000],obs_time[2500],obs_time[3000]])
 ax.set_xticklabels(['01:30:28','02:03:48','02:37:08','03:10:28','03:43:48','04:14:08','04:47:28'])
 ax.set_xlabel('Time (HH:MM:SS)');ax.set_ylabel('Corrected Counts (cm$^{-2}$ s$^{-1}$ keV$^{-1}$)')
-ax.legend(loc=2);ax.set_ylim([1.e0,8.e3])
-left, bottom, width, height = [0.45, 0.45, 0.4, 0.4]
+ax.legend(loc=2);ax.set_ylim([2.e-2,8.e2])
+left, bottom, width, height = [0.55, 0.55, 0.3, 0.3]
 ax2 = f.add_axes([left, bottom, width, height])
-ax2.plot(obs_time[400:1000],corr_data[2][400:1000],'o-',markersize=2,label='')
-ax2.plot(obs_time[400:1000],corr_data[3][400:1000],'o-',markersize=2,label='')
+ax2.plot(obs_time[400:1000],yplot1[400:1000],'o-',markersize=2,label='')
+ax2.plot(obs_time[400:1000],yplot[400:1000],'o-',markersize=2,label='')
 #ax2.set_xlabel('Strain (in/in)')
 #ax2.set_ylabel('Stress (ksi)')
 ax2.set_title('Rising Phase');ax2.set_yscale('log')
 ax2.set_xticks([obs_time[400],obs_time[500],obs_time[600],obs_time[700]])
-ax2.set_xticklabels(['02:03:48','02:10:28','02:17:08','02:23:48'])
+ax2.set_xticklabels(['01:57:08','02:03:48','02:10:28','02:17:08'])
+ax2.axvline(x=obs_time[606],color='red')
 #ax2.set_xlim([0,0.008])
 #ax2.set_ylim([0,100])
 plt.show()
@@ -381,7 +403,8 @@ for i in range(len(ddiff_list)):
 
 
 
-rh_fit_list=glob.glob('/media/rohit/MWA/20140914/rhessi/spec_fits/fitsummary_*.txt')
+#rh_fit_list=glob.glob('/media/rohit/MWA/20140914/rhessi/spec_fits_30sec/fitsummary_*.txt')
+rh_fit_list=sorted(glob.glob('/sdata/20140914_rhessi/spec_fits/fitsummary_*.txt'))
 spidx1=[0]*len(rh_fit_list);spidx2=[0]*len(rh_fit_list);spidx_break=[0]*len(rh_fit_list)
 espidx1=[0]*len(rh_fit_list);espidx2=[0]*len(rh_fit_list);espidx_break=[0]*len(rh_fit_list);chisq=[0]*len(rh_fit_list)
 rh_time=[0]*len(rh_fit_list);rh_time_sec=[0]*len(rh_fit_list)
@@ -405,14 +428,113 @@ rh_time_sec=np.array(rh_time_sec)[rh_idx]
 spidx1=np.array(spidx1)[rh_idx];spidx2=np.array(spidx2)[rh_idx];spidx_break=np.array(spidx_break)[rh_idx]
 espidx1=np.array(espidx1)[rh_idx];espidx2=np.array(espidx2)[rh_idx];espidx_break=np.array(espidx_break)[rh_idx];chisq=np.array(chisq)
 
+dd=fits.open('/sdata/20140914_rhessi/spec_fits/nontherm_energy_flux_n_power_021400_021409.fits')
+ee=fits.open('/sdata/20140914_rhessi/spec_fits/electron_dist_021400_021409.fits')
+ele_dist=ee[0].data
+nontherm_energy_flux=dd[0].data[0]
+# For paper use 02:14:00 to 02:14:09 time
+print(rh_fit_list[56],spidx1[56],spidx2[56],spidx_break[56])
+
+
+rh_fit_list=sorted(glob.glob('/sdata/20140914_rhessi/vth+thick2/fitsummary_*.txt'))
+el_spidx=[0]*len(rh_fit_list);el_flux=[0]*len(rh_fit_list);el_low=[0]*len(rh_fit_list)
+el_spidxe=[0]*len(rh_fit_list);el_fluxe=[0]*len(rh_fit_list);el_lowe=[0]*len(rh_fit_list)
+chisq=[0]*len(rh_fit_list);el_em=[0]*len(rh_fit_list)
+rh_time=[0]*len(rh_fit_list);rh_time_sec=[0]*len(rh_fit_list)
+for i in range(len(rh_fit_list)):
+    df = pd.read_csv(rh_fit_list[i],skiprows=7)
+    df1 = df.to_records()
+    rh_time[i]=df1.dtype.descr[2][0].split(' ')[2]
+    rh_time_sec[i]=int(rh_time[i].split(':')[0])*3600+int(rh_time[i].split(':')[1])*60+int(float(rh_time[i].split(':')[2]))
+    rec1=df1[3][1].split('     ');rec1=[x for x in rec1 if x]
+    rec2=df1[4][1].split('     ');rec2=[x for x in rec2 if x]
+    rec3=df1[5][1].split('    ');rec3=[x for x in rec3 if x]
+    rec4=df1[6][1].split(' ');rec4=[x for x in rec4 if x]
+    rec5=df1[7][1].split('  ');rec5=[x for x in rec5 if x]
+    rec6=df1[8][1].split('  ');rec6=[x for x in rec6 if x]
+    rec7=df1[9][1].split('    ');rec7=[x for x in rec7 if x]
+    rec8=df1[10][1].split('     ');rec8=[x for x in rec8 if x]
+    el_spidx[i]=float(rec6[2]);el_flux[i]=float(rec3[1]);el_low[i]=float(rec7[1])
+    el_spidxe[i]=float(rec6[3]);el_fluxe[i]=float(rec3[2]);el_lowe[i]=float(rec7[2])
+    chisq[i]= float(df1[0][1].split('Chisq=')[1][0:4])
+rh_idx=sorted(range(len(rh_time_sec)), key=lambda k: rh_time_sec[k])
+rh_time1=[0]*len(rh_time)
+for i in range(len(rh_time)):
+    rh_time1[i]=rh_time[rh_idx[i]]
+rh_time_sec=np.array(rh_time_sec)[rh_idx]
+el_spidx=np.array(el_spidx)[rh_idx];el_spidxe=np.array(el_spidxe)[rh_idx]
+el_flux=np.array(el_flux)[rh_idx];el_fluxe=np.array(el_fluxe)[rh_idx]
+el_low=np.array(el_low)[rh_idx];el_lowe=np.array(el_lowe)[rh_idx]
+chisq=np.array(chisq)
+
+#idx_plot=np.where(el_spidx>el_spidxe)[0]
+idx_plot=np.arange(41)
+
+
+f,ax=plt.subplots(1,1)
+ax.plot(rh_time_sec[idx_plot],el_spidx[idx_plot],'o-',color='blue')
+ax.errorbar(rh_time_sec[idx_plot],el_spidx[idx_plot],yerr=el_spidxe[idx_plot],label='$\delta_l$',color='blue')
+ax1=ax.twinx()
+ax1.plot(rh_time_sec[idx_plot],el_flux[idx_plot],'o-',color='green')
+ax1.errorbar(rh_time_sec[idx_plot],el_flux[idx_plot],yerr=el_fluxe[idx_plot],color='green',label='$F_e$')
+ax.legend(loc=1);ax1.legend(loc=2)
+ax.set_xticks([rh_time_sec[5],rh_time_sec[14],rh_time_sec[20],rh_time_sec[30],rh_time_sec[40]])
+ax.set_xticklabels([rh_time1[5],rh_time1[14],rh_time1[20],rh_time1[30],rh_time1[40]])
+ax.set_ylabel('Spectral Index ($\delta_l$)');ax.set_xlabel('Time (HH:MM:SS)')
+ax1.set_ylabel('$F_e (\\times 10^{35})$ (electrons/s)')
+ax.set_ylim([0,20]);ax1.set_ylim([0,35])
+ax.yaxis.label.set_color('blue')
+ax1.yaxis.label.set_color('green')
+ax2=ax1.twinx()
+ax2.plot(rh_time_sec[idx_plot],el_low[idx_plot],'o-',color='red')
+ax2.errorbar(rh_time_sec[idx_plot],el_low[idx_plot],yerr=el_lowe[idx_plot],label='$E_{low}$',color='red')
+ax2.yaxis.label.set_color('red')
+ax2.legend(loc=3)
+tkw = dict(size=4, width=1.5)
+ax2.tick_params(axis='y', **tkw)
+ax1.spines["right"].set_position(("axes", 1.0))
+ax2.spines["right"].set_position(("axes", 1.05))
+plt.show()
+
+fig, ax = plt.subplots()
+fig.subplots_adjust(right=0.75)
+twin1 = ax.twinx()
+twin2 = ax.twinx()
+twin2.spines.right.set_position(("axes", 1.1))
+p1,=ax.plot(rh_time_sec[idx_plot],el_spidx[idx_plot],'o-',color='blue',label='$\delta_l$')
+#ax.errorbar(rh_time_sec[idx_plot],el_spidx[idx_plot],yerr=el_spidxe[idx_plot],color='blue')
+p2,=twin1.plot(rh_time_sec[idx_plot],el_flux[idx_plot]/10.,'o-',color='green',label='$F_e$')
+#twin1.errorbar(rh_time_sec[idx_plot],el_flux[idx_plot]/10,yerr=el_fluxe[idx_plot],color='green')
+p3,=twin2.plot(rh_time_sec[idx_plot],el_low[idx_plot],'o-',color='red',label='$E_{low}$')
+#twin2.errorbar(rh_time_sec[idx_plot],el_low[idx_plot],yerr=el_lowe[idx_plot],color='red')
+ax.set_xlabel('Time (HH:MM:SS) UT')
+ax.set_ylabel('Spectral Index ($\delta_l$)')
+twin1.set_ylabel('$F_e (\\times 10^{36})$ (electrons/s)')
+twin2.set_ylabel('$E_{low}$ (keV)')
+ax.yaxis.label.set_color(p1.get_color())
+twin1.yaxis.label.set_color(p2.get_color())
+twin2.yaxis.label.set_color(p3.get_color())
+tkw = dict(size=4, width=1.5)
+ax.tick_params(axis='y', colors=p1.get_color(), **tkw)
+twin1.tick_params(axis='y', colors=p2.get_color(), **tkw)
+twin2.tick_params(axis='y', colors=p3.get_color(), **tkw)
+ax.tick_params(axis='x', **tkw)
+ax.legend(handles=[p1, p2, p3],loc=2)
+ax.set_xticks([rh_time_sec[0],rh_time_sec[4],rh_time_sec[12],rh_time_sec[20],rh_time_sec[30],rh_time_sec[40]])
+ax.set_xticklabels([rh_time1[0],rh_time1[4],rh_time1[12],rh_time1[20],rh_time1[30],rh_time1[40]])
+ax.set_ylim([0,30]);twin1.set_ylim([0.01,40]);twin2.set_ylim(0,40)
+twin1.set_yscale('log')
+plt.show()
 
 
 
-plt.plot(rh_time_sec,spidx1,'o-',color='blue',label='Low-Energy')
+
+
+plt.plot(rh_time_sec,spidx1,'o-',color='blue',label='Low-Energy $\delta_1$')
 plt.errorbar(rh_time_sec,spidx1,linestyle='None',yerr=espidx1,color='blue')
-plt.plot(rh_time_sec,spidx2,'o-',color='red',label='High-Energy')
+plt.plot(rh_time_sec,spidx2,'o-',color='red',label='High-Energy $\delta_2$')
 plt.errorbar(rh_time_sec,spidx2,linestyle='None',yerr=espidx2,color='red')
-plt.legend();plt.xlabel('Time (HH:MM:SS)');plt.ylabel('Spectral Index')
+plt.legend();plt.xlabel('Time (HH:MM:SS)');plt.ylabel('Spectral Index ($\delta$)')
 plt.xticks([rh_time_sec[0],rh_time_sec[5],rh_time_sec[15],rh_time_sec[30],rh_time_sec[50]],[rh_time1[0],rh_time1[5],rh_time1[15],rh_time1[30],rh_time1[50]])
 plt.show()
 

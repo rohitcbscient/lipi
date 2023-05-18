@@ -7,6 +7,7 @@ from surya.utils import main as ut
 from astropy.coordinates import SkyCoord
 from sunpy.coordinates import frames
 from matplotlib.patches import Ellipse
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 ############333
@@ -115,7 +116,7 @@ speed94_2x=np.linspace(405,468,10)
 speed94_2y=np.linspace(309,353,10)
 
 f,ax0=plt.subplots(1,1)
-ax0.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
+im=ax0.imshow(intd171[:,::-1],aspect='auto',origin='lower',vmin=-60,vmax=60,cmap='coolwarm')
 ax0.set_xticks(np.arange(intd171.shape[1])[::200]);ax0.set_xticklabels(time171[::200])
 ax0.set_yticks(np.arange(400)[::50]);ax0.set_yticklabels(np.round(liner_arcsec[::50],1))
 #ax0.plot(225+np.arange(len(Tbsubmax[0]))[80:],liner_pix[-1][80:],'o-',color='yellow',linewidth=0.5,markersize=2)
@@ -130,13 +131,17 @@ ax0.plot(speedupx,speedupy,'-',color='lime',linewidth=3,label='Slope: 0.006"/s $
 ax0.plot(speedupx1,speedupy2,'-',color='gold',linewidth=3,label='Slope: 0.11"/s $\\approx$ 81 km/s')
 #ax0.axhline(y=y1,color='r',label='240 MHz Location at Start')
 #ax0.axhline(y=y2,color='g',label='240 MHz Location at End')
-ax0.legend(loc=1);ax1.legend(loc=2);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH_MM_SS UT)')
+divider = make_axes_locatable(ax0)
+cax = divider.append_axes('top', size='2%', pad=0.3)
+f.colorbar(im, cax=cax, orientation='horizontal')
+ax0.legend(loc=1);ax1.legend(loc=3);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH_MM_SS UT)')
 e1 = Ellipse(xy=(240, 315), width=100, height=70, edgecolor='magenta', fc='None', lw=2);ax0.add_patch(e1)
 e1 = Ellipse(xy=(205, 250), width=80, height=50, edgecolor='magenta', fc='None', lw=2);ax0.add_patch(e1)
 plt.show()
 
+
 f,ax0=plt.subplots(1,1)
-ax0.imshow(intd094[:,::-1],aspect='auto',origin='lower',vmin=-1,vmax=1,cmap='coolwarm')
+im=ax0.imshow(intd094[:,::-1],aspect='auto',origin='lower',vmin=-1,vmax=1,cmap='coolwarm')
 ax0.set_xticks(np.arange(intd094.shape[1])[::200]);ax0.set_xticklabels(time094[::200])
 ax0.set_yticks(np.arange(400)[::50]);ax0.set_yticklabels(np.round(liner_arcsec[::50],1))
 #ax0.plot(225+np.arange(len(Tbsubmax[0]))[80:],liner_pix[-1][80:],'o-',color='yellow',linewidth=0.5,markersize=2)
@@ -150,7 +155,10 @@ ax0.plot(speed94_2x,speed94_2y,'-',color='magenta',linewidth=3,label='Slope: 0.0
 ax0.plot(speedupx,speedupy,'-',color='lime',linewidth=3,label='Slope: 0.006"/s $\\approx$ 4.3 km/s')
 #ax0.axhline(y=y1,color='r',label='240 MHz Location at Start')
 #ax0.axhline(y=y2,color='g',label='240 MHz Location at End')
-ax0.legend(loc=1);ax1.legend(loc=2);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH_MM_SS UT)')
+divider = make_axes_locatable(ax0)
+cax = divider.append_axes('top', size='2%', pad=0.3)
+f.colorbar(im, cax=cax, orientation='horizontal')
+ax0.legend(loc=1);ax1.legend(loc=3);ax0.set_ylabel('Radial Coordinate (arcsec)');ax0.set_xlabel('Time (HH_MM_SS UT)')
 plt.show()
 
 f,ax=plt.subplots(4,1,sharex=True);ax0=ax[0];ax1=ax[1];ax2=ax[2];ax3=ax[3]

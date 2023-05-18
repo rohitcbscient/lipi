@@ -44,7 +44,7 @@ tel_param={'alma':[-23.0234,-67.7538,5050],'vla':[34.078749167,-107.6177275,2120
         'meerkat':[-30.72111,21.4111,1000],'mkatplus':[-30.72111,21.4111,1000],'ska1low':[-50,0,1],'WSRT':[52.9145,6.6031,16],
         'sma':[19.8242,-155.4781,4080],'GMRT':[19.0919,74.0506,656],'pdbi':[44.6330,5.8965,2550],'vlba':[19.8016,155.4556,10],
         'aca':[-23.0234,-67.7538,5050],'atca':[-30.31278,149.56278,273],'carma':[37.2385,-118.3041,2196],'lofar':[52.9089,6.8689,15],
-        'mwa':[-26.7033,116.6711,125],'ngvla':[34,-40,1000],'ska1mid':[-30.72111,21.4111,1000],'ska1low':[-26.82472208,116.7644482,120]} # Lat, Lon, alt
+        'mwa':[-26.7033,116.6711,125],'ngvla':[34,-107.6,1000],'ska1mid':[-30.72111,21.4111,1000],'ska1low':[-26.82472208,116.7644482,120]} # Lat, Lon, alt
 
 cfg_list=sorted(glob.glob('*.cfg'))
 for filename in [cfg_list[173]]:
@@ -69,6 +69,9 @@ for filename in [cfg_list[173]]:
         ii="%03d"%i
         os.system('mkdir '+filename.split('.cfg')[0]+'.tm/station'+ii)
         os.system('cp /home/rohit/simulations/layout_station.txt '+filename.split('.cfg')[0]+'.tm/station'+ii+'/layout.txt')
+
+
+
 
 sys.exit()
 
