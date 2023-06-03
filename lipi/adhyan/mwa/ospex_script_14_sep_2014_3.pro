@@ -20,18 +20,18 @@
 ; 5 mins from 02:00 to 02:05, we average over 30 sec, then from 02:05 to 02:15 we average over 10 sec
 ; Total images = 10 + 6*10 = 70 images
 ;For 1 min integration
-;for j=0b,5 do begin
-;j=j*1
-;for i=0b,0 do begin
-;ii=i
-;ie=ii+59
+for j=0b,5 do begin
+j=j*1
+for i=0b,0 do begin
+ii=i
+ie=ii+59
 
 ; Below is the 10 sec section of the for loop 14 & 5
-for j=5,15 do begin
-j=j*1
-for i=0b,2 do begin
-ii=i*20
-ie=ii+19
+;for j=5,15 do begin
+;j=j*1
+;for i=0b,2 do begin
+;ii=i*20
+;ie=ii+19
 t1_name=strjoin('02:'+string(j,format='(I3.2)')+':'+string(ii,format='(I3.2)'))
 t2_name=strjoin('02:'+string(j,format='(I3.2)')+':'+string(ie,format='(I3.2)'))
 t1=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ii,2))
@@ -46,7 +46,8 @@ obj-> set, spex_erange=[9,50]
 obj-> set, mcurvefit_itmax= 800L                                                             
 obj-> set, spex_uncert= 0.000100000                                                          
 obj-> set, fit_function= 'vth+thick2'
-obj->set, fit_comp_free = [1,1,0, 1,1,1,1]
+obj->set, fit_comp_free = [1,1,0, 1,1,0,1,1,1]
+obj->set, fit_comp_params=[.005, 1.0, 1., 1.0, 1.0, 1000., 6.7, 15.0, 10000]
 obj-> set, spex_eband= [[3.00000, 6.00000], [6.00000, 12.0000], [12.0000, 25.0000], $
  [25.0000, 50.0000], [50.0000, 100.000], [100.000, 300.000]]
 obj-> set, spex_fit_time_interval= [strjoin('14-Sep-2014 '+t1), strjoin('14-Sep-2014 '+t2)]

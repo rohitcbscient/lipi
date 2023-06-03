@@ -32,8 +32,8 @@ if(rename):
         os.system('mv '+l+' '+out)
         
 
-hmifile='/sdata/20140914_hmi/hmi.m_45s.2014.09.14_01_55_30_TAI.magnetogram.fits'
-hmifile='/sdata/20140914_hmi/hmi.m_45s.2014.09.14_02_45_45_TAI.magnetogram.fits'
+hmifile='/sdata/20140914_hmi_old/hmi.m_45s.2014.09.14_01_55_30_TAI.magnetogram.fits'
+hmifile='/sdata/20140914_hmi_old/hmi.m_45s.2014.09.14_02_45_45_TAI.magnetogram.fits'
 hmimap=Map(hmifile)
 hmid=hmimap.data#[::-1,::-1]
 hmid[np.where(hmid<-5000)]=1
@@ -94,7 +94,7 @@ for i in range(len(listB)):
 sys.exit()
 
 k=0 # Layer
-expolB_=readsav('/sdata/20140914_hmi/2014-09-14/hmi.M_720s.20140914_014621.W97S14CR.CEA.NAS.sav');expolB=expolB_['box']
+expolB_=readsav('/sdata/20140914_hmi_old/2014-09-14/hmi.M_720s.20140914_014621.W97S14CR.CEA.NAS.sav');expolB=expolB_['box']
 #expolB_=readsav('/data/Dropbox/20120225_VLA_work/gregory_gyrosynchroton/hmi.M_720s.20120225_203413.W133N16CR.CEA.NAS.sav');expolB=expolB_['box']
 bx=expolB['bx'][0];by=expolB['by'][0];bz=expolB['bz'][0]
 babs=np.sqrt(bx**2 + by**2 + bz**2)

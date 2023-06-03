@@ -749,14 +749,44 @@ ax0.set_yticks([0,1,2,3,4,5,6,7,8]);ax0.set_yticklabels(freq)
 plt.show()
 
 xcsub90[:,0:120]=np.nan;ycsub90[:,0:120]=np.nan
+ama=fits.open('/data/Dropbox/20140914/20140914_IPRT.fits')
+ama_head=ama[0].header
+ama_rr_db=ama[0].data[0];ama_ll_db=ama[0].data[1];ama_freq=np.arange(ama_rr_db.shape[0])
+ama_rr=10**(ama_rr_db/100);ama_ll=10**(ama_ll_db/100)
+ama_rr[108:128]=np.nan;ama_rr[89]=np.nan;ama_rr[141]=np.nan;ama_rr[153]=np.nan;ama_rr[176]=np.nan
+ama_rr[177]=np.nan;ama_rr[185]=np.nan;ama_rr[199]=np.nan;ama_rr[205]=np.nan
+ama_rr=ama_rr[:,14000:28000];ama_ll=ama_ll[:,14000:28000]
+ama_v=ama_rr-ama_ll;ama_I=ama_rr+ama_ll
+ama_dcp=ama_v/ama_I*100
+# Start time: 22:30:51.000
+# V = RR-LL/(RR+LL)
+
+f,(ax0,ax1)=plt.subplots(2,1)
+im0=ax0.imshow(ama_dcp,origin='lower',aspect='auto',vmin=0,vmax=100,cmap='jet')
+ax1.plot(ama_dcp[:,3310:3330].mean(axis=1),'o-')
+ax1.axvline(x=160,color='magenta',linewidth=3,label='160 MHz')
+ax0.axvspan(xmin=3310,xmax=3330,color='k')
+ax0.axhline(y=160,color='magenta',linewidth=3,label='160 MHz')
+ax1.set_ylim(0,90);ax1.set_xlim(80,240)
+ax1_divider = make_axes_locatable(ax0);cax1 = ax1_divider.append_axes("right", size="2%", pad=0.01)
+f.colorbar(im0,cax=cax1,label='DCP (%)')
+ax0.set_xticks([0,4000,8000,12000]) # 0 -> 8651 sec
+ax0.set_xticklabels(['02:24:11','03:30:51','04:37:31','05:44:11'])
+ax0.set_xlabel('Time (HH:MM:SS UT)')
+ax1.set_xlabel('Frequency (MHz)');ax1.set_ylabel('DCP (%)')
+ax1.axhline(y=50,color='blue',label='50% DCP');ax1.legend();ax0.set_ylim(0,250)
+ax0.set_ylabel('Frequency (MHz)')
+ax0.text(1000,50,'(E)',color='white')
+ax1.text(90,10,'(F)',color='k')
+plt.show()
 
 f,(ax0,ax1,ax2,ax3)=plt.subplots(4,1,sharex=True)
 x1=404
 im0=ax0.imshow(Tbsubmax/1.e6,aspect='auto',cmap='coolwarm',origin='lower',vmin=1.e0,vmax=1.5e2,interpolation='nearest')
 ax0.set_ylabel('Frequency (MHz)');ax0_divider = make_axes_locatable(ax0);cax0 = ax0_divider.append_axes("right", size="1%", pad="0%")
-ax0.contour(VbyI_sub,[0.4],colors='k',linewidths=2.0)
-ax0.contour(VbyI_sub,[0.5],colors='k',linewidths=2.0)
-ax0.contour(VbyI_sub,[0.6],colors='k',linewidths=2.0)
+#ax0.contour(VbyI_sub,[0.4],colors='k',linewidths=2.0)
+#ax0.contour(VbyI_sub,[0.5],colors='k',linewidths=2.0)
+#ax0.contour(VbyI_sub,[0.6],colors='k',linewidths=2.0)
 ax0.contour(Tbsubmax/1.e6,[120],colors='yellow',linewidths=1)
 ax0.axvline(x=x1,linestyle='--',linewidth=3,color='lime')
 f.colorbar(im0,label='$T_B$ (MK)',cax=cax0)
@@ -782,6 +812,24 @@ ax.set_ylabel('Orientation Angle (deg)');ax.set_xlabel('Vector Amplitude (arcsec
 ax.axhline(y=0,linestyle='--',color='k')
 f.colorbar(im,label='Time (sec)');ax.set_ylim(-55,180);ax.set_xlim(50,200)
 plt.show()
+
+
+
+xlaia=-948;xraia=-648;ylaia=70;yraia=370;j=0
+plot_fields=1
+if(plot_fields):
+    f = plt.figure(figsize=(10,10))
+    ax0 = f.add_subplot(111,projection=aiamap)
+    p=aiamap.plot(axes=ax0,extent=[xlaia,xraia,ylaia,yraia],aspect='auto')
+    #ax0.scatter(b_hp_fr.Tx.value[idx1],b_hp_fr.Ty.value[idx1],s=5,color='tab:olive')
+    ax0.scatter(b_hp_fr.Tx.value,b_hp_fr.Ty.value,s=5,color='tab:olive')
+    ax0.contour(dd0.data/np.nanmax(dd0.data),levels=[0.6,0.8,0.9],colors='r',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
+    ax0.contour(dd1.data/np.nanmax(dd1.data),levels=[0.6,0.8,0.9],colors='g',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
+    ax0.contour(dd2.data/np.nanmax(dd2.data),levels=[0.6,0.8,0.9],colors='b',linewidths=4,origin='lower',extent=[xlvla,xrvla,ylvla,yrvla])
+    #plt.plot(x0[j],y0[j],'o')
+    #plt.plot(x1[j],y1[j],'o')
+    ax0.set_xlim(-860,-680);ax0.set_ylim(180,360)
+    plt.show()
 
 
 
@@ -1014,7 +1062,7 @@ if plot_one:
 
 plot_one=1
 if plot_one:
-    aiamap = Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T02_00_35.34Z.image_lev1.fits')
+    aiamap = Map('/sdata/fits/running_diff/aia.lev1.171A_2014-09-14T02_10_23.34Z.image_lev1.ddiff.fits')
     aiamap1 = Map('/media/rohit/MWA/20140914/EUV/fits/aia.lev1.171A_2014-09-14T01_50_59.34Z.image_lev1.fits')
     data240=Tb240[1100];data240[np.isnan(data240)] =0
     hd240=aiamap1.meta;aiamap1.meta['cdelt2'] = 50;aiamap1.meta['cdelt1'] = 50
@@ -1022,37 +1070,47 @@ if plot_one:
     mwamap240=Map(data240,aiamap1.meta)
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111,projection=aiamap)
-    p0=aiamap.plot(axes=ax,aspect='auto',vmin=100,vmax=8000)
+    p0=aiamap.plot(axes=ax,aspect='auto',vmin=-2000,vmax=2000,cmap='coolwarm')
+    #ax1_divider = make_axes_locatable(ax);cax1 = ax1_divider.append_axes("right", size="10%", pad="0.05%")
+    #fig.colorbar(p0, label='Radial Coordinate (arcsec)', cax=cax1,orientation='vertical')
     hp_lon0 =  bshp0x* u.arcsec;hp_lat0 = bshp0y* u.arcsec
     hp_lon1 = bshp1x * u.arcsec;hp_lat1 = bshp1y* u.arcsec
     #seeds00 = SkyCoord(hp_lon0.ravel(), hp_lat0.ravel(),frame=aiamap.coordinate_frame)
     #ax.plot_coord(seeds00, color='brown', marker='s', markersize=0.5,alpha=0.8,linestyle='None')
     seeds01 = SkyCoord(hp_lon1.ravel(), hp_lat1.ravel(),frame=aiamap.coordinate_frame)
-    ax.plot_coord(seeds01, color='tab:blue', marker='s', markersize=0.5,alpha=0.5,linestyle='None')
+    ax.plot_coord(seeds01, color='green', marker='s', markersize=0.5,alpha=0.5,linestyle='None')
     seeds1 = SkyCoord(xcsub90[8][400:1000]*u.arcsec, ycsub90[8][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
-    ax.plot_coord(seeds1, color='tab:red', marker='s', markersize=4.0,alpha=0.6,linestyle='None')
+    ax.plot_coord(seeds1, color='white', marker='s', markersize=4.0,alpha=0.6,linestyle='None')
     #-------------------
-    rhessi_image_list = sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_15-25keV_*.fits'))
-    img = fits.open(rhessi_image_list[85]);imgdata = img[0].data;imghead = img[0].header
+    rhessi_image_list = sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_6-12keV_*.fits'))
+    rhessi_image_list1 = sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_25-50keV_*.fits'))
+    img = fits.open(rhessi_image_list[1]);imgdata = img[0].data;imghead = img[0].header
     aiahead1=aiamap.meta
     aiahead1['naxis1']=imghead['NAXIS1'];aiahead1['naxis2']=imghead['NAXIS2']
     aiahead1['CRPIX1']=imghead['CRPIX1'];aiahead1['CRPIX2']=imghead['CRPIX2']
     aiahead1['CRVAL1']=imghead['CRVAL1'];aiahead1['CRVAL2']=imghead['CRVAL2']
     aiahead1['CDELT1']=imghead['CDELT1'];aiahead1['CDELT2']=imghead['CDELT2']
-    img = fits.open(rhessi_image_list[85]);imgdata = img[0].data;imghead = img[0].header
-    rhessi_map=Map(imgdata,aiahead1)
+    img = fits.open(rhessi_image_list[1]);imgdata = img[0].data;imghead = img[0].header
+    img1 = fits.open(rhessi_image_list1[1]);imgdata1 = img1[0].data
+    rhessi_map=Map(imgdata,aiahead1);rhessi_map1=Map(imgdata1,aiahead1)
     frac_r1=0.9;frac_r2=0.8;frac_r3=0.85
     lev_r1=np.nanmax(rhessi_map.data)*frac_r1
     lev_r2 = np.nanmax(rhessi_map.data) * frac_r2
     lev_r3 = np.nanmax(rhessi_map.data) * frac_r3
-    c1=rhessi_map.contour(level=lev_r1* u.ct);ax.plot_coord(c1[0],color='green')
-    c2 = rhessi_map.contour(level=lev_r2 * u.ct);ax.plot_coord(c2[0], color='green')
-    c3 = rhessi_map.contour(level=lev_r3 * u.ct); ax.plot_coord(c3[0], color='green')
+    lev_r4 = np.nanmax(rhessi_map1.data) * frac_r1
+    lev_r5 = np.nanmax(rhessi_map1.data) * frac_r3
+    c1=rhessi_map.contour(level=lev_r1* u.ct);ax.plot_coord(c1[0],color='yellow')
+    c2 = rhessi_map.contour(level=lev_r2 * u.ct);ax.plot_coord(c2[0], color='yellow')
+    c3 = rhessi_map.contour(level=lev_r3 * u.ct); ax.plot_coord(c3[0], color='yellow')
     lev240=np.nanmax(data240.data)
-    c4=mwamap240.contour(level=lev240*0.8*u.ct);ax.plot_coord(c4[0],color='red',linewidth=3)
-    c5 = mwamap240.contour(level=lev240*0.9* u.ct);ax.plot_coord(c5[0], color='red', linewidth=3)
-    #seeds2 = SkyCoord(xc90[4][400:1000]*u.arcsec, yc90[4][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
-    #ax.plot_coord(seeds2, color='tab:green', marker='s', markersize=1.0,alpha=0.6,linestyle='None')
+    c4 = rhessi_map1.contour(level=lev_r4 * u.ct);ax.plot_coord(c4[0], color='cyan')
+    c5 = rhessi_map1.contour(level=lev_r5 * u.ct);ax.plot_coord(c5[0], color='cyan')
+    lev_r6=np.nanmax(data240)*frac_r1
+    lev_r7=np.nanmax(data240)*frac_r3
+    c6 = mwamap240.contour(level=lev_r6 * u.ct);ax.plot_coord(c6[0], color='white')
+    c7 = mwamap240.contour(level=lev_r7 * u.ct);ax.plot_coord(c7[0], color='white')
+    ax.text(3550, 1150, '6-12 keV', color='yellow', bbox=dict(facecolor='k', alpha=0.8))
+    ax.text(3550, 1220, '25-50 keV', color='cyan', bbox=dict(facecolor='k', alpha=0.8))
     #seeds3 = SkyCoord(xc90[0][400:1000]*u.arcsec, yc90[0][400:1000]*u.arcsec,frame=aiamap.coordinate_frame)
     #ax.plot_coord(seeds3, color='tab:blue', marker='s', markersize=1.0,alpha=1.0,linestyle='None')
     #seeds4 = SkyCoord(710*u.arcsec, -314*u.arcsec,frame=hmimap.coordinate_frame)
@@ -1062,7 +1120,12 @@ if plot_one:
     #blx=aiamap.world_to_pixel(bla)[0].value;bly=aiamap.world_to_pixel(bla)[1].value
     #trx=aiamap.world_to_pixel(tra)[0].value;rty=aiamap.world_to_pixel(tra)[1].value
     #ax.set_xlim([blx,trx]);ax.set_ylim([bly,rty])
-    ax.set_xlim([2700,3700]);ax.set_ylim([800,1800])
+    ax.set_xlim([2900,3700]);ax.set_ylim([950,1750])
+    seeds2 = SkyCoord(np.linspace(600,900,100)*u.arcsec, -1*np.linspace(300,600,100)*u.arcsec,frame=aiamap.coordinate_frame)
+    ax.plot_coord(seeds2, color='k', marker='s', markersize=4.0,alpha=0.6,linestyle='-')
+    ax.arrow(3450, 1200, 20, 20, head_width=12, head_length=30, fc='k', ec='k')
+    ax.arrow(3350, 1200, -20, -20, head_width=12, head_length=30, fc='k', ec='k')
+    ax.text(3450, 1180, '+$\phi$',fontsize=20);ax.text(3350, 1160, '-$\phi$',fontsize=20)
     plt.show()
 
 plot_hmi=1

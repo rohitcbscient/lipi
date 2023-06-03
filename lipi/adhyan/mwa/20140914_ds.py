@@ -237,7 +237,7 @@ ax1.legend()
 plt.show()
 
 
-tmwa,tsubmwa,Tbsubmax,xcsub90,ycsub90,maxsubX,maxsubY,pa_angle = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
+tmwa,tsubmwa,Tbmax,Tbsubmax,Tbsubstd,xcsub90,ycsub90,xc90,yc90,maxsubX,maxsubY,pa_angle,pa_amp = pickle.load(open('/media/rohit/MWA/20140914/Tb_centroid.p','rb'))
 Tb240=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_187-188_sub_test.p','rb'),encoding='bytes')
 Tbmap240=Tb240[0]
 Tb161=pickle.load(open('/media/rohit/MWA/20140914/pickle/Tb_20140914_125-126_sub_test.p','rb'),encoding='bytes')
@@ -248,7 +248,8 @@ Tbmap108=Tb108[0]
 
 ddiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*ddiff.fits'))
 bdiff_list=sorted(glob.glob('/sdata/fits/running_diff/*171*bdiff.fits'))
-rhessi_image_list=sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_15-25keV_*.fits'))
+rhessi_image_list=sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_6-12keV_*.fits'))
+rhessi_image_list1=sorted(glob.glob('/media/rohit/MWA/20140914/rhessi/fitsimage_25-50keV_*.fits'))
 aiafiles171=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/*171A*.fits'))
 aiafiles94=sorted(glob.glob('/media/rohit/MWA/20140914/EUV/fits/*94A*.fits'))
 
@@ -349,6 +350,7 @@ for i in range(len(ddiff_list)):
     tmwaidx=(np.abs(tsubmwa - taiasec[i])).argmin()
     trhessi_idx=(np.abs(trhessi_sec- taiasec[i])).argmin()
     img = fits.open(rhessi_image_list[trhessi_idx]);imgdata = img[0].data;imghead = img[0].header
+    img1 = fits.open(rhessi_image_list1[trhessi_idx]);imgdata1 = img1[0].data
     #-----------------------
     #-----------------------
     aiamap=Map(ddiff_list[i]);aiahead1=aiamap.meta
@@ -357,6 +359,7 @@ for i in range(len(ddiff_list)):
     aiahead1['CRVAL1']=imghead['CRVAL1'];aiahead1['CRVAL2']=imghead['CRVAL2']
     aiahead1['CDELT1']=imghead['CDELT1'];aiahead1['CDELT2']=imghead['CDELT2']
     rhessi_map=Map(imgdata,aiahead1)
+    rhessi_map1=Map(imgdata1,aiahead1)
     #-----------
     aiamap=Map(ddiff_list[i]);aiahead2=aiamap.meta
     aiahead2['naxis1']=Tbmap240.shape[1];aiahead2['naxis2']=Tbmap240.shape[2]
@@ -372,16 +375,19 @@ for i in range(len(ddiff_list)):
     ii="%04d"%i
     ax=f.add_subplot(projection=aiamap)
     aiamap.plot(axes=ax,vmin=-100,vmax=200,cmap='coolwarm');frac_r1=0.9;frac_r2=0.8;frac_r3=0.85
-    lev_r1=np.nanmax(rhessi_map.data)*frac_r1
-    lev_r2 = np.nanmax(rhessi_map.data) * frac_r2
-    lev_r3 = np.nanmax(rhessi_map.data) * frac_r3
+    lev_r1=np.nanmax(rhessi_map.data)*frac_r1;lev_r2 = np.nanmax(rhessi_map.data) * frac_r2;lev_r3 = np.nanmax(rhessi_map.data) * frac_r3
+    lev_r11=np.nanmax(rhessi_map1.data)*frac_r1;lev_r21 = np.nanmax(rhessi_map1.data) * frac_r2
     if(np.nanmax(rhessi_map.data)!=0):
         c1=rhessi_map.contour(level=lev_r1 * u.ct);ax.plot_coord(c1[0],color='yellow')
         c2=rhessi_map.contour(level=lev_r2* u.ct);ax.plot_coord(c2[0],color='yellow')
         c3=rhessi_map.contour(level=lev_r3 * u.ct);ax.plot_coord(c3[0],color='yellow')
+    if(np.nanmax(rhessi_map1.data)!=0):
+        c4=rhessi_map1.contour(level=lev_r11 * u.ct);ax.plot_coord(c4[0],color='cyan')
+        c5=rhessi_map1.contour(level=lev_r21 * u.ct);ax.plot_coord(c5[0],color='cyan')
     #ax.set_xlim([2048,4096]); ax.set_ylim([0,2048])
     ax.set_xlim([3000,4000]); ax.set_ylim([800,1800])
-    ax.text(3750, 1080, '15-25 keV', color='yellow', bbox=dict(facecolor='k', alpha=0.8))
+    ax.text(3750, 1080, '6-12 keV', color='yellow', bbox=dict(facecolor='k', alpha=0.8))
+    ax.text(3750, 1020, '25-50 keV', color='cyan', bbox=dict(facecolor='k', alpha=0.8))
     #ax.text(3750, 1000, '240 MHz', color='blue', bbox=dict(facecolor='white', alpha=0.8))
     #ax.text(3750, 920, '161 MHz', color='green', bbox=dict(facecolor='white', alpha=0.8))
     #ax.text(3750, 840, '108 MHz', color='red', bbox=dict(facecolor='white', alpha=0.8))
@@ -397,8 +403,9 @@ for i in range(len(ddiff_list)):
     cbar=f.colorbar(ScalarMappable(cmap=cm, norm=plt.Normalize(0, 8)), ticks=np.arange(9), label='Frequency (MHz)')
     cbar.ax.set_yticklabels(freq)
     ax.quiver(qx,qy,qx1-qx,(-qy+qy1), color='k', scale=1, scale_units='xy',zorder=20)
-    f.savefig('/sdata/fits/pngs_rhessi/all_centroids1_'+str(ii)+'.png',dpi=150)
+    f.savefig('/sdata/fits/pngs_rhessi/all_centroids2_'+str(ii)+'.png',dpi=150)
     plt.close()
+
 
 
 
@@ -556,9 +563,9 @@ ax.plot(aia94sec,(aiamap_94-aiamap_94[0])*1,'-',label='AIA 94$\\AA$')
 rhy=np.nanmean(corr_count['obs_data'],axis=1)*1.e2;rhy[790:1150]=np.nan;rhy[2290:2620]=np.nan
 ax.plot(rh_time,rhy,'-',label='RHESSI (8-40 keV)')
 mwatb=Tbsubmax[-1]/1.e4;mwatb[627:631]=np.nan;mwatb[378]=np.nan;mwatb[mwatb==0]=np.nan;mwatb[631]=np.nan
-ax.plot(tsubmwa,mwatb,'-',markersize=1,label='MWA (240 MHz)');ax.set_ylim(-2000,25000)
+ax.plot(tsubmwa,mwatb,'-',linewidth=3,label='MWA (240 MHz) Type-IV burst');ax.set_ylim(-2000,25000)
 ax.legend();ax.set_ylabel('Amplitude (arbitrary)');ax.set_xlabel('Time (HH:MM UT)')
-#ax.set_xticks(np.arange(5)*3600+5400);ax.set_xticklabels(['01:30','02:30','03:30','04:30','05:50'])
+ax.set_xticks(np.arange(5)*3600+5400);ax.set_xticklabels(['01:30','02:30','03:30','04:30','05:50'])
 plt.show()
 
 

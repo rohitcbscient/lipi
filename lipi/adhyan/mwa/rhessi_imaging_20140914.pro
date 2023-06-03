@@ -40,22 +40,22 @@
 ;  obj->plotman            ; plot the last image in plotman                                  
 ;  obj->plotman, /choose   ; choose which image(s) in cube to plot in plotman                
 ;-                                                                                           
-                                                                                             
+
 ;pro hsi_image_script, obj=obj, _extra=_extra                                                 
  
- 
+search_network,/enable
 for j=0b,15 do begin
 j=j*1
-for i=0b,5 do begin
-ii=i*10
-ie=ii+9
-t1=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ii,2))          
-t2=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ie,2))
+for i=0b,0 do begin
+ii=i*0+20
+ie=ii+0
+t1=strjoin('02:'+StrTrim(j,2)+':'+StrTrim(ii,2))
+t2=strjoin('02:'+StrTrim(j+1,2)+':'+StrTrim(ie,2))
 tname=strjoin(strsplit(t1,/extract,':'))+'_'+strjoin(strsplit(t2,/extract,':')) 
 print,t1,t2,tname  
                                                                                                                                                                                                                                        
-obj = hsi_image()                                                                            
-                                                                             
+obj = hsi_image()
+
 obj-> set, vis_input_fits= ''                                                                
 obj-> set, cbe_normalize= 0                                                                  
 obj-> set, im_time_bin= 0.0000000D                                                           
@@ -87,9 +87,9 @@ obj-> set, mpat_coord= 'ANNSEC'
 obj-> set, factor_by= 1                                                                      
 obj-> set, modpat_skip= 1                                                                    
 obj-> set, r0_offset= 2560.00                                                                
-obj-> set, image_dim= [64, 64]                                                               
+obj-> set, image_dim= [128, 128]
 obj-> set, pixel_scale= 1.00000                                                              
-obj-> set, pixel_size= [4.00000, 4.00000]                                                    
+obj-> set, pixel_size= [2.00000, 2.00000]
 obj-> set, im_time_interval= [strjoin('14-Sep-2014 '+t1), $                         
  strjoin('14-Sep-2014 '+t2)]        
 obj-> set, cbe_filename= ''                                                                  
@@ -134,11 +134,11 @@ obj-> set, flare_xyoffset= [0.00000, 0.00000]
 obj-> set, use_flare_xyoffset= 1                                                             
 obj-> set, front_segment= 1B                                                                 
 obj-> set, rear_segment= 0B                                                                  
-obj-> set, im_energy_binning= [15.0000, 25.0000]                                             
+obj-> set, im_energy_binning= [6.0000, 12.0000]
 obj-> set, time_bin_def= [1.00000, 2.00000, 4.00000, 8.00000, 8.00000, 16.0000, 32.0000, $   
  64.0000, 128.000]                                                                           
 obj-> set, time_bin_min= 512L                                                                
-obj-> set, det_index_mask= [0B, 0B, 0B, 1B, 1B, 1B, 1B, 1B, 0B]                              
+obj-> set, det_index_mask= [0B, 0B, 1B, 0B, 0B, 1B, 0B, 1B, 1B]
 obj-> set, poisson= 0B                                                                       
 obj-> set, seed= 0.00000                                                                     
 obj-> set, coincidence_flag= 0                                                               
@@ -301,7 +301,7 @@ obj-> set, vis_wv_lam= 0.0500000
 obj-> set, vis_wv_niter= 200                                                                 
 obj-> set, vis_wv_silent= 0                                                                  
 obj-> set, vis_wv_autolam= 1                 
-obj->set, im_out_fits_filename= 'fitsimage_15-25keV_'+tname+'.fits'                                                                                              
+obj->set, im_out_fits_filename= 'fitsimage_6-12keV_'+tname+'.fits'
 if keyword_set(_extra) then obj->set, _extra=_extra   
 obj->fitswrite 
 endfor
