@@ -20,7 +20,7 @@ from astropy.wcs import utils
 import csv
 from sunpy.coordinates import get_body_heliographic_stonyhurst
 from surya.utils import model
-from sunpy.map import make_fitswcs_header, Map
+from sunpy.map import make_fitswcs_header
 from scipy.io import readsav
 import os
 import sunpy
