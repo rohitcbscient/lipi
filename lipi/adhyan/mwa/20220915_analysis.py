@@ -78,7 +78,7 @@ if(write_data):
 
 
 #chan=np.arange(14)
-freq_mwa,Tb,Tbmax,S,bmin,bmaj,img=pickle.load(open('/sdata/20220915_MWA/Tb_20220915.p','rb'))
+freq_mwa,Tb,Tbmax,S,bmin,bmaj,img=pickle.load(open('/data/20220915_MWA/Tb_20220915.p','rb'))
 Tb[:,:,0:70,:] = np.nan;Tb[:,:,140:,:]= np.nan
 Tb[:,:,:,0:70] = np.nan;Tb[:,:,:,140:]= np.nan
 #Tb[np.where(Tb<1.e3)]=np.nan#;Tb[np.where(Tb>1.e7)]=np.nan
