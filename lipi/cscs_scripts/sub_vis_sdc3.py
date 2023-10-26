@@ -1,36 +1,46 @@
+########################### Program for point source subtraction from the SKA data ##################################
+
+# Here we removed the point sources interatively using GLEAM catalog and pybdsf (See the for loop below)
+# In first iteration, we used GLEAM catalog to remove the point sources
+# Since not all point sources are subtracted just by GLEAM, we employ pybdsf to search for point sources in the image
+# The point sources were converted into skymodel and subtrated from the residuals in each step (See the for loop below)
+# Author: Rohit Sharma @ 2023 (rohitcbscient@gmail.com)
+
 import casacore.tables as ct
 from oskar.measurement_set import MeasurementSet
 import oskar
 import os
 import numpy as np
-import tempfile
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
-from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
-from karabo.sourcedetection.result import (
-    PyBDSFSourceDetectionResult,
-    SourceDetectionResult,
-)
-from karabo.test.conftest import NNImageDiffCallable, TFiles
 from astropy.io import fits
 import bdsf
-import matplotlib
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.coordinates import Angle
 import astropy.units as u
 from datetime import datetime, timedelta
-import tools21cm as t2c
-import sys
 from astropy.wcs import WCS
 
 
 def do_bdsf(imagepath, output_model, freqs, idx_f):
+    """
+    Function to do Pybdsf on the inout image and return the sky model in the form of a catalog
+    ----------------------
+    Inputs:
+    1. imagepath: input fitsfile image
+    2. output_model: output skymodel filename
+    3. freqs: freqeuncy array
+    4. idx_f: Index of the channel number
+    -----------------------
+    Outputs:
+    1. sky_data: Karabo/oskar sky model array
+    2. data: Data for the point sources
+    3. xpix: X pixel position of the sources
+    4. ypix: Y pixel position of the sources
+    """
     img = fits.open(imagepath + "_I.fits")
     head = img[0].header
     data = np.abs(img[0].data[0])
@@ -41,7 +51,7 @@ def do_bdsf(imagepath, output_model, freqs, idx_f):
     head["BMAJ"] = b_deg
     out_imagepath = imagepath + "_mod_I.fits"
     fits.writeto(out_imagepath, data, head, overwrite=True)
-    out_imagedata = fits.open(out_imagepath)[0].data
+    # ------ PYBDSF Begins here
     img_bdsf = bdsf.process_image(
         out_imagepath,
         beam=(10 / 3600.0, 10 / 3600.0, 0),
@@ -49,17 +59,21 @@ def do_bdsf(imagepath, output_model, freqs, idx_f):
         thresh_isl=6,
         thresh="hard",
     )
-    bdsf_source_list = "/scratch/snx3000/rsharma/bdsf_source_list.fits"
+    bdsf_source_list = (
+        "/scratch/snx3000/rsharma/bdsf_source_list.fits"  # Fits catalog from the pybdsf
+    )
+    # Writing the fits source catalog
     img_bdsf.write_catalog(
         outfile=bdsf_source_list, catalog_type="gaul", format="fits", clobber=True
     )
+    # Reading the catalog and putting into karabo/oskar skymodel array format
     sl = fits.open(bdsf_source_list)
     xpix, ypix = sl[1].data["Xposn"], sl[1].data["Yposn"]
     xpix = xpix.astype(int)
     ypix = ypix.astype(int)
     RA = sl[1].data["RA"]
     DEC = sl[1].data["DEC"]
-    sl_peak = data[ypix, xpix]  # sl[1].data['Peak_flux']
+    sl_peak = data[ypix, xpix]
     RA[np.where(RA > 200)] = RA[np.where(RA > 200)] - 360
     sl_bmaj = sl[1].data["Maj"]
     sl_bmin = sl[1].data["Min"]
@@ -76,13 +90,15 @@ def do_bdsf(imagepath, output_model, freqs, idx_f):
     sky_data[:, 9] = sl_bmaj
     sky_data[:, 10] = sl_bmin
     sky_data[:, 11] = sl_bpa
+    # Saving the skymodel below
     np.savetxt(X=sky_data, fname=output_model)
-    w = WCS(head)
-    # xpix,ypix,_=w.wcs_world2pix(RA,DEC,0,0)
     return sky_data, data, xpix, ypix
 
 
 def get_gleam(root_name):
+    """
+    Returns the GLEAM skymodel inner and outer sky catalog array from the ascii text file
+    """
     # add GLEAM point sources foreground
     root_name += "gleam"
     path_point = (
@@ -90,7 +106,6 @@ def get_gleam(root_name):
     )
     gleam_data = np.loadtxt(path_point + "rohit_sdc3cat_skymodel_4deg.txt")
     gleam_data[:, 2] = gleam_data[:, 2]
-    # gleam_data = np.loadtxt(path_point+'gleamcat_skymodel_4deg.txt')
     # create inner & outter sky
     ra_wrap, dec_wrap = (
         Angle([gleam_data[:, 0], gleam_data[:, 1]], unit="degree")
@@ -108,6 +123,15 @@ def get_gleam(root_name):
 
 
 def write_ms(filename, ms_new, skadc_uvw, n, ref_freq_hz):
+    """
+    Write the measurement sets for given UVW data and corresponding visibilities
+    Input:
+    1. filename: MS output filename
+    2. ms_new: visibilities to be planted
+    3. skadc_uvw: UVW array
+    4. ref_freq_hz: Reference frequency in Hz
+    """
+    # Below are the specifics operation related to ska data
     ms_new = ms_new.reshape(1440, n)
     uv_new = skadc_uvw.reshape(1440, n, 3)
     num_stations = 512
@@ -118,6 +142,7 @@ def write_ms(filename, ms_new, skadc_uvw, n, ref_freq_hz):
     num_times = 1440  # number of time channels and 10 sec integration
     num_pols = 1
     num_channels = 1
+    # Create an empty MS---------------------------------------------------------------------
     ms = oskar.MeasurementSet.create(
         filename, num_stations, num_channels, num_pols, ref_freq_hz, freq_inc_hz
     )
@@ -127,13 +152,11 @@ def write_ms(filename, ms_new, skadc_uvw, n, ref_freq_hz):
     interval_sec = 1.0
     ms.set_phase_centre(ra_rad, dec_rad)
     mjd_20210921 = 59478.592071770836
-    # UTC 2021-09-21T14:12:35.1
-    # Modified Julian Day (MJD)   59478.592071770836
-    # Julian Day (JD) 2459479.0920717707
     uu = np.zeros([num_baselines])
     vv = np.zeros_like(uu)
     ww = np.zeros_like(uu)
     vis = np.zeros([num_times, num_channels, num_baselines, num_pols], dtype="c8")
+    # Write the visibilities row by row in times -----------------------------------------------
     for t in range(num_times):
         time_stamp = mjd_20210921 * 86400.0 + t
         uu[:] = uv_new[t, :, 0]
@@ -152,6 +175,12 @@ def write_ms(filename, ms_new, skadc_uvw, n, ref_freq_hz):
 
 
 def plot_bdsf(data_img, xpix, ypix):
+    """
+    Plotting the pybdsf results
+    Inputs:
+    1. data_img: Image array
+    2. xpix, ypix: X and Y position of the point sources
+    """
     f, ax = plt.subplots(1, 1)
     im = ax.imshow(data_img, aspect="auto", origin="lower", vmin=-1.0e-3, vmax=1.0e-3)
     ax.plot(xpix, ypix, "o", color="red")
@@ -159,30 +188,31 @@ def plot_bdsf(data_img, xpix, ypix):
     plt.show()
 
 
-ilist = [753]
-i = int(os.environ["SLURM_ARRAY_TASK_ID"])
-i = ilist[i]
-# i=0
+# ------------------------------------------- Main Program --------
+i = 753  # Choose the channel number for the simulation
+ilist = [i]
+# i = int(os.environ["SLURM_ARRAY_TASK_ID"]) # Argument for the SLURM task on CSCS
 ii = "%04d" % i
 freqs = 1.06e8 + np.arange(901) * 1.0e5  # Hz
-# os.system('rm -rf /scratch/snx3000/rsharma/pybdsf_tests/*')
+# os.system('rm -rf /scratch/snx3000/rsharma/pybdsf_tests/*') #  For entire clean up
 # --------------------------------------------------------------------
+# Define SKA filename and path
 filename_ska = (
     "/scratch/snx3000/rsharma/ska_data_reduced/ZW3_IFRQ_for_karabo_" + ii + ".MS"
 )
-# filename_ska='/scratch/snx3000/mibianco/output_sdc3/dataLC_130923/ms/lc_256_train_130923_i0_dTnoisegainiongfpoint_ch'+ii[1:]+'_4h1d_256.MS'
-# --------------------------------------------------------------------
+# Define Point Source filename and path
 filename_point0 = (
     "/scratch/snx3000/rsharma/gleam_point_source_ms/GLEAM_point_sources_" + ii + ".MS"
 )
+# ---- Reading the visibilities and UVW coordinates from SKA and point sources
 skadc = ct.table(filename_ska)
 point = ct.table(filename_point0)
-
 skadc_data = skadc.getcol("DATA")
 skadc_uvw = skadc.getcol("UVW")
 ms_new_ska = skadc_data[:, 0, 0]
-# -----------------------------------------
-make_ska_image = 1
+
+# Make SKA  image for sanity checks
+make_ska_image = 0
 ska_imagepath = "/scratch/snx3000/rsharma/residual1_pybdsf/ska_images/ska_image_ch" + ii
 if make_ska_image:
     ska_read = MeasurementSet.open(filename_ska, readonly=True)
@@ -199,20 +229,27 @@ if make_ska_image:
     imager.update(uu, vv, ww, ska_vis[0, :, 0])
     ska_image = imager.finalise(return_images=1)["images"][0]
     print("SKA Image Maximum:", np.max(ska_image))
-# ska_img=fits.open(ska_imagepath);ska_image=ska_img[0].data[0]
-freqs = 1.06e8 + np.arange(901) * 1.0e5  # Hz
 
-# --- Make Point Image-----
-# imagepath='/scratch/snx3000/rsharma/residual1_pybdsf/res_ch'+ii
+# ----------------------------------- Program starts -----------------------------------------------
+# Make the full frequency array
+freqs = 1.06e8 + np.arange(901) * 1.0e5  # Hz
 imagepath_point = "/scratch/snx3000/rsharma/residual1_pybdsf/point_ch" + ii
+# ``do_point_source_det" allows you simulate the GLEAM point in case you want to testing and sanity purposes
 do_point_source_det = 1
+# nk is the total number of iterations / iteration 0 is from the GLEAM catalog, while iterations >0 are pybdsf point model substractions
 nk = 5
+# Array initialisation
 ms_new_ska_array = [0] * (nk + 1)
-ms_new_ska_array[0] = ms_new_ska
-uvlim = 1.0e12  # in mts
+ms_new_ska_array[
+    0
+] = ms_new_ska  # Since we want to subtract everything from SKA dattttta, the index 0 is the SKA data
+uvlim = 1.0e12  # in mts # Upper limit on UVdist in case you want to limit the UV range, we give it very large value to make use of all UV points
+
+# ------- Loop for the subtraction starts -------------------------------------------------------
 for k in range(nk):
     kk = "%02d" % k
     print("Iteration: " + kk)
+    # Below in if statement we simulate the pybdsf sky model
     if (k > 0) & (do_point_source_det == 1):
         print("Doing pybdf.....")
         output_model = (
@@ -221,43 +258,57 @@ for k in range(nk):
             + "_"
             + kk
             + ".txt"
-        )
-        bdsf_data, data_img, xpix, ypix = do_bdsf(imagepath, output_model, freqs, i)
-        # print(bdsf_data[:,2])
-        # f,ax=plt.subplots(1,1)
-        # im=ax.imshow(data_img,aspect='auto',origin='lower',vmin=-1.e-3,vmax=1.e-3)
-        # ax.plot(xpix,ypix,'o',color='red')
-        # f.colorbar(im)
-        # plt.show()
+        )  # Output_model is the path of the pybdsf skymodel
+        bdsf_data, data_img, xpix, ypix = do_bdsf(
+            imagepath, output_model, freqs, i
+        )  # Note that imagepath will be defined for k>0 iterations
+        check_image = 0
+        if check_image:
+            print(bdsf_data[:, 2])
+            f, ax = plt.subplots(1, 1)
+            im = ax.imshow(
+                data_img, aspect="auto", origin="lower", vmin=-1.0e-3, vmax=1.0e-3
+            )
+            ax.plot(xpix, ypix, "o", color="red")
+            f.colorbar(im)
+            plt.show()
     # ---------------- Do Point Source Simulation-------------------------
     imagepath = (
         "/scratch/snx3000/rsharma/residual1_pybdsf/res_images/res_images_ch"
         + ii
         + "_"
         + "%02d" % k
+    )  # Path for the output images iteration k and channel i
+    path_out = (
+        "/scratch/snx3000/rsharma/residual1_pybdsf/res_images/"  # Output Image path
     )
-    path_out = "/scratch/snx3000/rsharma/residual1_pybdsf/res_images/"
-    root_name = "point_source_iteration_ch" + ii
-    path_telescope = "/store/ska/sk014/dataset_sdc3/inputs/telescope.tm"
-    run_name = path_out + root_name
-    filename_point = run_name + "_" + kk + ".MS"
-    iono_fits = "/scratch/snx3000/rsharma/atmo/screen_4h_i0_ch" + "%03d" % i + ".fits"
-    r0, sampling = 7e3, 100.0
-    inner_sky, outter_sky = get_gleam(root_name)
+    root_name = "point_source_iteration_ch" + ii  # Point source filenames
+    path_telescope = "/store/ska/sk014/dataset_sdc3/inputs/telescope.tm"  # Path to the telecope directory
+    run_name = path_out + root_name  # Path for output point sources
+    filename_point = run_name + "_" + kk + ".MS"  # Same as above
+    iono_fits = (
+        "/scratch/snx3000/rsharma/atmo/screen_4h_i0_ch" + "%03d" % i + ".fits"
+    )  # Path for the ionosphere file for channel i
+    r0, sampling = 7e3, 100.0  # Ionosphere parameters
+    # ----------------Sky Model Defination ------------------------------------
+    inner_sky, outter_sky = get_gleam(
+        root_name
+    )  # Path for the skymodel from GLEAM catalog
     sky = SkyModel()
-    # sky_test=np.zeros((1,13));sky_test[0][0]=-1;sky_test[0][1]=-31;sky_test[0][2]=1
-    # sky.add_point_sources(sky_test)
+    # Below the choice for the 0th iteration is made for the simulation of the GLEAM catalog otherwise it will pybdsf sky model
     if k == 0:
         sky.add_point_sources(inner_sky)
         sky.add_point_sources(outter_sky)
     else:
         sky.add_point_sources(bdsf_data)
+    # ------ Telescope Defination -----------------------------------------------
     telescope = Telescope.read_from_file(path_telescope)
     t_start = datetime(
         2021, 9, 21, 14, 12, 40, 0
     )  # HA between -2h to +2h, obs start at '2021-09-21 14:12:40.1'
     t_obs = timedelta(hours=4, minutes=0, seconds=0, milliseconds=0)
     # t_obs = timedelta(hours=0, minutes=1, seconds=0, milliseconds=0)
+    # ---------Observation Defination ---------------------------------------------
     observation_settings = Observation(
         phase_centre_ra_deg=0,
         mode="Tracking",
@@ -268,6 +319,7 @@ for k in range(nk):
         number_of_time_steps=1440,
         length=t_obs,
     )
+    # ----------- Interferometer Defination ---------------------------------------
     simulation = InterferometerSimulation(
         ms_file_path=filename_point,
         use_gpus=True,
@@ -282,10 +334,9 @@ for k in range(nk):
         ionosphere_screen_pixel_size_m=sampling,
         ionosphere_isoplanatic_screen=True,
     )
-    # if(os.path.isfile(run_name+'_'+kk+'.vis')==False):
     print("Simulating Point Visibilities.." + filename_point)
     visibilities = simulation.run_simulation(telescope, sky, observation_settings)
-    # --------------- Subtractig the Point Source Vis
+    # --------------- Subtractig the Point Source Vis----------------------------
     point1 = ct.table(filename_point)
     point_data = point1.getcol("DATA")
     point_uvw = point1.getcol("UVW")
@@ -301,7 +352,7 @@ for k in range(nk):
     )
     write_ms(filename_res, ms_new_res, skadc_uvw, 130816, freqs[i])
     ms_new_ska_array[k + 1] = ms_new_res
-    # ------- Image Residuals
+    # ------- Image Residuals ----------------------------------------------------
     imager = oskar.Imager()
     imager.fov_deg = 4  # 0.1 degrees across.
     imager.image_size = 2048  # 256 pixels across.
@@ -309,7 +360,7 @@ for k in range(nk):
     imager.set_vis_frequency(freqs[i])  # 100 MHz, single channel data.
     imager.update(uu, vv, ww, ms_new_res)
     res_image = imager.finalise(return_images=1)["images"][0]
-    # ------- Point Source Image
+    # ------- Point Source Image -------------------------------------------------
     imager = oskar.Imager()
     imager.fov_deg = 4  # 0.1 degrees across.
     imager.image_size = 2048  # 256 pixels across.
@@ -317,13 +368,13 @@ for k in range(nk):
     imager.set_vis_frequency(freqs[i])  # 100 MHz, single channel data.
     imager.update(uu, vv, ww, ms_new_point)
     res_image = imager.finalise(return_images=1)["images"][0]
-    os.system("rm -rf " + filename_point)  # Delete the point source MS
-os.system("rm -rf /users/rsharma/core.*")
+    os.system(
+        "rm -rf " + filename_point
+    )  # Delete the point source MS to save the disk space
+os.system("rm -rf /users/rsharma/core.*")  # Clear the home memory area
 
-from astropy.io import fits
-import numpy as np
-
-plot_test = 1
+# ----------- Visualisation test below -------------------------------------------
+plot_test = 0
 ch = "801"
 if plot_test:
     ska_img = fits.open("../ska_images/ska_image_ch0" + ch + "_I.fits")
