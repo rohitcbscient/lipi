@@ -1,5 +1,4 @@
 import numpy as np
-from astropy.io import fits
 from astropy import units as u
 import matplotlib.pyplot as plt
 from surya.utils import Bextrap
@@ -328,17 +327,19 @@ plt.show()
 
 cm = plt.cm.get_cmap("nipy_spectral")
 sc = plt.scatter(
-    x * 1.4 - 200, z * 1.4, c=np.abs(bz), vmin=0, vmax=500, s=35, cmap=cm, alpha=0.4
+    x * 1.4 - 200, z * 1.4, c=np.abs(bz), vmin=0, vmax=400, s=35, cmap=cm, alpha=0.4
 )
 cb = plt.colorbar(sc, label="|B$_z$| (G)")
 cb.set_alpha(1)
-cb.draw_all()
+# cb.draw_all()
+cb.solids.set(alpha=1)
 # idx1=np.where((babs<201)&(babs>199));plt.scatter(x[idx1]*1.4-200,z[idx1]*1.4, c='k')
 plt.plot(
     np.linspace(20, 55, 10),
     np.ones(10) * z_1000,
     "-",
     color="r",
+    linewidth=6,
     label="1 GHz Gyrofrequency layer (s=2)",
 )
 plt.plot(
@@ -346,19 +347,22 @@ plt.plot(
     np.ones(10) * z_1200,
     "-",
     color="brown",
+    linewidth=6,
     label="1.2 GHz Gyrofrequency layer (s=2)",
 )
 plt.plot(
     np.linspace(20, 55, 10),
     np.ones(10) * z_1500,
     "-",
-    color="orange",
+    linewidth=6,
+    color="magenta",
     label="1.5 GHz Gyrofrequency layer (s=2)",
 )
 plt.plot(
     np.linspace(-54, 75, 10),
     np.ones(10) * 100,
     "-",
+    linewidth=6,
     color="orange",
     label="ECM layer (upper limit 100 Mm)",
 )
@@ -379,14 +383,16 @@ plt.plot(
 plt.plot(
     np.linspace(-54, 25, 10),
     np.linspace(32, 102, 10)[::-1],
-    "-",
+    "--",
+    alpha=0.5,
     linewidth=3,
     color="cyan",
 )
 plt.plot(
     np.linspace(50, 75, 10),
     np.linspace(32, 102, 10),
-    "-",
+    "--",
+    alpha=0.5,
     linewidth=3,
     color="cyan",
 )
@@ -408,7 +414,8 @@ sc = plt.scatter(
 )
 cb = plt.colorbar(sc, label="B$\perp$/|B|")
 cb.set_alpha(1)
-cb.draw_all()
+cb.solids.set(alpha=1)
+# cb.draw_all()
 plt.plot(
     np.ones(10) * -10,
     np.linspace(65, 100, 10),
@@ -443,19 +450,22 @@ plt.plot(
 plt.plot(
     np.linspace(-54, 25, 10),
     np.linspace(32, 102, 10)[::-1],
-    "-",
+    "--",
+    alpha=0.5,
     linewidth=3,
     color="cyan",
 )
 plt.plot(
     np.linspace(50, 75, 10),
     np.linspace(32, 102, 10),
-    "-",
+    "--",
+    alpha=0.5,
     linewidth=3,
     color="cyan",
 )
 plt.xlabel("Distance/X (Mm)")
 plt.ylabel("Height/Z (Mm)")
+plt.ylim(0, 200)
 plt.show()
 #####
 xcrmax, ycrmax, xcr90, ycr90, maxTbr, Tbr_r1, Tbr_r2, eTbr = pickle.load(

@@ -8,7 +8,8 @@ from astropy.io import fits
 from sunpy.map import Map
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-from surya.utils import main as ut
+
+# from surya.utils import main as ut
 import pickle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.patches as patches
@@ -3372,9 +3373,10 @@ xlvla = dd.center.Tx.value - 2.0 * int(dd.data.shape[0] / 2)
 xrvla = dd.center.Tx.value + 2.0 * int(dd.data.shape[0] / 2)
 ylvla = dd.center.Ty.value - 2.0 * int(dd.data.shape[1] / 2)
 yrvla = dd.center.Ty.value + 2.0 * int(dd.data.shape[0] / 2)
-ax0.plot(pix_x90[0], pix_y90[0], ".", color="cyan", alpha=0.1, label="0.99 GHz")
-ax0.plot(pix_x90[4], pix_y90[4], ".", color="magenta", alpha=0.1, label="1.12 GHz")
-ax0.plot(pix_x90[8], pix_y90[8], ".", color="green", alpha=0.1, label="1.26 GHz")
+m=50
+ax0.plot(pix_x90[0][::m], pix_y90[0][::m], "o", color="cyan", alpha=0.5, label="0.99 GHz")
+ax0.plot(pix_x90[4][::m], pix_y90[4][::m], "o", color="magenta", alpha=0.5, label="1.12 GHz")
+ax0.plot(pix_x90[8][::m], pix_y90[8][::m], "o", color="lime", alpha=0.5, label="1.26 GHz")
 l0 = ax0.legend()
 for lh in l0.legendHandles:
     lh.set_alpha(1)
@@ -3383,6 +3385,22 @@ dd.draw_contours(
 )  # [xlpix,xrpix,ylpix,yrpix])
 ax0.set_title("AIA 171 $\AA$:18:42:10 UT VLA: 18:44:43.00-18:44:43.05 UT")
 plt.show()
+
+
+f,(ax0,ax1)=plt.subplots(1,2,sharey=True)
+ax0.hist(xci90[0],bins=30,histtype='step',density=True,label="0.99 GHz",color='cyan')
+ax0.hist(xci90[4],bins=30,histtype='step',density=True,label="1.12 GHz",color='magenta')
+ax0.hist(xci90[8],bins=30,histtype='step',density=True,label="1.26 GHz",color='lime')
+ax1.hist(yci90[0],bins=30,histtype='step',density=True,label="0.99 GHz",color='cyan')
+ax1.hist(yci90[4],bins=30,histtype='step',density=True,label="1.12 GHz",color='magenta')
+ax1.hist(yci90[8],bins=30,histtype='step',density=True,label="1.26 GHz",color='lime')
+ax1.set_xlabel('Y-Coordinate (arcsec)')
+ax0.set_xlabel('X-Coordinate (arcsec)')
+ax0.set_ylabel('Normalised Amplitude')
+ax0.legend()
+ax1.legend()
+plt.show()
+
 
 
 f = plt.figure(figsize=(10, 10))
