@@ -2,6 +2,7 @@ from scipy.io import readsav
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
+import numpy as np
 
 goes=readsav('/data/Dropbox/20160409/fermi/idlsave_goes.sav')
 gf0540=goes['lx'][1];gf1080=goes['lx'][0];gtime=goes['tarray']
