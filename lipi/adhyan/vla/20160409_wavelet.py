@@ -702,6 +702,8 @@ plt.show()
 
 
 # ------------ Wait-time distribution
+
+
 def fit_poisson(x, lam):
     return lam * np.exp(-lam * x)
 
@@ -790,13 +792,47 @@ plt.show()
 
 # ------------ Spectral density
 from scipy.signal import periodogram as ped
+N = 60
+qTbmax_wave0, s_power0, s_iwave0, s_coi10, period = do_wavelet(
+    np.array(qsmaxTbr_0), N
+)
+qTbmax_wave3, s_power3, s_iwave3, s_coi13, period = do_wavelet(
+    np.array(qsmaxTbr_3), N
+)
+qTbmax_wave5, s_power5, s_iwave5, s_coi15, period = do_wavelet(
+    np.array(qsmaxTbr_5), N
+)
+dt = 0.05
+tq = np.arange(len(qTbmax_wave0)) * dt
+Tbrs_wave = [0] * x0.shape[0]
+Tbrn_wave = [0] * x0.shape[0]
+s_power = [0] * x0.shape[0]
+n_power = [0] * x0.shape[0]
+s_coi1 = [0] * x0.shape[0]
+n_coi1 = [0] * x0.shape[0]
+ns_power = [0] * x0.shape[0]
+nn_power = [0] * x0.shape[0]
+Tbmax_wave = [0] * x0.shape[0]
+max_power = [0] * x0.shape[0]
+max_coi = [0] * x0.shape[0]
+for i in range(x0.shape[0]):
+    Tbrs_wave[i], s_power[i], s_iwave, s_coi1[i], period = do_wavelet(tb0[i], N)
+    ns_power[i] = s_power[i] / np.nanmax(s_power[i])
+    Tbrn_wave[i], n_power[i], n_iwave, n_coi1[i], period = do_wavelet(tb1[i], N)
+    nn_power[i] = n_power[i] / np.nanmax(n_power[i])
+    Tbmax_wave[i], max_power[i], max_iwave, max_coi[i], period = do_wavelet(
+        maxTbr[i], N
+    )
+    dt = 0.05
+    t = np.arange(len(Tbrs_wave[i])) * dt
+
 
 sd_ped = [0] * 32
 sdfit = [0] * 32
 yfit = [0] * 32
 errfit = [0] * 32
 for i in range(32):
-    f, sd_ped[i] = ped(Tbmax_wave[i], 20, scaling="density")
+    f, sd_ped[i] = ped(Tbmax_wave[i], 10, scaling="density")
     xfit = np.log10(f[200:800])
     p = np.polyfit(xfit, np.log10(sd_ped[i][200:800]), 1, cov=True)
     sdfit[i] = p[0][0]
@@ -863,7 +899,7 @@ ax1.set_title("(II) Noise")
 plt.show()
 
 plt.plot(freq, sdfit * -1, "o")
-plt.errorbar(freq, sdfit * -1, yerr=errfit, color="b", label="bursts")
+plt.errorbar(freq, sdfit * -1, yerr=errfit, color="b", label="Bursts")
 plt.xlabel("Frequency (GHz)")
 plt.axhline(y=1.67, linestyle="--", label="Kolmogorov index", color="k")
 plt.plot(
@@ -877,7 +913,7 @@ plt.errorbar(
     [qsdfit0 * -1, qsdfit3 * -1, qsdfit5 * -1],
     yerr=[qerrfit0, qerrfit3, qerrfit5],
     color="r",
-    label="pre-bursts",
+    label="Continuum",
 )
 plt.legend(loc=3)
 plt.ylim(-1, 3)
@@ -1657,7 +1693,7 @@ noisegen = pyplnoise.RedNoise(fs, 1e-3, fs / 2.0)
 
 from scipy import fft, ifft
 
-whitenoise = np.random.uniform(0, 1, 2000)
+whitenoise = np.random.normal(0, 1, 2000)
 timewavewn = np.arange(2000) * 0.05
 mother = wavelet.Morlet(6)
 fouriertransformed = np.fft.fftshift(fft.fft(whitenoise))
