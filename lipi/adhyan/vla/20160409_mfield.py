@@ -412,7 +412,7 @@ cm = plt.cm.get_cmap("YlOrRd")
 sc = plt.scatter(
     x * 1.4 - 200, z * 1.4, c=bperp / babs, vmin=0.5, vmax=1, s=35, cmap=cm, alpha=0.2
 )
-cb = plt.colorbar(sc, label="B$\perp$/|B|")
+cb = plt.colorbar(sc, label="B$_t$/|B|")
 cb.set_alpha(1)
 cb.solids.set(alpha=1)
 # cb.draw_all()
