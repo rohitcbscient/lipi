@@ -1,0 +1,20 @@
+ |                                                                   
+=|== OSKAR-2.8.3 starting at 2024-07-09, 15:39:21 (IST).
+ |                                                                   
+ | + Current dir is /home/rohit/my_git/lipi/adhyan/ska
+ | + Logging to file oskar_2024-07-09_153921.log
+ |                                                                   
+=|== Sky model summary
+ |                                                                   
+ | + Number of sources                   : 9896
+ | + Number of chunks                    : 1
+ |                                                                   
+=|== Telescope model summary
+ |                                                                   
+ | + Longitude [deg]                     : 21.444
+ | + Latitude [deg]                      : -30.711
+ | + Altitude [m]                        : 0
+ | + Number of stations                  : 64
+ | + Number of station models            : 64
+ | + Max station size                    : 1
+ | + Max station depth                   : 1
