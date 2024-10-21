@@ -1,0 +1,20 @@
+ |                                                                   
+=|== OSKAR-2.8.3 starting at 2024-10-19, 18:11:50 (IST).
+ |                                                                   
+ | + Current dir is /home/rohit/my_git/lipi/adhyan/ska
+ | + Logging to file oskar_2024-10-19_181150.log
+ |                                                                   
+=|== Starting imager...
+ |                                                                   
+ | + Opening Measurement Set '/tmp/karabo-STM-rohit-TRnaSBphUX/interferometer-s8Bd7LjJtl/measurements.MS'
+ |                                                                   
+=|== Initialising algorithm...
+ |                                                                   
+ |                                                                   
+=|== Reading visibility data...
+ |                                                                   
+ | + Opening Measurement Set '/tmp/karabo-STM-rohit-TRnaSBphUX/interferometer-s8Bd7LjJtl/measurements.MS'
+ | + Using 1 frequency channel(s)
+ |   - Range 1900.000 MHz to 1900.000 MHz
+ | + Plane size is 2048 x 2048.
+ | + Allocating 1 plane(s) of size 67.1 MB (67.1 MB total).

@@ -1,0 +1,20 @@
+ |                                                                   
+=|== OSKAR-2.8.3 starting at 2024-10-19, 17:54:43 (IST).
+ |                                                                   
+ | + Current dir is /home/rohit/my_git/lipi/adhyan/ska
+ | + Logging to file oskar_2024-10-19_175443.log
+ |                                                                   
+=|== Starting imager...
+ |                                                                   
+ | + Opening '/media/rohit/sdata/ska-solar-files/sim1/solar_skamid_full_snap0_100MHz-2-2000GHz.vis'
+ |                                                                   
+=|== Initialising algorithm...
+ |                                                                   
+ |                                                                   
+=|== Reading visibility data...
+ |                                                                   
+ | + Opening '/media/rohit/sdata/ska-solar-files/sim1/solar_skamid_full_snap0_100MHz-2-2000GHz.vis'
+ | + Using 20 frequency channel(s)
+ |   - Range 1900.000 MHz to 1919.000 MHz
+ | + Plane size is 2048 x 2048.
+ | + Allocating 1 plane(s) of size 67.1 MB (67.1 MB total).
