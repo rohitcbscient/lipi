@@ -85,20 +85,20 @@ imgsize=4096
 cellsize_arcsec=1 #beam_size_arcsec/npix_per_beam
 cellsize_rad=cellsize_arcsec/3600*np.pi/180 # in rad
 imager_str = 'wsclean'
-niter = 1
+niter = 18000
 maxuv = 9000 # in lambda units
 minuv = 10 # in lambda units
 nchan = 1
 ntchan = 1
 weight = 'uniform'
     
-#for naa in range(len(ska_aa_list)): # loop over array assemblies 
-for naa in range(1): # loop over array assemblies 
+for naa in range(len(ska_aa_list)): # loop over array assemblies 
+#for naa in range(1): # loop over array assemblies 
     telescope_path = tel_all[0][telescope_list[nt]][naa] # 0 --> length of 4 where 0 is SKA-full and 4 is AA0.5
     bl_array,maxbl,medbl=get_telescope_config(telescope=telescope_path,info=True) # bl -> Baseline
     
-    #for j in range(len(freq_array)): # Loop over the frequencies
-    for j in range(1): # Loop over the frequencies
+    for j in range(len(freq_array)): # Loop over the frequencies
+    #for j in range(1): # Loop over the frequencies
         start_frequency_hz_ = freq_array[j]*1.e6
         #----------- Define strings and names
         path_ = '/data/rohit/ska-solar-sim-repo/'+tel+'/'
