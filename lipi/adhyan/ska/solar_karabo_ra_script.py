@@ -30,7 +30,7 @@ tel_all = get_telescope(skao_repo_tel_path) # 0 is SKA, and 1 is SKA-precursor
 telescope_list = ['skalow','skamid','mwa','meerkat']
 ska_aa_list = ['AA0.5','AA1','AA2','AAs','Full']
 mid_bands=['1','3']
-nt=0; tel = telescope_list[nt] # Put in your telescope in `tel`
+nt=1; tel = telescope_list[nt] # Put in your telescope in `tel`
 
 #----- Define your Frequency Array for the Simulation
 freq_samples = 10
