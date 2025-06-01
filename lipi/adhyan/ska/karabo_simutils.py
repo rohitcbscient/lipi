@@ -133,9 +133,9 @@ def ska_frequency_params(bandwidth_samples,info=None):
     return tel_params
 
 
-def get_skydata(skymodel_path,sm_save_str,start_frequency_hz_,ra_sun_center,dec_sun_center,\
+def get_solar_skydata(skymodel_path,sm_save_str,start_frequency_hz_,ra_sun_center,dec_sun_center,\
                 skymodel_cellsize,sm_fscale,sm_threshold, save_sources,source_cut,\
-                add_sm, randsize, point_flux, flux_rand_low, flux_rand_high,angle_rand):
+                add_sm, randfile, randsize, point_flux, flux_rand_low, flux_rand_high,angle_rand):
     """Get skymodel data with optional features of adding point sources
 
     Parameters:
@@ -148,6 +148,7 @@ def get_skydata(skymodel_path,sm_save_str,start_frequency_hz_,ra_sun_center,dec_
         sm_threshold (float): cut in flux density of skymodel w.r.t maximum flux density
         save_sources (bool): save skymodel added sources (not entire skymodel)
         source_cut (int): cut on the number of source
+        randfile (str): Path to file cointaining random sources 
         randsize (int): size of randomly (uniform) added sources
         point_flux (float): flux density of point source
         flux_rand_low (float): lower end of the random source distribution
@@ -171,6 +172,7 @@ def get_skydata(skymodel_path,sm_save_str,start_frequency_hz_,ra_sun_center,dec_
             np.zeros(len(flux)),np.zeros(len(flux)), np.zeros(len(flux)),np.zeros(len(flux)), \
         np.zeros(len(flux)),np.zeros(len(flux)), np.zeros(len(flux)),np.zeros(len(flux))]).T
     sky_data=sky_data[0:source_cut,:]
+    add_source = np.zeros((1,12))
     if(add_sm=='point'):
         size_=1
         add_source = np.zeros((size_,12))
@@ -179,17 +181,23 @@ def get_skydata(skymodel_path,sm_save_str,start_frequency_hz_,ra_sun_center,dec_
         add_source[0][2] = point_flux # Flux
         sky_data1 = np.vstack((sky_data,add_source))
     elif(add_sm=='random'):
-        size_=randsize
-        add_source = np.zeros((size_,12))
-        ra_point_array = np.random.uniform(low=ra_sun_center-angle_rand, high=ra_sun_center+angle_rand, size=size_)
-        dec_point_array = np.random.uniform(low=dec_sun_center-angle_rand, high=dec_sun_center+angle_rand, size=size_)
-        flux_array = np.random.uniform(low=flux_rand_low, high=flux_rand_high, size=size_)
-        add_source[:,0] = ra_point_array # RA
-        add_source[:,1] = dec_point_array # DEC
-        add_source[:,2] = flux_array # Flux
-        sky_data1 = np.vstack((sky_data,add_source))
+        if(randfile==''):
+            size_=randsize
+            add_source = np.zeros((size_,12))
+            ra_point_array = np.random.uniform(low=ra_sun_center-angle_rand, high=ra_sun_center+angle_rand, size=size_)
+            dec_point_array = np.random.uniform(low=dec_sun_center-angle_rand, high=dec_sun_center+angle_rand, size=size_)
+            flux_array = np.random.uniform(low=flux_rand_low, high=flux_rand_high, size=size_)
+            add_source[:,0] = ra_point_array # RA
+            add_source[:,1] = dec_point_array # DEC
+            add_source[:,2] = flux_array # Flux
+            sky_data1 = np.vstack((sky_data,add_source))
+        else:
+            sky_data = np.loadtxt(randfile)
+            sky_data1 = sky_data
     else:
         sky_data1 = sky_data
+    if(randfile==''):
+        save_sources = False
     if(save_sources):
         np.savetxt(sm_save_str+'.sm', add_source.T)
     return sky_data1,solar_map,solar_map_jy
