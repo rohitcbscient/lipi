@@ -192,8 +192,8 @@ def get_solar_skydata(skymodel_path,sm_save_str,start_frequency_hz_,ra_sun_cente
             add_source[:,2] = flux_array # Flux
             sky_data1 = np.vstack((sky_data,add_source))
         else:
-            sky_data = np.loadtxt(randfile)
-            sky_data1 = sky_data
+            add_source = np.loadtxt(randfile).T
+            sky_data1 = np.vstack((sky_data,add_source))
     else:
         sky_data1 = sky_data
     if(randfile==''):
