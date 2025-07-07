@@ -113,7 +113,7 @@ for naa in range(len(ska_aa_list)): # loop over array assemblies
         img_str = vis_str+'_'+img_str
         
         #------------- Get Skymodel
-        sky_data1,solar_map,solar_map_jy=get_skydata(skymodel_path,sm_save_str, start_frequency_hz_,\
+        sky_data1,solar_map,solar_map_jy=get_solar_skydata(skymodel_path,sm_save_str, start_frequency_hz_,\
             ra_sun_center,dec_sun_center, skymodel_cellsize,sm_fscale,\
             sm_threshold, save_sources,source_cut,\
             add_sm, randsize, point_flux, flux_rand_low, flux_rand_high,angle_rand)
