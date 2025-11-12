@@ -1,0 +1,31 @@
+ |                                                                   
+=|== OSKAR-2.8.3 starting at 2025-11-12, 15:15:04 (IST).
+ |                                                                   
+ | + Current dir is /home/rohit/my_git/lipi/adhyan/ska
+ | + Logging to file oskar_2025-11-12_151504.log
+W|                                                                   
+W|== WARNING: No GPU capability available.
+W|                                                                   
+ |                                                                   
+=|== Sky model summary
+ |                                                                   
+ | + Number of sources                   : 4194304
+ | + Number of chunks                    : 256
+ |                                                                   
+=|== Telescope model summary
+ |                                                                   
+ | + Longitude [deg]                     : 116.671
+ | + Latitude [deg]                      : -26.703
+ | + Altitude [m]                        : 0
+ | + Number of stations                  : 512
+ | + Number of station models            : 512
+ | + Max station size                    : 2587
+ | + Max station depth                   : 1
+ |                                                                   
+=|== Initial memory usage
+ |                                                                   
+ | + System memory is 54.8% (138.0 GB/251.8 GB) used.
+ | + System memory used by current process: 20418.5 MB.
+ |                                                                   
+=|== Starting simulation...
+ |                                                                   
