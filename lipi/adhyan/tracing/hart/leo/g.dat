@@ -1,0 +1,84 @@
+rm -fr build
+python setup.py install --home=~
+make[1]: Entering directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore'
+Installing all in mxvec
+make[2]: Entering directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore/mxvec'
+cp libmxv.a   ../lib
+make[2]: Leaving directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore/mxvec'
+make[1]: Leaving directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore'
+mkdir raytrace/lib
+cp rtcore/lib/libmxv.a raytrace/lib/
+mkdir raytrace/inc
+cp rtcore/raytrace.h raytrace/inc/
+running install
+running build
+running build_py
+creating build
+creating build/lib.linux-x86_64-2.7
+creating build/lib.linux-x86_64-2.7/raytrace
+copying raytrace/__init__.py -> build/lib.linux-x86_64-2.7/raytrace
+copying raytrace/raytrace.py -> build/lib.linux-x86_64-2.7/raytrace
+creating build/lib.linux-x86_64-2.7/raytrace/lib
+copying raytrace/lib/libmxv.a -> build/lib.linux-x86_64-2.7/raytrace/lib
+creating build/lib.linux-x86_64-2.7/raytrace/inc
+copying raytrace/inc/raytrace.h -> build/lib.linux-x86_64-2.7/raytrace/inc
+running build_ext
+building 'rtcore' extension
+creating build/temp.linux-x86_64-2.7
+creating build/temp.linux-x86_64-2.7/rtcore
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/rtcoremodule.c -o build/temp.linux-x86_64-2.7/rtcore/rtcoremodule.o -lpthread
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/advance_beam.c -o build/temp.linux-x86_64-2.7/rtcore/advance_beam.o -lpthread
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/calc_tbr.c -o build/temp.linux-x86_64-2.7/rtcore/calc_tbr.o -lpthread
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/calc_tbriquv.c -o build/temp.linux-x86_64-2.7/rtcore/calc_tbriquv.o -lpthread
+gcc -pthread -shared -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -L/home/rohit/miniconda3/envs/raytrace_py27/lib -Wl,-rpath=/home/rohit/miniconda3/envs/raytrace_py27/lib -Wl,--no-as-needed -Wl,--sysroot=/ -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ build/temp.linux-x86_64-2.7/rtcore/rtcoremodule.o build/temp.linux-x86_64-2.7/rtcore/advance_beam.o build/temp.linux-x86_64-2.7/rtcore/calc_tbr.o build/temp.linux-x86_64-2.7/rtcore/calc_tbriquv.o -Lrtcore/lib -L/home/rohit/miniconda3/envs/raytrace_py27/lib -lm -lmxv -lpython2.7 -o build/lib.linux-x86_64-2.7/rtcore.so
+running install_lib
+copying build/lib.linux-x86_64-2.7/raytrace/lib/libmxv.a -> /home/rohit/lib/python/raytrace/lib
+copying build/lib.linux-x86_64-2.7/raytrace/inc/raytrace.h -> /home/rohit/lib/python/raytrace/inc
+copying build/lib.linux-x86_64-2.7/rtcore.so -> /home/rohit/lib/python
+running install_egg_info
+Removing /home/rohit/lib/python/raytrace-0.00-py2.7.egg-info
+Writing /home/rohit/lib/python/raytrace-0.00-py2.7.egg-info
+rm -fr /home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/raytrace/lib
+rm -fr /home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/raytrace/inc
+rm -fr build
+python setup.py install --home=~
+make[1]: Entering directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore'
+Installing all in mxvec
+make[2]: Entering directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore/mxvec'
+cp libmxv.a   ../lib
+make[2]: Leaving directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore/mxvec'
+make[1]: Leaving directory '/home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/rtcore'
+mkdir raytrace/lib
+cp rtcore/lib/libmxv.a raytrace/lib/
+mkdir raytrace/inc
+cp rtcore/raytrace.h raytrace/inc/
+running install
+running build
+running build_py
+creating build
+creating build/lib.linux-x86_64-2.7
+creating build/lib.linux-x86_64-2.7/raytrace
+copying raytrace/__init__.py -> build/lib.linux-x86_64-2.7/raytrace
+copying raytrace/raytrace.py -> build/lib.linux-x86_64-2.7/raytrace
+creating build/lib.linux-x86_64-2.7/raytrace/lib
+copying raytrace/lib/libmxv.a -> build/lib.linux-x86_64-2.7/raytrace/lib
+creating build/lib.linux-x86_64-2.7/raytrace/inc
+copying raytrace/inc/raytrace.h -> build/lib.linux-x86_64-2.7/raytrace/inc
+running build_ext
+building 'rtcore' extension
+creating build/temp.linux-x86_64-2.7
+creating build/temp.linux-x86_64-2.7/rtcore
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/rtcoremodule.c -o build/temp.linux-x86_64-2.7/rtcore/rtcoremodule.o -lpthread
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/advance_beam.c -o build/temp.linux-x86_64-2.7/rtcore/advance_beam.o -lpthread
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/calc_tbr.c -o build/temp.linux-x86_64-2.7/rtcore/calc_tbr.o -lpthread
+gcc -pthread -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -Wl,--sysroot=/ -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ -fPIC -I/home/rohit/miniconda3/envs/raytrace_py27/include/python2.7 -c rtcore/calc_tbriquv.c -o build/temp.linux-x86_64-2.7/rtcore/calc_tbriquv.o -lpthread
+gcc -pthread -shared -B /home/rohit/miniconda3/envs/raytrace_py27/compiler_compat -L/home/rohit/miniconda3/envs/raytrace_py27/lib -Wl,-rpath=/home/rohit/miniconda3/envs/raytrace_py27/lib -Wl,--no-as-needed -Wl,--sysroot=/ -I/path/to/numpy/include -I/home/rohit/miniconda3/envs/raytrace_py27/lib/python2.7/site-packages/numpy/core/include/ build/temp.linux-x86_64-2.7/rtcore/rtcoremodule.o build/temp.linux-x86_64-2.7/rtcore/advance_beam.o build/temp.linux-x86_64-2.7/rtcore/calc_tbr.o build/temp.linux-x86_64-2.7/rtcore/calc_tbriquv.o -Lrtcore/lib -L/home/rohit/miniconda3/envs/raytrace_py27/lib -lm -lmxv -lpython2.7 -o build/lib.linux-x86_64-2.7/rtcore.so
+running install_lib
+copying build/lib.linux-x86_64-2.7/raytrace/lib/libmxv.a -> /home/rohit/lib/python/raytrace/lib
+copying build/lib.linux-x86_64-2.7/raytrace/inc/raytrace.h -> /home/rohit/lib/python/raytrace/inc
+copying build/lib.linux-x86_64-2.7/rtcore.so -> /home/rohit/lib/python
+running install_egg_info
+Removing /home/rohit/lib/python/raytrace-0.00-py2.7.egg-info
+Writing /home/rohit/lib/python/raytrace-0.00-py2.7.egg-info
+rm -fr /home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/raytrace/lib
+rm -fr /home/rohit/sort/SORT/raytrace_leo_old_version/raytrace/py_raytr_threaded/raytrace/inc
